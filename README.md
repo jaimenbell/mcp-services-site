@@ -13,14 +13,14 @@ case-studies/mcp-factory.html      case study 1 — manifest-driven MCP scaffold
 case-studies/rag-mcp.html          case study 2 — RAG retrieval MCP (50 tests, local/$0)
 case-studies/honest-harness.html   case study 3 — honest validation harness (rigor, not returns)
 404.html                           GitHub Pages custom 404 (no build step needed for this to work)
-scripts/swap_email.py              one-shot [EMAIL] -> real address swap (+ optional Calendly)
+scripts/swap_email.py              one-shot jaime@jaimenbell.dev -> real address swap (+ optional Calendly)
 .nojekyll                          tells GitHub Pages to serve files as-is (no Jekyll processing)
 ```
 
 ## Placeholders the operator fills before going live
 
 `[SITE_URL]` is already filled in (`https://jaimenbell.github.io/mcp-services-site`) since the
-GitHub Pages URL is deterministic from the repo name. The one remaining placeholder is `[EMAIL]`
+GitHub Pages URL is deterministic from the repo name. The one remaining placeholder is `jaime@jaimenbell.dev`
 (21 occurrences across index.html, 404.html, the 3 case studies, and this README) — every
 `mailto:` + CTA.
 
@@ -30,7 +30,7 @@ Run the one-shot swap script once the real contact address exists:
 python scripts/swap_email.py you@example.com
 ```
 
-It replaces every `[EMAIL]` occurrence and prints a before/after count so the swap is verified,
+It replaces every `jaime@jaimenbell.dev` occurrence and prints a before/after count so the swap is verified,
 not assumed. Pass `--calendly https://calendly.com/you/scoping-call` in the same command to also
 point the 5 primary **"Book a scoping call"** buttons at Calendly instead of `mailto:` (the nav
 and footer contact links stay `mailto:` either way). See `--help` for `--dry-run`.
@@ -64,7 +64,7 @@ Pricing tiers are **PROPOSED** and labeled as such on the page. Confirm them bef
 3. Repo → **Settings → Pages** → Source = *Deploy from a branch* → Branch = `main` / `/ (root)` → **Save**.
 4. After ~1 min the site is live at:
    `https://jaimenbell.github.io/mcp-services-site/`
-5. Run `python scripts/swap_email.py <address>` to fill `[EMAIL]`, review the diff, commit, push.
+5. Run `python scripts/swap_email.py <address>` to fill `jaime@jaimenbell.dev`, review the diff, commit, push.
 
 > A custom domain can be added later under **Pages → Custom domain**; the `github.io` URL works fine.
 

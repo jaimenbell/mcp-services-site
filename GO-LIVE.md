@@ -31,7 +31,7 @@ git -C C:/Users/jaime/projects/mcp-services-site branch -r
 
 Operator action outside this repo (~15:00 MT per plan). Have the address ready before step 2.
 
-## 2. Run the swap (fills `[EMAIL]`, optionally repoints Calendly)
+## 2. Run the swap (fills `jaime@jaimenbell.dev`, optionally repoints Calendly)
 
 ```bash
 cd /c/Users/jaime/projects/mcp-services-site
@@ -45,7 +45,7 @@ python scripts/swap_email.py you@example.com --calendly https://calendly.com/you
 ```
 
 The script is count-verified: it prints per-file replacement counts, refuses to report success
-on a no-op (0 placeholders found), and re-scans after writing to confirm 0 `[EMAIL]` remain. Add
+on a no-op (0 placeholders found), and re-scans after writing to confirm 0 `jaime@jaimenbell.dev` remain. Add
 `--dry-run` first if you want to preview with zero writes.
 
 ## 3. Review the diff
@@ -53,7 +53,7 @@ on a no-op (0 placeholders found), and re-scans after writing to confirm 0 `[EMA
 ```bash
 git diff
 ```
-Confirm: no stray `[EMAIL]` left, the address is spelled correctly everywhere, Calendly hrefs (if
+Confirm: no stray `jaime@jaimenbell.dev` left, the address is spelled correctly everywhere, Calendly hrefs (if
 used) only touched the 5 "Book a scoping call" buttons and not the nav/footer Contact links.
 
 ## 4. Commit
@@ -101,4 +101,4 @@ git push origin main
   either upstream repo's suite grows/shrinks, re-run and re-grep this site for the stale number
   before it goes stale again.
 - `[SITE_URL]` is already resolved to `https://jaimenbell.github.io/mcp-services-site` (GitHub
-  Pages URL is deterministic from repo name) — only `[EMAIL]` remains as a placeholder.
+  Pages URL is deterministic from repo name) — only `jaime@jaimenbell.dev` remains as a placeholder.
