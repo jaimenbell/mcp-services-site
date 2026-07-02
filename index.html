@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MCP Server Engineering — production-grade Model Context Protocol servers</title>
+  <meta name="description" content="I build production-grade Model Context Protocol (MCP) servers — auth-scoped, fail-soft, version-pinned, and tested. Fixed-scope sprints with public, checkable proof.">
+  <link rel="canonical" href="https://jaimenbell.github.io/mcp-services-site">
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="MCP Server Engineering — the production layer is the whole job">
+  <meta property="og:description" content="Auth-scoped, fail-soft, tested MCP servers that wire AI agents into real systems. Fixed-scope sprints. Proof you can check before you reply.">
+  <meta property="og:url" content="https://jaimenbell.github.io/mcp-services-site">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <span class="brand">MCP<span class="dot">·</span>Engineering</span>
+    <nav class="top">
+      <a href="#proof">Proof</a>
+      <a href="#offer">Offer</a>
+      <a href="#process">Process</a>
+      <a href="#faq">FAQ</a>
+      <a href="mailto:[EMAIL]">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ================= HERO ================= -->
+<div class="hero">
+  <div class="wrap">
+    <h1>The SDK wrapper is the easy part.<br><span class="hl">The production layer is the whole job.</span></h1>
+    <p class="lead">
+      I build <strong>Model Context Protocol (MCP) servers</strong> — the integration layer that
+      connects AI agents (Claude, ChatGPT, and custom LLM apps) to the APIs, databases, and internal
+      tools they need to actually act on real systems instead of simulating that they do.
+    </p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="mailto:[EMAIL]?subject=MCP%20scoping%20call">Book a scoping call</a>
+      <a class="btn btn-ghost" href="#proof">See the proof →</a>
+    </div>
+  </div>
+</div>
+
+<!-- ================= PROOF STRIP ================= -->
+<section id="proof">
+  <div class="wrap">
+    <p class="eyebrow">Proof you can check before you reply</p>
+    <h2>Public, tested code — not a pitch</h2>
+    <p class="sub">Lead with repos and test counts, not adjectives. Every number below is real and verifiable.</p>
+    <div class="proof">
+      <div class="stat">
+        <div class="n">179</div>
+        <div class="l">passing tests in <a href="https://github.com/jaimenbell/MCP-Factory">mcp-factory</a> (public)</div>
+      </div>
+      <div class="stat">
+        <div class="n">50</div>
+        <div class="l">tests in <a href="case-studies/rag-mcp.html">rag-mcp</a>, local embeddings, $0 inference</div>
+      </div>
+      <div class="stat">
+        <div class="n">90s</div>
+        <div class="l"><a href="https://www.loom.com/share/6a0c4a96b3d048c6a876bc7cc80d38a2">Loom demo</a> — live test run + auth-scoping + fail-soft</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= WHAT YOU GET ================= -->
+<section id="what">
+  <div class="wrap">
+    <p class="eyebrow">What keeps a server out of the 2am pager rotation</p>
+    <h2>What you get</h2>
+    <p class="sub">
+      Most teams know they want their agent wired into their stack. The hard part is building the
+      production layer correctly — and that is the whole job.
+    </p>
+    <div class="grid">
+      <div class="card"><h3>A working MCP server</h3><p>Scoped to your specific tools and APIs, with typed tool definitions an agent can call reliably.</p></div>
+      <div class="card"><h3>Auth-scoped</h3><p>At the right trust boundary — API-key, OAuth, or session-scoped — so an agent can't read across the wall.</p></div>
+      <div class="card"><h3>Fail-soft</h3><p>Backend-down, rate-limit, timeout — each returns a clean structured error. The agent session lives.</p></div>
+      <div class="card"><h3>Version-pinned</h3><p>So an upstream API change doesn't silently break the integration weeks after handoff.</p></div>
+      <div class="card"><h3>Tested</h3><p>Runs green on a clean checkout — not a demo that breaks on the second request.</p></div>
+      <div class="card"><h3>Documented for handoff</h3><p>Your team can extend the server without the original author. No bus-factor of one.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= OFFER / PRICING ================= -->
+<section id="offer">
+  <div class="wrap">
+    <p class="eyebrow">Fixed-scope, not open-ended hourly</p>
+    <h2>The offer</h2>
+    <p class="sub">
+      Every engagement is scoped and quoted flat. Start with a low-risk audit; the fee credits toward
+      the build if you proceed. A typical Sprint ships a working, tested server in about two weeks.
+    </p>
+    <div class="proposed">
+      <strong>Proposed pricing.</strong> These tiers are a starting point pending confirmation — the
+      final tier is set after a scoping call, because I don't quote before I understand the build.
+    </div>
+    <div class="tiers">
+      <div class="tier">
+        <div class="name">MCP Readiness Audit</div>
+        <div class="price">$1,500 <small>/ 3 days</small></div>
+        <div class="when">Entry point — written report, no code.</div>
+        <ul>
+          <li>A read of your stack and integration surface</li>
+          <li>An MCP spec + risk log so you ship the right server first</li>
+          <li>Credited in full toward a Sprint within 60 days</li>
+        </ul>
+        <a class="btn btn-ghost" href="mailto:[EMAIL]?subject=MCP%20Readiness%20Audit">Start with an audit</a>
+      </div>
+      <div class="tier featured">
+        <div class="name">MCP Integration Sprint</div>
+        <div class="price">$5k–$8k <small>/ ~2 weeks</small></div>
+        <div class="when">The core build. Lean ($5k) or Full ($8k).</div>
+        <ul>
+          <li>A working MCP server scoped to your tools</li>
+          <li>Auth-scoping, fail-soft, version-pinning</li>
+          <li>Full test coverage + handoff documentation</li>
+          <li>50% on signature / 50% on acceptance</li>
+        </ul>
+        <a class="btn btn-primary" href="mailto:[EMAIL]?subject=MCP%20Integration%20Sprint">Book a scoping call</a>
+      </div>
+      <div class="tier">
+        <div class="name">Multi-Source / Retainer</div>
+        <div class="price">$12k+ <small>/ or $2–3k mo</small></div>
+        <div class="when">Enterprise build, or keep it green after.</div>
+        <ul>
+          <li>Multi-tenant, self-hosted / on-prem, regulated stacks</li>
+          <li>Retainer: tests stay green, tool updates, one new tool/mo</li>
+          <li>So your team doesn't have to care about the plumbing</li>
+        </ul>
+        <a class="btn btn-ghost" href="mailto:[EMAIL]?subject=Multi-Source%20or%20Retainer">Talk scope</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PROCESS ================= -->
+<section id="process">
+  <div class="wrap">
+    <p class="eyebrow">How an engagement runs</p>
+    <h2>Process</h2>
+    <p class="sub">A short paid spike de-risks the build before either of us commits to a fixed quote.</p>
+    <div class="steps">
+      <div class="step"><div class="num">01 — SPIKE</div><h3>Audit &amp; scope</h3><p>A read of your stack delivered as a written MCP spec + risk log. You ship the right server the first time; the fee credits toward the build.</p></div>
+      <div class="step"><div class="num">02 — BUILD</div><h3>Fixed-scope sprint</h3><p>~1–2 weeks. Auth-scoped, fail-soft, version-pinned, tested. You see it run green on a clean checkout — not just on my machine.</p></div>
+      <div class="step"><div class="num">03 — HANDOFF</div><h3>Documented delivery</h3><p>Handoff docs so your team extends the server without me. Optional retainer keeps it green as upstream APIs and the MCP spec change.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CASE STUDIES ================= -->
+<section id="cases">
+  <div class="wrap">
+    <p class="eyebrow">How I work, shown in real builds</p>
+    <h2>Case studies</h2>
+    <p class="sub">No fabricated client wins. These are my own public, tested builds — and an honest look at how I validate (and kill) systems.</p>
+    <div class="cases">
+      <div class="case">
+        <span class="tag">// mcp-factory</span>
+        <h3>Browse the proof before you reply</h3>
+        <p>A manifest-driven MCP scaffolder + runtime. 179 passing tests, public repo, 90-second Loom demo of a live test run.</p>
+        <a class="more" href="case-studies/mcp-factory.html">Read the case study →</a>
+      </div>
+      <div class="case">
+        <span class="tag">// rag-mcp</span>
+        <h3>A real, citation-backed MCP server</h3>
+        <p>Retrieval-augmented search exposed as an MCP tool. Local ONNX embeddings, fail-soft, 50 tests, $0 inference cost.</p>
+        <a class="more" href="case-studies/rag-mcp.html">Read the case study →</a>
+      </div>
+      <div class="case">
+        <span class="tag">// honest validation harness</span>
+        <h3>I kill what doesn't clear costs</h3>
+        <p>The reliability story: how I forward-test systems honestly and retire the ones that don't earn their keep. Rigor, not returns.</p>
+        <a class="more" href="case-studies/honest-harness.html">Read the case study →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FAQ ================= -->
+<section id="faq">
+  <div class="wrap">
+    <p class="eyebrow">Before you reach out</p>
+    <h2>FAQ</h2>
+    <div class="faq">
+      <details>
+        <summary>Do you work hourly?</summary>
+        <p>No. Work is fixed-scope sprints, scoped and quoted flat after a short call. The entry point is a $1,500 MCP Readiness Audit (written report, no code), credited toward a Sprint if you proceed within 60 days.</p>
+      </details>
+      <details>
+        <summary>How long does a Sprint take?</summary>
+        <p>A typical Integration Sprint ships a working, tested server in about two weeks. Multi-source and self-hosted builds are larger and scoped separately.</p>
+      </details>
+      <details>
+        <summary>What if I already have an MCP server?</summary>
+        <p>The audit covers that too — a read of the existing server for auth-scoping gaps, fail-soft handling, version-pinning, and test coverage, delivered as a written risk log. The MCP spec is still moving; existing servers will need updates as it changes.</p>
+      </details>
+      <details>
+        <summary>What stack do you support?</summary>
+        <p>Python and Node MCP servers over REST, on cloud or self-hosted / on-prem. Auth via API-key, OAuth, or session-scoping. If your tools speak HTTP, they can be wired.</p>
+      </details>
+      <details>
+        <summary>Can I see proof before committing?</summary>
+        <p>That's the whole point. <a href="https://github.com/jaimenbell/MCP-Factory">mcp-factory</a> is public with 179 passing tests, and there's a <a href="https://www.loom.com/share/6a0c4a96b3d048c6a876bc7cc80d38a2">90-second Loom demo</a> showing the test run, auth-scoping, and fail-soft handling live.</p>
+      </details>
+      <details>
+        <summary>Do you have client testimonials?</summary>
+        <p>Not yet — and I won't fabricate any. Instead I publish tested code you can check yourself and a case study on how I validate systems honestly (including killing ones that don't work). That's the trust signal, in place of borrowed logos.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CTA BAND ================= -->
+<section class="cta-band">
+  <div class="wrap">
+    <h2>Wire your agent into the real thing</h2>
+    <p>Send me the two or three tools you need an agent to actually use. I'll tell you the right scope and a flat quote — after I understand the build, not before.</p>
+    <a class="btn btn-primary" href="mailto:[EMAIL]?subject=MCP%20scoping%20call">Book a scoping call</a>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    <span>MCP Server Engineering · auth-scoped, fail-soft, tested.</span>
+    <span><a href="https://github.com/jaimenbell/MCP-Factory">GitHub</a> · <a href="mailto:[EMAIL]">[EMAIL]</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Case study: an honest validation harness — I kill what doesn't clear costs</title>
+  <meta name="description" content="How I forward-test systems honestly and retire the ones that don't earn their keep — e.g. a strategy taken to -$735.66 over 1,002 paper trades, then killed. Rigor and clean engineering, not performance claims.">
+  <link rel="canonical" href="https://jaimenbell.github.io/mcp-services-site/case-studies/honest-harness.html">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="../index.html" style="text-decoration:none">MCP<span class="dot">·</span>Engineering</a>
+    <nav class="top">
+      <a href="../index.html#proof">Proof</a>
+      <a href="../index.html#offer">Offer</a>
+      <a href="../index.html#faq">FAQ</a>
+      <a href="mailto:[EMAIL]">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<section style="border-bottom:0">
+  <div class="wrap">
+    <article class="cs">
+      <a class="back" href="../index.html#cases">← All case studies</a>
+      <h1>An honest validation harness — I kill what doesn't clear costs</h1>
+      <div class="meta">// reliability story · rigor, not returns · paper-only, nothing live</div>
+
+      <span class="pill">forward-testing</span>
+      <span class="pill">cost-reality gate</span>
+      <span class="pill">fail-soft real-time data</span>
+      <span class="pill">186 tests (options-bot)</span>
+
+      <div class="honest">
+        <p>
+          <strong>Up front, because honesty is the whole point of this page:</strong> this is not a
+          trading-performance story. None of these systems are profitable and none are running live —
+          the trading fleet is frozen on purpose. What I'm selling here is the <em>engineering and the
+          discipline to tell the truth about results</em>, which is exactly what you want in someone
+          wiring an agent into your production systems.
+        </p>
+      </div>
+
+      <h2>The problem</h2>
+      <p>
+        It is easy to build something that looks like it works. It is much harder to build the
+        scaffolding that tells you honestly whether it <em>actually</em> works — and harder still to
+        act on that answer when it's "no." Most side-project dashboards are built to flatter the
+        builder. I wanted the opposite: infrastructure that would catch a system passing its own
+        happy-path checks while quietly failing the real test.
+      </p>
+
+      <h2>What I built</h2>
+      <p>
+        A validation harness around a fleet of experimental strategies: every system runs
+        <strong>paper-only</strong>, forward-tested against live conditions, with a hard
+        <strong>cost-reality gate</strong> — a strategy has to clear its real frictions (fees, spread,
+        slippage) over a meaningful sample, not just print a positive number on a backtest. When a
+        system doesn't clear that bar, it gets <strong>retired</strong>, and the result is recorded as
+        the answer rather than buried.
+      </p>
+
+      <div class="evidence">
+        <h3>Evidence: a strategy I killed</h3>
+        <p>
+          One strategy ("sage-bot") was taken to a real verdict and retired:
+        </p>
+        <ul>
+          <li><code>sage-bot: -$735.66 over 1,002 paper trades</code> → does not clear costs → <strong>PARKED / retired</strong>.</li>
+          <li>That number is the <em>deliverable</em>. The harness did its job: it produced a trustworthy "no" on a meaningful sample instead of a flattering "maybe."</li>
+        </ul>
+      </div>
+
+      <h2>An engineering vignette: real-time data done right</h2>
+      <p>
+        The same fleet is where I solve genuinely hard integration problems. The options bot needed
+        live option quotes from a tastytrade DXLink stream. The naive approach opened a fresh streamer
+        for every contract lookup — a ~16-second handshake flood that timed out before the quote
+        arrived and silently fell back to a rate-limited free source. The data was wrong and the cause
+        was invisible.
+      </p>
+      <p>The fix is the kind of work a Sprint is made of:</p>
+      <ul>
+        <li><strong>One persistent streamer</strong> — a single daemon thread owns one asyncio loop, enters the DXLink stream once, and listens forever, writing the latest bid/ask to a thread-safe per-symbol cache.</li>
+        <li><strong>Bounded waits</strong> — only a freshly-subscribed symbol pays a short wait for its first quote; everything after is a cache read.</li>
+        <li><strong>Fail-soft + self-healing</strong> — any error returns a clean <code>None</code> to the caller (never a crash); the handler backs off exponentially (1s → 30s) and auto-reconnects, re-subscribing known symbols so the cache heals itself.</li>
+        <li><strong>Honest paper mode</strong> — in paper mode an order is validated and logged but never submitted live; auth failures are caught, logged, and exit cleanly.</li>
+        <li><strong>Tested</strong> — 186 tests cover the streamer, signals, P&amp;L accounting, market hours, and the data-source fallbacks.</li>
+      </ul>
+
+      <h2>What it shows about how I work</h2>
+      <p>
+        Two things you want in a contractor touching your production stack: I build real-time
+        integrations that fail soft and heal themselves instead of lying to you, and I report results
+        straight — including the ones that say "kill it." A pretty dashboard is easy. Infrastructure
+        that's willing to tell you bad news, and engineering that holds up when the upstream flakes,
+        is the actual job.
+      </p>
+
+      <p style="margin-top:32px">
+        <a class="btn btn-primary" href="mailto:[EMAIL]?subject=MCP%20scoping%20call">Book a scoping call</a>
+        &nbsp;<a class="btn btn-ghost" href="../index.html#cases">← All case studies</a>
+      </p>
+    </article>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    <span>MCP Server Engineering · auth-scoped, fail-soft, tested.</span>
+    <span><a href="https://github.com/jaimenbell/MCP-Factory">GitHub</a> · <a href="mailto:[EMAIL]">[EMAIL]</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

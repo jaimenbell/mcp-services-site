@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Case study: rag-mcp — a citation-backed RAG retrieval MCP server (50 tests)</title>
+  <meta name="description" content="rag-mcp: a single-tool MCP server for retrieval-augmented search. Local ONNX bge-large embeddings, Chroma vector store, scoped to a corpus root, fail-soft, citation-carrying. 50 tests, $0 inference.">
+  <link rel="canonical" href="https://jaimenbell.github.io/mcp-services-site/case-studies/rag-mcp.html">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="../index.html" style="text-decoration:none">MCP<span class="dot">·</span>Engineering</a>
+    <nav class="top">
+      <a href="../index.html#proof">Proof</a>
+      <a href="../index.html#offer">Offer</a>
+      <a href="../index.html#faq">FAQ</a>
+      <a href="mailto:[EMAIL]">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<section style="border-bottom:0">
+  <div class="wrap">
+    <article class="cs">
+      <a class="back" href="../index.html#cases">← All case studies</a>
+      <h1>rag-mcp — a real, citation-backed MCP server</h1>
+      <div class="meta">// second MCP proof · 50 tests · local embeddings · $0 inference</div>
+
+      <span class="pill">Python MCP SDK</span>
+      <span class="pill">50 tests</span>
+      <span class="pill">local ONNX</span>
+      <span class="pill">ChromaDB</span>
+      <span class="pill">corpus-scoped</span>
+
+      <h2>The problem</h2>
+      <p>
+        "Let the agent search our docs" sounds simple until you ask the hard questions: where do the
+        embeddings run (and what do they cost), can the tool be tricked into reading files outside the
+        approved corpus, what happens when the vector store is empty or down, and can you trust an
+        answer you can't trace back to a source? A retrieval tool that gets any of those wrong is worse
+        than no tool at all.
+      </p>
+
+      <h2>What I built</h2>
+      <p>
+        <strong>rag-mcp</strong> exposes one tool — <code>search_knowledge(query, k)</code> — over the
+        Python MCP SDK on stdio transport. It embeds the query with a local model, vector-searches a
+        local corpus, and returns cited passages. Deliberately small surface area, production-grade edges:
+      </p>
+      <ul>
+        <li><strong>Local + $0</strong> — embeddings run on CPU via ONNX <code>BAAI/bge-large-en-v1.5</code> (1024-dim); no per-query API cost, no data leaving the box.</li>
+        <li><strong>Zero-infra vector store</strong> — ChromaDB embedded <code>PersistentClient</code>; nothing to stand up.</li>
+        <li><strong>Auth-scoped to a corpus root</strong> — sources that try to escape it (absolute paths, <code>..</code> traversal) are refused. An agent can't read across the wall.</li>
+        <li><strong>Fail-soft</strong> — a down or empty store returns a <em>structured error</em>, never an exception that crashes the calling agent.</li>
+        <li><strong>Citations on every hit</strong> — each result carries <code>source</code> + <code>heading</code> + <code>chunk_index</code>, so an answer is always traceable.</li>
+      </ul>
+
+      <div class="evidence">
+        <h3>Evidence you can check</h3>
+        <ul>
+          <li>Tests: <code>50 passed</code> across <code>test_chunking.py</code>, <code>test_cli.py</code>, <code>test_ingest.py</code>, <code>test_lock.py</code>, <code>test_search.py</code>, <code>test_server.py</code>, <code>test_store.py</code></li>
+          <li>Coverage spans the full path: chunking → ingestion → search → the MCP server surface.</li>
+          <li>Runs as a registered MCP server; the <code>search_knowledge</code> tool is callable from an agent session.</li>
+        </ul>
+      </div>
+
+      <div class="honest">
+        <p>
+          The same four edges that matter in a client build — local/cost-controlled, auth-scoped,
+          fail-soft, and traceable — are exactly what this 50-test suite exercises. Small tool, full rails.
+        </p>
+      </div>
+
+      <h2>What it shows about how I work</h2>
+      <p>
+        A good MCP tool isn't measured by how many features it has — it's measured by whether the
+        trust boundary holds, the failure modes are clean, and the output is verifiable. rag-mcp is a
+        compact demonstration of all three, the way I'd build a retrieval tool against your corpus.
+      </p>
+
+      <p style="margin-top:32px">
+        <a class="btn btn-primary" href="mailto:[EMAIL]?subject=MCP%20scoping%20call">Book a scoping call</a>
+        &nbsp;<a class="btn btn-ghost" href="honest-harness.html">Next case study →</a>
+      </p>
+    </article>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    <span>MCP Server Engineering · auth-scoped, fail-soft, tested.</span>
+    <span><a href="https://github.com/jaimenbell/MCP-Factory">GitHub</a> · <a href="mailto:[EMAIL]">[EMAIL]</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

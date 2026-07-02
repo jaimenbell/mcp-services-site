@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Case study: mcp-factory — manifest-driven MCP scaffolder (179 tests)</title>
+  <meta name="description" content="mcp-factory: a public, manifest-driven MCP server scaffolder + hub. 179 passing tests, scoped auth, fail-soft proxying, collision-safe registry. Browse the proof before you reply.">
+  <link rel="canonical" href="https://jaimenbell.github.io/mcp-services-site/case-studies/mcp-factory.html">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="../index.html" style="text-decoration:none">MCP<span class="dot">·</span>Engineering</a>
+    <nav class="top">
+      <a href="../index.html#proof">Proof</a>
+      <a href="../index.html#offer">Offer</a>
+      <a href="../index.html#faq">FAQ</a>
+      <a href="mailto:[EMAIL]">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<section style="border-bottom:0">
+  <div class="wrap">
+    <article class="cs">
+      <a class="back" href="../index.html#cases">← All case studies</a>
+      <h1>mcp-factory — browse the proof before you reply</h1>
+      <div class="meta">// keystone proof · public repo · 179 passing tests · 90-second Loom demo</div>
+
+      <span class="pill">Python + Node</span>
+      <span class="pill">179 passing tests</span>
+      <span class="pill">manifest-driven</span>
+      <span class="pill">scoped auth</span>
+      <span class="pill">fail-soft</span>
+
+      <h2>The problem</h2>
+      <p>
+        Wiring an AI agent to one tool is a quick SDK wrapper. Wiring it to a dozen tools across
+        several services — each needing scoped credentials, clean error handling, and a registry that
+        doesn't collide — is where projects stall. And when a hiring team is evaluating a contractor,
+        they have no way to verify any of that discipline from a pitch. They have to take your word for it.
+      </p>
+
+      <h2>What I built</h2>
+      <p>
+        <strong>mcp-factory</strong> is the manifest-driven engine behind the MCP Integration Sprint.
+        You write one <code>mcp.yaml</code> for a repo and the factory generates the server stub and
+        the <code>~/.claude.json</code> entry; run the hub and it serves every tool through a single
+        MCP endpoint. The SDK wrapper is the easy part — the engineering is everything around it:
+      </p>
+      <ul>
+        <li><strong>Validated, env-scoped manifests</strong> — secrets come from the environment, not source. <code>mcp_factory/manifest.py</code></li>
+        <li><strong>Fail-soft subprocess proxying</strong> — a backend going down returns a clean error, not a crashed session. <code>mcp_factory/runtime/subprocess_adapter.py</code></li>
+        <li><strong>Collision-safe registry</strong> — multiple bots' tools coexist behind one endpoint without clobbering each other. <code>mcp_factory/runtime/registry.py</code></li>
+        <li><strong>A real test suite</strong> — green on a clean checkout, not just on my machine. <code>tests/</code></li>
+      </ul>
+
+      <div class="evidence">
+        <h3>Evidence you can check yourself</h3>
+        <p>
+          The repo is <strong>public on purpose</strong> — so you can verify the discipline instead of
+          taking my word for it. Every claim maps to a file you can open:
+        </p>
+        <ul>
+          <li>Repo: <a href="https://github.com/jaimenbell/MCP-Factory">github.com/jaimenbell/MCP-Factory</a></li>
+          <li>Tests: <code>python -m pytest tests/</code> → <code>179 passed, 8 skipped, 0 failed</code></li>
+          <li>Demo: <a href="https://www.loom.com/share/6a0c4a96b3d048c6a876bc7cc80d38a2">90-second Loom</a> — live test run, env-scoped auth, fail-soft handling, manifest → server generation</li>
+        </ul>
+      </div>
+
+      <div class="honest">
+        <p>
+          The README states the number plainly: <strong>179 is the real, reproducible count.</strong>
+          Run the suite and you get exactly that — no rounding up, no counting skipped tests as passing.
+        </p>
+      </div>
+
+      <h2>What it shows about how I work</h2>
+      <p>
+        Proof you can check before you reply, not a polished reel. I build the production layer —
+        auth-scoping, fail-soft, validated config, collision-safety, tests — and I publish it so the
+        discipline is verifiable, not asserted. That's the same engine and the same standard behind
+        a client Sprint.
+      </p>
+
+      <p style="margin-top:32px">
+        <a class="btn btn-primary" href="mailto:[EMAIL]?subject=MCP%20scoping%20call">Book a scoping call</a>
+        &nbsp;<a class="btn btn-ghost" href="rag-mcp.html">Next case study →</a>
+      </p>
+    </article>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    <span>MCP Server Engineering · auth-scoped, fail-soft, tested.</span>
+    <span><a href="https://github.com/jaimenbell/MCP-Factory">GitHub</a> · <a href="mailto:[EMAIL]">[EMAIL]</a></span>
+  </div>
+</footer>
+
+</body>
+</html>
