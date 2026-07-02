@@ -1,5 +1,13 @@
 # GO-LIVE runbook
 
+> [!success] ✅ EXECUTED IN FULL — SITE LIVE 2026-07-02 16:45 MT
+> https://jaimenbell.github.io/mcp-services-site/ — all steps below completed and verified:
+> §0 scrub (force-push `e1a0ac3`, leaked branch deleted local+remote, remote = noreply-only) ·
+> §1 email (jaimenbell.dev on Cloudflare Registrar; Email Routing ACTIVE: jaime@ + catch-all →
+> Gmail, MX/SPF/DKIM verified on 1.1.1.1; Gmail send-as via App Password working; inbox test
+> passed) · email swap (31 spots, `ec467dd`) · repo PUBLIC · Pages built · smoke: 5 pages 200,
+> custom 404 live, 0 placeholders, 0 gmail refs on any public page. This file is now history.
+
 Operator steps, in order. Every command block states its shell.
 
 ## 0. BLOCKER — resolve the two email leaks (LOCAL HALF DONE 2026-07-02 13:15)
