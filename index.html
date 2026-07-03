@@ -164,11 +164,11 @@
     box-shadow: 0 0 0 4px rgba(94,234,212,0.14), 0 0 18px rgba(94,234,212,0.7);
   }
   .brand small { color: var(--faint); font-weight: 500; font-family: var(--mono); font-size: 12px; }
-  .nav-links { display: flex; gap: 30px; align-items: center; }
+  .nav-links { display: flex; gap: 22px; align-items: center; white-space: nowrap; }
   .nav-links a { color: var(--muted); font-size: 14.5px; font-weight: 500; transition: color .2s; }
   .nav-links a:hover { color: var(--text); }
   .nav-cta {
-    padding: 9px 17px; border-radius: 9px;
+    padding: 9px 17px; border-radius: 9px; flex: none; white-space: nowrap;
     background: var(--text); color: #0a0c10 !important;
     font-weight: 600; font-size: 14px;
     transition: transform .15s ease, box-shadow .2s ease;
@@ -682,9 +682,9 @@
     </a>
     <div class="nav-links">
       <a href="#problem">Problem</a>
-      <a href="#deliver">What you get</a>
+      <a href="#deliver">Deliver</a>
       <a href="#proof">Proof</a>
-      <a href="#cases">Case studies</a>
+      <a href="#cases">Cases</a>
       <a href="#process">Process</a>
       <a href="#pricing">Pricing</a>
       <a href="#faq">FAQ</a>
