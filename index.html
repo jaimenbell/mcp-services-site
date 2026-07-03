@@ -12,11 +12,11 @@
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="MCP Integration Sprint" />
 <meta property="og:title" content="MCP Integration Sprint — production MCP servers for AI agents" />
-<meta property="og:description" content="A fixed-scope, 1–2 week sprint that turns a flaky, hand-rolled agent integration into a production-grade MCP server: auth-scoped, fail-soft, version-pinned, tested. Public proof: 179 passing tests." />
+<meta property="og:description" content="A fixed-scope, 1–2 week sprint that turns a flaky, hand-rolled agent integration into a production-grade MCP server: auth-scoped, fail-soft, version-pinned, tested. Public proof: 187 passing tests." />
 <meta property="og:url" content="https://jaimenbell.github.io/mcp-services-site" />
 <meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="MCP Integration Sprint — production MCP servers for AI agents" />
-<meta name="twitter:description" content="Fixed-scope sprints that turn a flaky agent integration into a production-grade MCP server. Public proof you can read: 179 passing tests." />
+<meta name="twitter:description" content="Fixed-scope sprints that turn a flaky agent integration into a production-grade MCP server. Public proof you can read: 187 passing tests." />
 <!-- inline SVG favicon (the teal node motif) — no external asset needed -->
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230a0c10'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%235eead4'/%3E%3Ccircle cx='16' cy='16' r='10.5' fill='none' stroke='%235eead4' stroke-opacity='0.45' stroke-width='1.5'/%3E%3C/svg%3E" />
 
@@ -614,6 +614,10 @@
   }
   .price-note .lock { color: var(--accent); }
 
+  /* ---------- RETAINER ---------- */
+  .retainer-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; align-items: stretch; }
+  @media (max-width: 860px) { .retainer-grid { grid-template-columns: 1fr; } }
+
   /* ---------- CTA ---------- */
   .cta-box {
     padding: 64px 48px; border-radius: 22px; text-align: center;
@@ -687,6 +691,7 @@
       <a href="#cases">Cases</a>
       <a href="#process">Process</a>
       <a href="#pricing">Pricing</a>
+      <a href="#retainer">Retainer</a>
       <a href="#faq">FAQ</a>
       <a href="mailto:jaime@jaimenbell.dev?subject=MCP%20scoping%20call" class="nav-cta">Scope a sprint</a>
     </div>
@@ -749,7 +754,7 @@
     </div>
 
     <div class="hero-stats reveal">
-      <div class="stat"><div class="n accent">179</div><div class="l">passing tests · public engine</div></div>
+      <div class="stat"><div class="n accent">187</div><div class="l">passing tests · public engine</div></div>
       <div class="stat"><div class="n">1–2 wks</div><div class="l">fixed timeline, not open-ended</div></div>
       <div class="stat"><div class="n">Py · Node</div><div class="l">both runtimes covered</div></div>
       <div class="stat"><div class="n">50 / 50</div><div class="l">paid on signature &amp; acceptance</div></div>
@@ -882,7 +887,7 @@
 
 <!-- PROOF -->
 <section id="proof" class="band band--dark">
-  <span class="deco" style="bottom:80px; left:max(18px, calc(50% - 770px));"><span class="n">✓</span> 179 passing<br><span class="n">✓</span> 74 tests<br><span class="n">✓</span> 121 tests</span>
+  <span class="deco" style="bottom:80px; left:max(18px, calc(50% - 770px));"><span class="n">✓</span> 187 passing<br><span class="n">✓</span> 75 tests<br><span class="n">✓</span> 123 tests</span>
   <div class="wrap">
     <div class="split left">
       <div class="rail reveal">
@@ -922,7 +927,7 @@
           </div>
           <p>A manifest-driven MCP server scaffolder and runtime hub. Write a YAML manifest, get a Claude MCP server scaffold — with batch registration and a live routing hub. The hardened production layer is built on top, per engagement.</p>
           <div class="proof-meta">
-            <span class="chip green">✓ 179 passing tests</span>
+            <span class="chip green">✓ 187 passing tests</span>
             <span class="chip">Python + Node</span>
             <span class="chip">open source</span>
           </div>
@@ -938,7 +943,7 @@
           </div>
           <p>Read+write over a real external API — the exact common client ask. A public GitHub REST API MCP server built against the same delivery kit: write tools off by default, typed rate-limit handling, fail-soft + version-pinned.</p>
           <div class="proof-meta">
-            <span class="chip green">✓ 74 passing tests</span>
+            <span class="chip green">✓ 75 passing tests</span>
             <span class="chip">read + write</span>
             <span class="chip">public repo</span>
           </div>
@@ -962,24 +967,24 @@
     <div class="cases-grid">
       <a class="proof-card reveal" href="case-studies/mcp-factory.html">
         <div class="ph"><h3>// mcp-factory</h3></div>
-        <p>A manifest-driven MCP scaffolder + runtime. 179 passing tests, public repo, 90-second Loom demo of a live test run.</p>
-        <div class="proof-meta"><span class="chip green">✓ 179 tests</span><span class="chip">scaffold</span></div>
+        <p>A manifest-driven MCP scaffolder + runtime. 187 passing tests, public repo, 90-second Loom demo of a live test run.</p>
+        <div class="proof-meta"><span class="chip green">✓ 187 tests</span><span class="chip">scaffold</span></div>
         <span class="proof-link">Read the case study
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
         </span>
       </a>
       <a class="proof-card reveal" href="case-studies/github-mcp.html">
         <div class="ph"><h3>// github-mcp</h3></div>
-        <p>Read+write over a real external API — the exact common client ask. Write tools off by default, typed rate-limit handling, 74 passing tests, public repo.</p>
-        <div class="proof-meta"><span class="chip green">✓ 74 tests</span><span class="chip">read + write</span></div>
+        <p>Read+write over a real external API — the exact common client ask. Write tools off by default, typed rate-limit handling, 75 passing tests, public repo.</p>
+        <div class="proof-meta"><span class="chip green">✓ 75 tests</span><span class="chip">read + write</span></div>
         <span class="proof-link">Read the case study
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
         </span>
       </a>
       <a class="proof-card reveal" href="case-studies/desktop-mcp.html">
         <div class="ph"><h3>// desktop-mcp</h3></div>
-        <p>OS-level control when there's no API: screenshot, windows, input, screen-recording. Input off by default, rate-capped, 121 passing tests, public repo.</p>
-        <div class="proof-meta"><span class="chip green">✓ 121 tests</span><span class="chip">OS-level</span></div>
+        <p>OS-level control when there's no API: screenshot, windows, input, screen-recording. Input off by default, rate-capped, 123 passing tests, public repo.</p>
+        <div class="proof-meta"><span class="chip green">✓ 123 tests</span><span class="chip">OS-level</span></div>
         <span class="proof-link">Read the case study
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
         </span>
@@ -1105,13 +1110,52 @@
         <ul>
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg> Multiple tools / data sources</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg> Scoped as its own engagement</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg> Reliability retainer available after</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg> <a href="#retainer" style="color:var(--text); text-decoration:underline;">Reliability retainer</a> available after</li>
         </ul>
         <a href="mailto:jaime@jaimenbell.dev?subject=Multi-Source%20or%20Retainer" class="tcta">Talk through scope</a>
       </div>
     </div>
     <div class="price-note reveal">
       <span class="lock">⬡</span> Scoping-gated · the questionnaire sets the tier before any SOW · 50% on signature, 50% on acceptance
+    </div>
+  </div>
+</section>
+
+<!-- RETAINER -->
+<section id="retainer">
+  <div class="wrap">
+    <div class="reveal sec-head">
+      <div class="sec-tag">A second offer</div>
+      <h2>AI Agent Reliability Retainer.</h2>
+      <p class="sec-lede">Same discipline, pointed at your agent instead of ours: a validation harness gets built, proven live, and left running in your repo — then kept honest as your agent, model, and prompts drift. The harness <strong>is</strong> the deliverable, not a slide deck about one.</p>
+    </div>
+    <div class="retainer-grid">
+      <div class="tier reveal">
+        <div class="tn">Build</div>
+        <div class="price"><span class="from">fixed</span>$5k–$50k</div>
+        <div class="scope">A test/validation harness for your agent — eval pipeline, regression suite, and fail-soft checks scoped to its real failure modes.</div>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg> Same harness discipline that backs this site's own proof numbers</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg> Delivered as a repo with a live, running pass/fail count</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg> Single-agent builds start near $5k; multi-agent / eval-pipeline builds scope to $50k+</li>
+        </ul>
+        <a href="mailto:jaime@jaimenbell.dev?subject=AI%20Agent%20Reliability%20Retainer%20—%20Build" class="tcta">Scope a harness build</a>
+      </div>
+
+      <div class="tier reveal">
+        <div class="tn">Monitor</div>
+        <div class="price"><span class="from">monthly</span>$2k–$8k</div>
+        <div class="scope">Keep the harness honest on an ongoing basis — regression runs, eval-pipeline maintenance, and a written report every month.</div>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg> Regression suite run and triaged on every material change</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg> Eval-pipeline upkeep as models and providers rev</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg> Monthly written report — pass/fail counts, not vibes</li>
+        </ul>
+        <a href="mailto:jaime@jaimenbell.dev?subject=AI%20Agent%20Reliability%20Retainer%20—%20Monitor" class="tcta">Talk through monitoring</a>
+      </div>
+    </div>
+    <div class="price-note reveal">
+      <span class="lock">⬡</span> Standalone or after a Build engagement · no fabricated metrics, no client logos, just a repo you can run yourself
     </div>
   </div>
 </section>
@@ -1142,7 +1186,7 @@
       </details>
       <details>
         <summary>Can I see proof before committing?</summary>
-        <p>That's the whole point. <a href="https://github.com/jaimenbell/MCP-Factory">mcp-factory</a> is public with 179 passing tests, and there's a <a href="https://www.loom.com/share/6a0c4a96b3d048c6a876bc7cc80d38a2">90-second Loom demo</a> showing the test run, auth-scoping, and fail-soft handling live.</p>
+        <p>That's the whole point. <a href="https://github.com/jaimenbell/MCP-Factory">mcp-factory</a> is public with 187 passing tests, and there's a <a href="https://www.loom.com/share/6a0c4a96b3d048c6a876bc7cc80d38a2">90-second Loom demo</a> showing the test run, auth-scoping, and fail-soft handling live.</p>
       </details>
       <details>
         <summary>Do you have client testimonials?</summary>
@@ -1178,7 +1222,7 @@
       <span>MCP Integration Sprint <small>// built on mcp-factory</small></span>
     </a>
     <div class="foot-honest">
-      Production MCP servers — auth-scoped, fail-soft, tested. <span class="v">179 passing tests</span> on the open engine; the production layer is hand-built per engagement. No trading claims, no fabricated metrics.
+      Production MCP servers — auth-scoped, fail-soft, tested. <span class="v">187 passing tests</span> on the open engine; the production layer is hand-built per engagement. No trading claims, no fabricated metrics.
       <br><a href="https://github.com/jaimenbell/MCP-Factory" style="color:var(--muted)">GitHub</a> · <a href="mailto:jaime@jaimenbell.dev" style="color:var(--muted)">jaime@jaimenbell.dev</a>
     </div>
   </div>
