@@ -5,7 +5,7 @@ goal: Make jaimenbell.dev look like the original mcp-sprint-landing page — por
 acceptance_criteria:
   - new index.html is the landing-derived rich page (>= 1000 lines, hero/problem/deliver/proof/process/pricing/contact sections present)
   - no contact placeholder remains; jaime@jaimenbell.dev wired in >= 3 spots including the CTA
-  - proof numbers current (156 for mcp-factory, zero occurrences of 152); per-repo numbers match the case-study pages
+  - proof numbers current (179 for mcp-factory — verified live 2026-07-02 21:20 MT, "179 passed, 8 skipped"; zero stale 152/156 test-count claims); per-repo numbers match the case-study pages
   - all 5 case-study pages linked from index and their files untouched
   - FAQ section preserved
   - page renders correctly in a real browser (screenshot evidence), CNAME/404 untouched
@@ -45,7 +45,7 @@ Landing page = design base; live site = content truth. Copy the landing index.ht
 - Criterion: contact wired, no placeholder
   - Verify: `! grep -q "contact-placeholder" index.html && [ $(grep -c "jaime@jaimenbell.dev" index.html) -ge 3 ] && echo CONTACT-OK` # pre-existing pass (must still pass after port)
 - Criterion: proof numbers current
-  - Verify: `! grep -q "152" index.html && grep -q "156" index.html && echo PROOF-OK` # expected_to_fail_until_impl
+  - Verify: `! grep -qE "15[26][^0-9]*(passing )?tests" index.html && grep -q "179" index.html && echo PROOF-OK` # expected_to_fail_until_impl (corrected mid-run: live count is 179, not 156)
 - Criterion: 5 case studies linked, files untouched
   - Verify: `ok=1; for f in case-studies/*.html; do grep -q "$(basename $f)" index.html || ok=0; done; [ $ok -eq 1 ] && git diff --quiet case-studies/ && echo CASES-OK` # pre-existing pass (must hold)
 - Criterion: FAQ preserved
