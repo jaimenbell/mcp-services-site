@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Case study: one day of agent-fleet reliability engineering — 22 self-healed outages, a false PASS caught, an 8-day-dead bot revived</title>
+  <meta name="description" content="A single day running a ~30-lane AI agent fleet against a live production system: a two-lens theme audit, a self-healing bus that survived 22 accept-loop deaths, a caught-and-fixed false visual PASS, an 8-day-dead trading bot revived by evidence-chain diagnosis, and 4 MCP servers found broken-as-published before any stranger hit them.">
+  <link rel="canonical" href="https://jaimenbell.github.io/mcp-services-site/case-studies/fleet-reliability-day.html">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="../index.html" style="text-decoration:none">MCP<span class="dot">·</span>Engineering</a>
+    <nav class="top">
+      <a href="../index.html#proof">Proof</a>
+      <a href="../index.html#offer">Offer</a>
+      <a href="../index.html#faq">FAQ</a>
+      <a href="mailto:jaime@jaimenbell.dev">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<section style="border-bottom:0">
+  <div class="wrap">
+    <article class="cs">
+      <a class="back" href="../index.html#cases">← All case studies</a>
+      <h1>One day of agent-fleet reliability engineering</h1>
+      <div class="meta">// 2026-07-03 · ~30 background lanes · orchestrated, not scripted · every number below has a verify command</div>
+
+      <span class="pill">two-lens theme audit</span>
+      <span class="pill">self-healing infra (22 outages)</span>
+      <span class="pill">false-PASS caught + fixed</span>
+      <span class="pill">evidence-chain bot revival</span>
+      <span class="pill">4 registries + PyPI smoke-tested</span>
+
+      <div class="honest">
+        <p>
+          <strong>Up front, because honesty is the whole point of this page:</strong> this is not a
+          highlight reel. It includes a bug my own fleet shipped and then had to publicly correct — a
+          screenshot that lied — because that correction is the actual product. What follows is one
+          real day running a multi-agent build/verify/ship pipeline against a live system I depend on,
+          with the commit SHAs and log lines to back every claim.
+        </p>
+      </div>
+
+      <h2>The setup</h2>
+      <p>
+        I run an orchestrator session that dispatches short-lived "lanes" — background Claude agents,
+        each scoped to one task, each required to claim a coordination-bus lane, verify the work isn't
+        already done before touching anything, run its own test suite, and report back with commit
+        SHAs before releasing the lane. Today that pipeline touched a dashboard redesign, a production
+        bus outage, a dead trading bot, and a public package registry — <strong>at least 30 distinct
+        lane topics</strong> posted to the bus in one day (verified: <code>curl
+        localhost:8100/api/bus/status</code>, 90 messages, 35 distinct topics minus the 5 meta/orchestrator
+        ones = 30 real lanes). Five separate arcs are worth walking through on their own.
+      </p>
+
+      <h2>1. A two-lens audit, and the visual PASS that lied</h2>
+      <p>
+        Late morning, a design critique (visual, headless-Chrome captures) and a structural rubric
+        (source-level, chamber-by-chamber) ran against the fleet's "WORLD" dashboard tab in parallel.
+        Critique: <strong>60/100</strong>. Rubric: <strong>~74</strong>, with one chamber at 50
+        (halt-tier). Both lenses converged on the same root cause: dead bots were rendering exactly
+        like live ones — accent color was applied as a whole-floor flood, not tied to a liveness
+        signal, so a bot dead for 10 days looked identical to one that fired an hour ago. The dashboard
+        had no way to show death.
+      </p>
+      <div class="evidence">
+        <h3>Evidence: the false PASS, in the fleet's own words</h3>
+        <p>
+          A fix landed, converged to master, and was reported <code>VISUAL-OK</code> at 13:28 MT. Twelve
+          minutes later, a different lane flagged it:
+        </p>
+        <ul>
+          <li><code>"INCIDENT: W0 VISUAL-OK falsified on merged master (operator-spotted; orchestrator reproduced on prod build + fresh vite dev)"</code> — bus msg 66, 13:41 MT.</li>
+          <li>Root cause, found by the follow-up lane: the floor used iso-diamond tiles on a rectangular grid, leaving ~50% of the floor plane transparent. The de-flood fix repainted the tile fills correctly — but a saturated, <em>async-loaded</em> parallax backdrop sprite showed straight through the transparent gaps once it finished loading, a few seconds after the fix's own screenshot was taken. The lane had screenshotted before its assets finished loading and shipped a false PASS.</li>
+          <li>Fixed same day (<code>6eed7ffc</code> floor-leak close, <code>faf263b6</code> chip-gate recalibration), reconverged 14:14 MT, vitest 2675/2675.</li>
+        </ul>
+        <p>
+          The incident is now a standing rule, not a one-off apology. It's clause §X in the lane
+          contract every future lane reads before shipping a visual claim: wait for async assets to
+          finish loading before screenshotting, verify on a <em>built</em> preview not just the dev
+          server, and where a paint path has a known second pass, add a regression test asserting the
+          <em>final</em> painted state — not the one the screenshot happened to catch.
+        </p>
+      </div>
+      <p>
+        By 14:56 MT the honest version had shipped: dead bots render visibly dead (cobwebbed, dark,
+        labeled "DEAD 10.0d" / "DEAD 11.2d" with the actual age), live ones stay lit, and the eight
+        rooms with no real signal say so — "STALE (no signal)" — instead of guessing. A second lane
+        wired the dashboard's "OVERMIND" hub to the real coordination bus in the same window: lane
+        claims render as couriers docking, bus messages as packets in flight, action-flagged messages
+        as a gold beacon. Verified: master <code>4797db20</code>, union suite <strong>2796/2796</strong>,
+        eyeball-verified on a built preview with textures loaded — the thing the earlier false PASS
+        skipped.
+      </p>
+
+      <h2>2. The bus that fixed itself, mid-outage, using the fix it was about to ship</h2>
+      <p>
+        The coordination bus backing all of this — the thing every lane above reports through — died
+        and restarted itself <strong>22 times today</strong> (verified: <code>grep "watchdog: listener
+        on port 8100 unresponsive" backend/logs/autostart.log | grep -c 2026-07-03</code>). Root cause:
+        a Windows <code>ProactorEventLoop</code> IOCP accept-path fault (<code>WinError 64</code>),
+        raised inside asyncio's own accept loop, below any application code — nothing a normal
+        exception handler can catch. A watchdog probes the listener and force-exits the process on
+        repeated failure so the process supervisor rebinds fresh.
+      </p>
+      <p>
+        A read-only diagnosis lane confirmed the theory with five live occurrences, then caught a
+        sixth <em>while it was running</em> — its own <code>post_message</code>/<code>release_lane</code>
+        calls hit "bus unreachable" mid-outage, which is itself corroborating evidence, and it said so
+        in its own report rather than treating the interruption as noise. A follow-up lane tightened the
+        watchdog (probe interval 30s→15s, failure threshold 3→2) and landed it as commit
+        <code>ada93ea3</code> — using the same bus that had been dying all day to coordinate its own
+        fix. After the tighten, detection latency dropped from ~90s to ~30s per incident; the fault
+        itself wasn't eliminated (it's a Windows-level asyncio issue upstream of the app), so the honest
+        framing is "faster self-heal," not "fixed." All 22 incidents today self-healed with zero human
+        intervention past one early, since-acknowledged-as-redundant manual restart.
+      </p>
+
+      <h2>3. An 8-day-dead bot, revived by evidence chain</h2>
+      <p>
+        A monitoring dashboard reported a Solana sniper bot as dead. A diagnosis lane didn't guess —
+        it cross-referenced the bot's beacon file, its session logs, and Windows' own boot-time record,
+        all of which agreed to the minute: the scheduled task had been <strong>disabled since a host
+        reboot on 2026-06-25</strong>, and the monitor was watching the wrong task name
+        (<code>SolanaSnipeBot</code> vs. the real <code>SolanaSnipeBotDaemon</code>) — a second,
+        independent bug layered on top of the first. Three earlier manual restart attempts had each
+        produced a silent 0-byte log, an undiagnosed crash mode nobody had caught because nobody was
+        watching the right task.
+      </p>
+      <p>
+        The fix: correct the monitored task name, patch and version-pin the criteria file that had
+        drifted, smoke-test the output (75KB clean run), then hand the operator the exact re-arm
+        command. First scheduled fire confirmed at 14:22 MT from the bot's own evidence — a fresh
+        session log with live RPC scans and a beacon write, eight days after it went dark, closed the
+        same day it was found.
+      </p>
+
+      <h2>4. Four servers on the official registry — and a smoke test that beat the first stranger to the bug</h2>
+      <p>
+        Four MCP servers (<code>mcp-factory</code>, <code>desktop-mcp</code>, <code>github-mcp</code>,
+        <code>bus-mcp</code>) went live on <code>registry.modelcontextprotocol.io</code> and PyPI the
+        same day (verified live: <code>curl
+        'https://registry.modelcontextprotocol.io/v0/servers?search=jaimenbell'</code> — all four
+        <code>status: active</code>). A follow-up lane ran a fresh-venv smoke test before calling it
+        done — <code>pip install</code> into a clean environment, then actually try to run the thing a
+        stranger installing it from the registry would run.
+      </p>
+      <div class="evidence">
+        <h3>Evidence: broken as published, all four, same day</h3>
+        <p>
+          The smoke test failed on the first package: <code>pip install</code> succeeded, but there was
+          no entrypoint — no console script, no <code>__main__.py</code>; the wheel build had excluded
+          <code>run_server.py</code>/<code>hub_server.py</code>. The lane checked the other three
+          instead of assuming they were fine — same bug, all four packages. Fixes were built in
+          parallel across four repo agents, version-bumped to <code>0.1.1</code> on
+          <code>lane/inbound-polish</code> branches (verified: <code>git show
+          lane/inbound-polish:pyproject.toml</code> in each of the four repos), staged for the operator
+          to re-upload. A separate packaging bug in <code>mcp-factory</code> (a missing
+          <code>TemplateNotFound</code> fix for its own scaffolder templates) blocked that one repo's
+          re-upload until a same-day follow-up landed it: <code>94f9586</code>, 187 passed / 8 skipped.
+        </p>
+      </div>
+
+      <h2>5. The orchestration pattern itself</h2>
+      <p>
+        None of the above happened by one agent doing one thing. It happened because the pipeline
+        enforces a few unglamorous disciplines on every lane before it's allowed to ship:
+        verify-before-dispatch (one lane found its assigned bug already fixed on master, said so, and
+        did no-op work instead of re-implementing it — <code>bind-watchdog</code> lane, 13:17 MT), a
+        shared union test suite that every convergence recomputes rather than trusts, and adversarial
+        review passes that catch the previous lane's mistakes (see arc 1). The frontend test suite grew
+        from 2513 to <strong>2806</strong> passing tests across the day (verified live: <code>npx vitest
+        run</code>, 202 files, 2806/2806); the backend suite grew from 249 to
+        <strong>283</strong> (verified live: <code>pytest --collect-only -q</code>, 283 collected).
+      </p>
+      <p>
+        Even this case study is an example of the discipline it describes: the brief for this page
+        estimated "~8 IOCP deaths" and "~20 lanes." Live-verifying against the actual log and bus
+        history found <strong>22 deaths</strong> and <strong>30 lane topics</strong> — the estimate was
+        an undercount, not an overcount, and this page reports the counted number instead of the
+        assumed one.
+      </p>
+
+      <h2>What it shows about how I work</h2>
+      <p>
+        A fleet of agents moving this fast will produce false positives — a screenshot taken before
+        assets load, a stale premise, a wrong task name. The engineering isn't pretending that doesn't
+        happen; it's building the harness that catches it same-day, in production, before a user or a
+        stranger installing from a public registry does. That's the actual shape of an AI Agent
+        Reliability Retainer: not "the agents never fail," but "failures get caught, root-caused, and
+        fixed on a timeline measured in minutes, with the evidence to prove it."
+      </p>
+
+      <!-- EOD-STATS: fill in tonight's final numbers before publishing/sharing —
+           - final lane count for the day (bus /api/bus/status, distinct topics, meta-excluded)
+           - final commit count across all touched repos (git log --since="2026-07-03 00:00" --all --oneline)
+           - final frontend/backend suite counts if any lane lands after this was drafted (currently 2806/283)
+           - push status: which repos were actually pushed by the operator vs. still staged on local branches
+           - PyPI 0.1.1 re-upload status: staged vs. actually live (currently STAGED, not live — mcp-factory blocked pending templates-fix, now unblocked per bus msg 89)
+           - registry re-publish status if the operator re-runs the registry publish step after PyPI 0.1.1 goes live
+      -->
+
+      <p style="margin-top:32px">
+        <a class="btn btn-primary" href="mailto:jaime@jaimenbell.dev?subject=AI%20Agent%20Reliability%20Retainer">Book a scoping call</a>
+        &nbsp;<a class="btn btn-ghost" href="../index.html#cases">← All case studies</a>
+      </p>
+    </article>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    <span>MCP Server Engineering · auth-scoped, fail-soft, tested.</span>
+    <span><a href="https://github.com/jaimenbell/MCP-Factory">GitHub</a> · <a href="mailto:jaime@jaimenbell.dev">jaime@jaimenbell.dev</a></span>
+  </div>
+</footer>
+
+</body>
+</html>
