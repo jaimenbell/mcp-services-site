@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Case study: desktop-mcp — Windows desktop-control MCP (121 tests)</title>
+  <meta name="description" content="desktop-mcp: a public Windows desktop-control MCP server — screenshot, window management, input, ffmpeg screen-recording. Config-gated tool groups, input off by default, 121 passing tests.">
+  <link rel="canonical" href="https://jaimenbell.github.io/mcp-services-site/case-studies/desktop-mcp.html">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="../index.html" style="text-decoration:none">MCP<span class="dot">·</span>Engineering</a>
+    <nav class="top">
+      <a href="../index.html#proof">Proof</a>
+      <a href="../index.html#offer">Offer</a>
+      <a href="../index.html#faq">FAQ</a>
+      <a href="mailto:jaime@jaimenbell.dev">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<section style="border-bottom:0">
+  <div class="wrap">
+    <article class="cs">
+      <a class="back" href="../index.html#cases">← All case studies</a>
+      <h1>desktop-mcp — the same discipline, past the API layer</h1>
+      <div class="meta">// public repo · 18 tools · 121 passing tests · input off by default</div>
+
+      <span class="pill">Python</span>
+      <span class="pill">121 passing tests</span>
+      <span class="pill">4 tool groups</span>
+      <span class="pill">input off by default</span>
+      <span class="pill">rate-capped</span>
+
+      <h2>The problem</h2>
+      <p>
+        Not every integration is an HTTP API. Sometimes the thing an agent needs to drive is the desktop
+        itself — read a window, capture the screen, record a flow, or click through an app that has no
+        API at all. That surface is far more dangerous to expose than a REST endpoint: an injected
+        keystroke or mouse move touches the live machine. The question a client has is whether you can
+        hand an agent that reach <em>and</em> keep it bounded.
+      </p>
+
+      <h2>What I built</h2>
+      <p>
+        <strong>desktop-mcp</strong> is a Windows desktop-control MCP server — 18 tools across four
+        capability groups, each independently gated, built to the same standard as the API servers:
+      </p>
+      <ul>
+        <li><strong>observe (always on)</strong> — screenshot, list/inspect windows. Read-only, safe by construction. <code>desktop_mcp/groups/observe.py</code></li>
+        <li><strong>window / record (env-gated)</strong> — focus/move/resize windows; ffmpeg screen-recording with an auto-stop cap. Off unless explicitly enabled. <code>groups/window.py</code>, <code>groups/record.py</code></li>
+        <li><strong>input (OFF by default)</strong> — mouse + keyboard injection, refused with a structured error unless <code>DESKTOP_MCP_ENABLE_INPUT=1</code>, and rate-capped even when on. The most dangerous group is the one you have to deliberately turn on. <code>groups/input.py</code></li>
+        <li><strong>honest limits</strong> — the README names what it can't do (elevated windows via Windows UIPI, the UAC secure desktop, single-machine scope) instead of pretending they don't exist.</li>
+      </ul>
+
+      <div class="evidence">
+        <h3>Evidence you can check yourself</h3>
+        <ul>
+          <li>Repo: <a href="https://github.com/jaimenbell/desktop-mcp">github.com/jaimenbell/desktop-mcp</a></li>
+          <li>Tests: <code>python -m pytest</code> → <code>121 passed, 2 skipped, 0 failed</code> (the two skips are live smokes that produce a real screenshot PNG and a real screen-recording mp4, gated behind an env flag)</li>
+          <li>Safety: every disabled group returns a structured <code>policy_refusal</code> — never a silent no-op, never a crash. Input actions are additionally capped at 60/min by default.</li>
+        </ul>
+      </div>
+
+      <div class="honest">
+        <p>
+          Built and shipped in a single day with a full test suite and an adversarial review pass before
+          it went public. The same <strong>gate-the-dangerous-surface-by-default</strong> pattern as the
+          API servers — the safe default is the one you opt out of, not into.
+        </p>
+      </div>
+
+      <h2>What it shows about how I work</h2>
+      <p>
+        Range plus restraint. The MCP work isn't limited to wrapping REST APIs — it extends to OS-level
+        control when a client needs it — and the safety discipline is identical whichever surface it is:
+        capability groups, off-by-default on anything that writes or acts, structured refusals, tests
+        that run on a clean checkout.
+      </p>
+
+      <p style="margin-top:32px">
+        <a class="btn btn-primary" href="mailto:jaime@jaimenbell.dev?subject=MCP%20scoping%20call">Book a scoping call</a>
+        &nbsp;<a class="btn btn-ghost" href="../index.html#cases">All case studies →</a>
+      </p>
+    </article>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    <span>MCP Server Engineering · auth-scoped, fail-soft, tested.</span>
+    <span><a href="https://github.com/jaimenbell/desktop-mcp">GitHub</a> · <a href="mailto:jaime@jaimenbell.dev">jaime@jaimenbell.dev</a></span>
+  </div>
+</footer>
+
+</body>
+</html>
