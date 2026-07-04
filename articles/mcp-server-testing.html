@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MCP Server Testing: The Honest Harness Approach</title>
+  <meta name="description" content="A practical MCP server testing framework — smoke, conformance, scenario, and fail-soft layers — plus the harder discipline: setting a kill bar before you look at results.">
+  <link rel="canonical" href="https://jaimenbell.dev/articles/mcp-server-testing.html">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="MCP Integration Sprint">
+  <meta property="og:title" content="MCP Server Testing: The Honest Harness Approach">
+  <meta property="og:description" content="A practical MCP server testing framework — smoke, conformance, scenario, and fail-soft layers — plus the harder discipline: setting a kill bar before you look at results.">
+  <meta property="og:url" content="https://jaimenbell.dev/articles/mcp-server-testing.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="MCP Server Testing: The Honest Harness Approach">
+  <meta name="twitter:description" content="A practical testing framework, plus the harder discipline: setting a kill bar before you look at results.">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="../index.html" style="text-decoration:none">MCP<span class="dot">·</span>Engineering</a>
+    <nav class="top">
+      <a href="../index.html#proof">Proof</a>
+      <a href="../index.html#pricing">Offer</a>
+      <a href="../index.html#faq">FAQ</a>
+      <a href="mailto:jaime@jaimenbell.dev">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<section style="border-bottom:0">
+  <div class="wrap">
+    <article class="cs">
+      <a class="back" href="../index.html">← Back to MCP Integration Sprint</a>
+      <h1>MCP Server Testing: The Honest Harness Approach</h1>
+      <div class="meta">// practitioner guide · testing &amp; evals · ~9 min read</div>
+
+      <span class="pill">MCP testing</span>
+      <span class="pill">evals</span>
+      <span class="pill">fail-soft</span>
+      <span class="pill">honest kill criteria</span>
+
+      <div class="honest">
+        <p>
+          <strong>Up front:</strong> "tested" is doing a lot of quiet work in most MCP write-ups.
+          Clicking a tool once in an inspector and seeing it respond is a smoke test, not a test
+          suite. This is a framework for the difference, plus the part that's genuinely harder than
+          writing assertions — deciding, in writing, before you run anything, what result would mean
+          the thing isn't ready.
+        </p>
+      </div>
+
+      <h2>Why "it responded" isn't "it works"</h2>
+      <p>
+        An MCP server's test surface is unusual: its primary consumer is a model, not a fixed client.
+        That means correctness has two separate layers that get conflated constantly. Integration
+        tests verify the server <em>responds</em> — the process starts, the tool is discoverable, a
+        call returns something. Evals verify it responds <em>correctly</em> — the tool description
+        is unambiguous enough for a model to pick the right tool and pass the right arguments, and
+        the result is actually useful for the task. A server can pass every integration test and
+        still be unusable because the tool description confuses the model calling it.
+      </p>
+
+      <h2>A five-layer shape that holds up in practice</h2>
+      <p>
+        You don't need a novel framework here — the shape that keeps showing up in production
+        MCP testing write-ups (and matches what I run) is roughly five gates, cheapest first:
+      </p>
+      <ul>
+        <li><strong>Smoke</strong> — does the server start, initialize, and advertise its tools/resources
+          correctly? Cheapest test, catches the most embarrassing failures.</li>
+        <li><strong>Conformance</strong> — does it behave like a spec-compliant MCP server (correct
+          error shapes, correct capability negotiation, no malformed responses)?</li>
+        <li><strong>Scenario / eval</strong> — given real prompts a user would actually send, does the
+          model pick the right tool, with the right arguments, and get a usable result? This is the
+          layer most homegrown test suites skip entirely, and it's non-deterministic — run it more
+          than once and look at the distribution, not a single pass/fail.</li>
+        <li><strong>Fail-soft / load</strong> — what happens when a dependency is slow, rate-limited,
+          or down? Does the server degrade to a clean error, or does it crash the session? What's the
+          honest p99 under real concurrency, including the requests that stalled out — not just the
+          ones that returned fast?</li>
+        <li><strong>Adversarial</strong> — what happens when the caller (or an injected prompt) sends
+          malformed, oversized, or scope-violating input? This is the layer that catches the
+          over-broad-credential problem before a real agent does.</li>
+      </ul>
+
+      <h2>A concrete fail-soft test, not just the concept</h2>
+      <p>
+        Talking about "fail-soft" in the abstract is easy; testing it is one assertion, forced
+        against a simulated failure:
+      </p>
+      <pre><code>import pytest
+
+async def test_refund_returns_clean_error_when_upstream_down(monkeypatch):
+    async def raise_down(*a, **kw):
+        raise billing_client.UpstreamDown()
+    monkeypatch.setattr(billing_client, "refund", raise_down)
+
+    result = await refund(order_id="ord_123", amount_cents=500)
+
+    assert result["status"] == "error"
+    assert result["retryable"] is True
+    # the real assertion: the tool call did not raise past this boundary
+</code></pre>
+      <p>
+        That last comment is the point. A test that only checks the happy path never exercises the
+        code path that actually causes 2am pages. If you don't have a test that forces each known
+        failure mode (rate-limited, unauthorized, timeout, malformed upstream response) through the
+        tool boundary, you don't know your fail-soft handling works — you're hoping.
+      </p>
+
+      <h2>The part that's actually hard: the kill bar</h2>
+      <p>
+        Here's where most testing write-ups stop, and where the honest version of this keeps going.
+        Writing tests is a skill. Being willing to act on what they say — including "this doesn't
+        clear the bar, park it" — is a discipline, and it's the one that's easy to skip under
+        deadline pressure. The fix isn't more tests. It's writing the kill criterion down
+        <em>before</em> you run the suite, so there's no room to move the goalposts after you see
+        the number.
+      </p>
+      <p>
+        I run this discipline on my own systems, not just client work: a
+        <a href="../case-studies/honest-harness.html">forward-testing harness</a> that took one
+        strategy to a real, unflattering verdict —
+        <code>sage-bot: -$735.66 over 1,002 paper trades</code> — and retired it, because the
+        cost-reality gate was written down before the trades ran, not adjusted after. The harness
+        did its job by producing a trustworthy "no." An MCP server's kill bar looks the same in
+        shape: pick the p99 latency, the fail-soft coverage percentage, or the eval pass rate that
+        would mean "not ready," write it down, then run the suite and honor what it says.
+      </p>
+
+      <h2>What this looks like as a checklist</h2>
+      <ul>
+        <li>Smoke + conformance tests exist and run on every change, not just before a demo.</li>
+        <li>At least one forced-failure test per known dependency failure mode (down, slow,
+          unauthorized, rate-limited).</li>
+        <li>Scenario evals run against real prompts, more than once, with results tracked as a
+          distribution — not a single green checkmark.</li>
+        <li>A written kill bar exists before the suite runs, and someone other than the person who
+          built the server has seen it.</li>
+        <li>The results — including any that miss the bar — are recorded, not quietly rerun until
+          they pass.</li>
+      </ul>
+
+      <div class="cta-box">
+        <h3>Not sure where your test coverage actually stands?</h3>
+        <p>
+          The MCP Readiness Audit is a 2–3 day outside read of your server or planned build —
+          auth-scoping gaps, fail-soft coverage, and test-suite honesty, delivered as a written
+          risk report. No code changes, no upsell pressure — and it's fully credited toward a
+          Sprint if you proceed.
+        </p>
+        <a class="btn btn-primary" href="mailto:jaime@jaimenbell.dev?subject=MCP%20Readiness%20Audit">Start with an audit</a>
+        &nbsp;<a class="btn btn-ghost" href="../index.html#pricing">See pricing</a>
+      </div>
+    </article>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    <span>MCP Server Engineering · auth-scoped, fail-soft, tested.</span>
+    <span><a href="https://github.com/jaimenbell/MCP-Factory">GitHub</a> · <a href="mailto:jaime@jaimenbell.dev">jaime@jaimenbell.dev</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How to Build a Custom MCP Server for Your Product (Production-Grade)</title>
+  <meta name="description" content="A complete walkthrough of building a custom MCP server for one internal tool — auth-scoping, fail-soft errors, and version-pinning included, not just the happy path.">
+  <link rel="canonical" href="https://jaimenbell.dev/articles/build-custom-mcp-server.html">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="MCP Integration Sprint">
+  <meta property="og:title" content="How to Build a Custom MCP Server for Your Product (Production-Grade)">
+  <meta property="og:description" content="A complete walkthrough of building a custom MCP server for one internal tool — auth-scoping, fail-soft errors, and version-pinning included, not just the happy path.">
+  <meta property="og:url" content="https://jaimenbell.dev/articles/build-custom-mcp-server.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="How to Build a Custom MCP Server for Your Product">
+  <meta name="twitter:description" content="A complete walkthrough — auth-scoping, fail-soft errors, and version-pinning included, not just the happy path.">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="../index.html" style="text-decoration:none">MCP<span class="dot">·</span>Engineering</a>
+    <nav class="top">
+      <a href="../index.html#proof">Proof</a>
+      <a href="../index.html#pricing">Offer</a>
+      <a href="../index.html#faq">FAQ</a>
+      <a href="mailto:jaime@jaimenbell.dev">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<section style="border-bottom:0">
+  <div class="wrap">
+    <article class="cs">
+      <a class="back" href="../index.html">← Back to MCP Integration Sprint</a>
+      <h1>How to Build a Custom MCP Server for Your Product</h1>
+      <div class="meta">// practitioner guide · Python · ~10 min read · the part most tutorials skip</div>
+
+      <span class="pill">MCP tutorial</span>
+      <span class="pill">auth-scoping</span>
+      <span class="pill">fail-soft errors</span>
+      <span class="pill">version-pinning</span>
+
+      <div class="honest">
+        <p>
+          <strong>Up front:</strong> this walks you through a real, working single-tool server, then
+          the hardening layer most write-ups leave out. If you get to the end and decide you'd
+          rather have someone else do the hardening part, there's a fixed-scope offer for that at
+          the bottom. If you build it yourself and never buy anything, that's a fine outcome too —
+          the code below works either way.
+        </p>
+      </div>
+
+      <h2>The gap in most MCP tutorials</h2>
+      <p>
+        Search "how to build an MCP server" and you'll get a dozen good, official-adjacent guides —
+        the <a href="https://modelcontextprotocol.io/docs/develop/build-server">official MCP docs</a>,
+        vendor walkthroughs from IBM, Microsoft, and others — and they all teach the same shape
+        correctly: a weather lookup, a search tool, two functions decorated and exposed over stdio.
+        That part is genuinely easy now; the SDKs have gotten good.
+      </p>
+      <p>
+        What almost none of them show is what happens after the demo: your agent calls a tool
+        against <em>your</em> internal system, the upstream API times out or the token is scoped
+        too broadly, and the whole agent session goes down with it. The SDK wrapper was never the
+        hard part. The production layer — auth-scoping, fail-soft behavior, and version-pinning —
+        is the part that decides whether this thing pages you at 2am.
+      </p>
+
+      <h2>Step 1 — scaffold one tool, not a platform</h2>
+      <p>
+        Resist building a multi-tool platform on day one. Pick the single internal action your
+        agent actually needs (e.g. "issue a refund," "look up an order," "restart a job") and build
+        the manifest and one tool around it. Using Python's official SDK (<code>pip install mcp</code>),
+        the fast path is <code>FastMCP</code>:
+      </p>
+      <pre><code>from mcp.server.fastmcp import FastMCP
+
+mcp = FastMCP("internal-billing")
+
+@mcp.tool()
+async def refund(order_id: str, amount_cents: int) -> dict:
+    """Issue a refund for an order. Requires billing:write scope."""
+    # naive version — this is the part everyone stops at
+    result = await billing_client.refund(order_id, amount_cents)
+    return {"status": "ok", "refund_id": result.id}
+
+if __name__ == "__main__":
+    mcp.run()</code></pre>
+      <p>
+        This runs. It'll pass a demo. It is also exactly the version that breaks the first time
+        <code>billing_client</code> is unreachable, or the token behind it can do more than issue
+        refunds.
+      </p>
+
+      <h2>Step 2 — scope the auth before you scope anything else</h2>
+      <p>
+        The single biggest risk in a hand-rolled MCP server isn't a bug in the tool logic — it's a
+        credential that can do more than the tool needs. If your billing client's API key can also
+        delete customers, then a prompt-injected or simply confused agent has that blast radius too,
+        whether or not the <code>refund</code> function itself is careful. Scope the credential
+        itself, not just the code path:
+      </p>
+      <ul>
+        <li>Mint a token/API key scoped to exactly the actions this server exposes (billing:write,
+          not billing:*) — at the identity-provider or API-gateway layer, not in application code.</li>
+        <li>If the upstream has no fine-grained scopes, wrap it: build a narrow internal proxy that
+          only accepts the specific calls your tool needs, and point the MCP server at the proxy
+          instead of the raw API.</li>
+        <li>Log which scope was used on every call. If you can't answer "what could this tool have
+          done" from your own logs, the scoping isn't finished.</li>
+      </ul>
+
+      <h2>Step 3 — make failure boring, not fatal</h2>
+      <p>
+        A dead dependency should return a clean, structured error — never an unhandled exception
+        that kills the process the agent is talking to. "Fail-soft" here means specifically:
+        catch the failure modes you know about, return something the calling model can reason
+        about, and keep the server alive for the next call.
+      </p>
+      <pre><code>@mcp.tool()
+async def refund(order_id: str, amount_cents: int) -> dict:
+    """Issue a refund for an order. Requires billing:write scope."""
+    try:
+        result = await billing_client.refund(order_id, amount_cents)
+        return {"status": "ok", "refund_id": result.id}
+    except billing_client.RateLimited:
+        return {"status": "error", "retryable": True,
+                "message": "Billing API is rate-limited. Retry after a short backoff."}
+    except billing_client.Unauthorized:
+        return {"status": "error", "retryable": False,
+                "message": "Refund scope rejected by billing API — check credential scope."}
+    except billing_client.UpstreamDown:
+        return {"status": "error", "retryable": True,
+                "message": "Billing API unreachable. Do not retry immediately."}</code></pre>
+      <p>
+        Notice the shape: every branch returns, none of them raise past the tool boundary, and each
+        error tells the calling agent whether retrying makes sense. That last part matters more than
+        it looks — a model that gets a bare 500 will often retry blindly; a model that gets
+        <code>"retryable": false</code> with a reason won't burn three more calls finding that out.
+      </p>
+
+      <h2>Step 4 — pin your versions on both axes</h2>
+      <p>
+        Two things drift silently if you don't pin them: your own dependencies, and the upstream
+        API's response shape. Lock both:
+      </p>
+      <ul>
+        <li>Pin dependencies exactly (a <code>requirements.txt</code> with <code>==</code>, or a lockfile) —
+          not just for reproducibility, but because an unpinned transitive dependency bump is a
+          common source of "it worked yesterday."</li>
+        <li>If the upstream API is versioned, send the version header explicitly rather than relying
+          on whatever the default is this month. If it isn't versioned, add a response-shape check
+          (even a lightweight schema assertion) so a silent upstream change fails loud in your logs
+          instead of quietly returning malformed data to the agent.</li>
+      </ul>
+
+      <h2>Step 5 — test the failure paths, not just the happy one</h2>
+      <p>
+        A server that's only ever been tested against a live, healthy upstream hasn't been tested
+        against the conditions that actually cause incidents. At minimum, write tests that force
+        each failure branch above (rate-limited, unauthorized, upstream down) and assert the tool
+        returns the structured error — not that it happens to work when everything's fine. If you
+        want the deeper version of this, see the companion piece on
+        <a href="mcp-server-testing.html">MCP server testing</a>.
+      </p>
+
+      <h2>The part that doesn't fit in a blog post</h2>
+      <p>
+        Everything above generalizes. What doesn't generalize as cleanly: what to do when the
+        upstream API is undocumented and you're reverse-engineering response shapes from network
+        traffic, how to handle an auth model that doesn't map cleanly to scopes, and what "done"
+        actually means for your specific tool. That's the part that turns a working prototype into
+        something your team can hand off and stop babysitting — and it's genuinely a few days of
+        focused work, not a weekend read.
+      </p>
+
+      <div class="cta-box">
+        <h3>Want the hardened version built for you?</h3>
+        <p>
+          The MCP Integration Sprint is exactly this — scope, build, harden, handoff — for one
+          internal tool, fixed-scope, in 1–2 weeks. Auth-scoped, fail-soft, version-pinned, tested,
+          documented.
+        </p>
+        <a class="btn btn-primary" href="mailto:jaime@jaimenbell.dev?subject=MCP%20Integration%20Sprint">Scope a sprint</a>
+        &nbsp;<a class="btn btn-ghost" href="../index.html#pricing">See pricing</a>
+      </div>
+    </article>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    <span>MCP Server Engineering · auth-scoped, fail-soft, tested.</span>
+    <span><a href="https://github.com/jaimenbell/MCP-Factory">GitHub</a> · <a href="mailto:jaime@jaimenbell.dev">jaime@jaimenbell.dev</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

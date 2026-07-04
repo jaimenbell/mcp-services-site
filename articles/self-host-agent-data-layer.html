@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Should You Self-Host Your AI Agent's Data Layer?</title>
+  <meta name="description" content="An honest decision framework for self-hosting your agent's MCP data layer — what data sovereignty actually buys you, what it costs in ongoing engineering, and how to decide.">
+  <link rel="canonical" href="https://jaimenbell.dev/articles/self-host-agent-data-layer.html">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="MCP Integration Sprint">
+  <meta property="og:title" content="Should You Self-Host Your AI Agent's Data Layer?">
+  <meta property="og:description" content="An honest decision framework — what data sovereignty actually buys you, what it costs in ongoing engineering, and how to decide.">
+  <meta property="og:url" content="https://jaimenbell.dev/articles/self-host-agent-data-layer.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Should You Self-Host Your AI Agent's Data Layer?">
+  <meta name="twitter:description" content="What data sovereignty actually buys you, what it costs in ongoing engineering, and how to decide.">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="../index.html" style="text-decoration:none">MCP<span class="dot">·</span>Engineering</a>
+    <nav class="top">
+      <a href="../index.html#proof">Proof</a>
+      <a href="../index.html#pricing">Offer</a>
+      <a href="../index.html#faq">FAQ</a>
+      <a href="mailto:jaime@jaimenbell.dev">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<section style="border-bottom:0">
+  <div class="wrap">
+    <article class="cs">
+      <a class="back" href="../index.html">← Back to MCP Integration Sprint</a>
+      <h1>Should You Self-Host Your AI Agent's Data Layer?</h1>
+      <div class="meta">// decision framework · data sovereignty · ~8 min read</div>
+
+      <span class="pill">data sovereignty</span>
+      <span class="pill">self-hosted MCP</span>
+      <span class="pill">decision framework</span>
+
+      <div class="honest">
+        <p>
+          <strong>Up front:</strong> most content on this question is written by vendors selling
+          self-hosted infrastructure, so it tends to arrive at "yes, self-host" no matter the
+          question. This is an attempt at the honest version: what self-hosting your agent's data
+          layer actually buys you, what it actually costs in ongoing engineering, and a real
+          decision path — including "no, not yet" as a legitimate answer.
+        </p>
+      </div>
+
+      <h2>What "your agent's data layer" even means</h2>
+      <p>
+        When people say "self-host the data layer" for an AI agent, they're usually talking about
+        three things that get bundled together but don't have to move as a unit:
+      </p>
+      <ul>
+        <li><strong>The data itself</strong> — prompts, completions, embeddings, tool call
+          arguments/results, and logs. Where do the bytes physically sit, and who can read them?</li>
+        <li><strong>The control layer</strong> — the MCP gateway/server process, credentials, and
+          orchestration runtime. Who holds the keys and can change what the agent is allowed to do?</li>
+        <li><strong>The model endpoint</strong> — is inference itself hosted by you, or are you
+          calling out to a third-party model provider with your data in the request?</li>
+      </ul>
+      <p>
+        A workload is fully "sovereign" only when all three stay inside a perimeter you control.
+        Most teams don't need that — they need to know which of the three actually matters for
+        their specific compliance or trust requirement, because each one has a very different cost.
+      </p>
+
+      <h2>What self-hosting actually buys you</h2>
+      <p>
+        When it's real and not just a checkbox, self-hosting the gateway and the data layer buys
+        three concrete things:
+      </p>
+      <ul>
+        <li><strong>Credential custody</strong> — tool credentials (the API keys your MCP server
+          uses to act on internal systems) never leave your network, which matters a lot if your
+          threat model includes a compromised third-party vendor.</li>
+        <li><strong>An audit trail you actually own</strong> — every tool call, argument, and result
+          logged somewhere you control, queryable on your own timeline, not dependent on a vendor's
+          retention policy or export API.</li>
+        <li><strong>Data residency</strong> — if a regulator or a customer contract requires the
+          bytes to physically stay in a jurisdiction, a managed multi-tenant service usually can't
+          promise that as cleanly as infrastructure you run yourself.</li>
+      </ul>
+      <p>
+        Notice what's <em>not</em> on that list: "self-hosting makes the agent more reliable" or
+        "self-hosting is inherently more secure." Neither is automatically true — a self-hosted
+        gateway you don't patch is a worse security posture than a managed one that gets patched for
+        you. Sovereignty is a control property, not a reliability or security property by default.
+
+      </p>
+
+      <h2>What it actually costs — the part vendors undersell</h2>
+      <p>
+        Self-hosting the gateway and data layer is a real, ongoing engineering commitment, not a
+        one-time setup task. The honest tax list:
+      </p>
+      <ul>
+        <li><strong>Patching and upgrades</strong> — the gateway process, its dependencies, and the
+          MCP spec itself are all still moving. Someone owns keeping that current.</li>
+        <li><strong>Backups and recovery</strong> — if the data layer holds anything you can't
+          regenerate (audit logs, embeddings you paid to compute), someone owns proving restore
+          actually works, not just that a backup job runs.</li>
+        <li><strong>Credential rotation</strong> — the whole point of custody is that you control
+          the keys, which means you also own rotating them on a schedule, not a vendor's team.</li>
+        <li><strong>Uptime and on-call</strong> — a managed service has an SLA and a team behind it.
+          Self-hosted infrastructure has whoever you assign, at 2am, if it goes down.</li>
+      </ul>
+      <p>
+        Estimates for the total delta vary, but "meaningfully more engineering effort than a managed
+        service" is the consistent honest finding across independent write-ups on this — not a
+        rounding error, and not a one-time cost that amortizes away after setup.
+      </p>
+
+      <h2>A decision path, not a verdict</h2>
+      <p>
+        Rather than a universal answer, here's the order I'd actually work through it:
+      </p>
+      <ol>
+        <li><strong>Which of the three layers (data, control, model endpoint) does your actual
+          requirement touch?</strong> A customer contract that only requires data residency doesn't
+          necessarily require you to also self-host the control layer or the model endpoint.</li>
+        <li><strong>Do you have someone who will own patching, backups, and on-call for this
+          specific piece of infrastructure — not "the team," a named person?</strong> If the honest
+          answer is no, self-hosting converts a compliance win into a reliability liability.</li>
+        <li><strong>Is a hybrid split viable?</strong> Self-host the gateway and the data/audit
+          layer, but keep a region-pinned managed model endpoint with your own keys — this covers
+          the credential-custody and residency wins without taking on inference infrastructure.</li>
+        <li><strong>What's the cost of getting it wrong in either direction?</strong> Self-hosting
+          something you don't have the on-call capacity for is expensive in incidents. Not
+          self-hosting something a real contract requires is expensive in a different way. Price
+          both failure modes honestly before picking.</li>
+      </ol>
+
+      <h2>The honest short version</h2>
+      <p>
+        Self-host what a real, specific requirement forces you to self-host — and no more — and
+        make sure a named person owns the ongoing tax before you take on the win. "Self-host
+        everything for sovereignty" and "never self-host anything" are both easier answers than the
+        real one, which is: it depends on which layer, and whether you're staffed for the part that
+        doesn't show up in the pitch deck.
+      </p>
+
+      <div class="cta-box">
+        <h3>Not sure which layer your situation actually requires?</h3>
+        <p>
+          The MCP Readiness Audit covers this decision directly — a written read of your data,
+          control, and model-endpoint requirements, an honest self-host-vs-managed recommendation,
+          and the sprint tier (single-source or multi-source/self-hosted) that fits if you proceed.
+          $1,500 flat, fully credited toward the build.
+        </p>
+        <a class="btn btn-primary" href="mailto:jaime@jaimenbell.dev?subject=MCP%20Readiness%20Audit%20%E2%80%94%20Self-Hosted%20Data%20Layer">Start with an audit</a>
+        &nbsp;<a class="btn btn-ghost" href="../index.html#pricing">See pricing</a>
+      </div>
+    </article>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    <span>MCP Server Engineering · auth-scoped, fail-soft, tested.</span>
+    <span><a href="https://github.com/jaimenbell/MCP-Factory">GitHub</a> · <a href="mailto:jaime@jaimenbell.dev">jaime@jaimenbell.dev</a></span>
+  </div>
+</footer>
+
+</body>
+</html>
