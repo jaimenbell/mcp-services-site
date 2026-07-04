@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How Much Does Custom MCP Integration Cost? (Real Numbers)</title>
+  <meta name="description" content="Most vendors quote MCP integration only after a sales call. Here's what the market actually charges, why the range is so wide, and our own published tiers — no call required to see them.">
+  <link rel="canonical" href="https://jaimenbell.dev/articles/mcp-integration-cost.html">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="MCP Integration Sprint">
+  <meta property="og:title" content="How Much Does Custom MCP Integration Cost? (Real Numbers)">
+  <meta property="og:description" content="Most vendors quote MCP integration only after a sales call. Here's what the market actually charges, why the range is so wide, and our own published tiers — no call required to see them.">
+  <meta property="og:url" content="https://jaimenbell.dev/articles/mcp-integration-cost.html">
+  <meta property="og:image" content="https://jaimenbell.dev/img/og-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="jaimenbell.dev — Production MCP servers for AI agents">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="How Much Does Custom MCP Integration Cost? (Real Numbers)">
+  <meta name="twitter:description" content="What the market actually charges, why the range is so wide, and our own published tiers — no sales call required to see them.">
+  <meta name="twitter:image" content="https://jaimenbell.dev/img/og-card.png">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="../index.html" style="text-decoration:none">MCP<span class="dot">·</span>Engineering</a>
+    <nav class="top">
+      <a href="../index.html#proof">Proof</a>
+      <a href="../index.html#pricing">Offer</a>
+      <a href="../index.html#faq">FAQ</a>
+      <a href="mailto:jaime@jaimenbell.dev">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<section style="border-bottom:0">
+  <div class="wrap">
+    <article class="cs">
+      <a class="back" href="../index.html">← Back to MCP Integration Sprint</a>
+      <h1>How Much Does Custom MCP Integration Cost?</h1>
+      <div class="meta">// pricing guide · ~7 min read · numbers, not a "contact us" form</div>
+
+      <span class="pill">pricing</span>
+      <span class="pill">scoping</span>
+      <span class="pill">buyer's guide</span>
+
+      <div class="honest">
+        <p>
+          <strong>Up front:</strong> almost every page that ranks for this question ends in a "book
+          a call to get a quote" form. That's a reasonable business choice for a lot of vendors — but
+          if you're trying to budget before you'll spend an hour on a sales call, it's not useful.
+          This page has actual numbers: the range the wider market reports, and the flat tiers we
+          publish ourselves, priced before you talk to anyone.
+        </p>
+      </div>
+
+      <h2>Why the range you'll find is so wide</h2>
+      <p>
+        Search this question and you'll find real numbers, but they span nearly two orders of
+        magnitude, because "MCP integration" describes wildly different amounts of work. Independent
+        cost breakdowns put a simple single-source connector (basic CRUD, one data source, minimal
+        security requirements) at roughly 80–120 hours of build time, an API integration server with
+        real auth and rate-limiting at 150–250 hours, and multi-system orchestration with
+        enterprise permissions and compliance documentation at 400–800 hours. Enterprise-scale
+        partner builds — SSO, RBAC, audit logging, a full security review — routinely run into six
+        figures once you count the first year of maintenance, not just the initial build.
+      </p>
+      <p>
+        The recurring finding across independent write-ups: total first-year cost tends to run
+        <strong>2–3x the initial development estimate</strong> once security review, testing, and
+        ongoing operational overhead get counted — sometimes higher for regulated industries like
+        healthcare. The build is rarely the expensive part. The tax that comes after — patching,
+        credential rotation, keeping pace with a spec that's still moving — is what the initial
+        number tends to leave out.
+      </p>
+
+      <h2>The three things that actually move the price</h2>
+      <ul>
+        <li><strong>How many systems, not how many tools.</strong> Five tools against one internal
+          API is a single-source build. One tool that has to reconcile data across three systems is
+          a multi-source build — and the jump between those two tiers is usually bigger than it
+          looks from the outside, because most of the real work is reconciliation and failure
+          handling, not the tool count.</li>
+        <li><strong>Whether the upstream API is documented.</strong> A clean, documented REST API
+          with existing SDKs is a predictable scope. An undocumented internal system means a
+          discovery phase — reverse-engineering endpoints and response shapes from network traffic
+          before the "real" build even starts. That's the single biggest source of scope creep in
+          this category, and it's worth pricing as its own line item rather than hoping it doesn't
+          happen.</li>
+        <li><strong>How seriously the auth layer is taken.</strong> An enterprise authentication
+          layer — SSO integration, role-based access control, audit logging — commonly adds four to
+          six weeks to a project on its own, independent of what came before it. Skipping this isn't
+          actually cheaper; it just moves the cost to an incident later. (See the companion piece on
+          <a href="mcp-server-security-auth-scoping.html">auth-scoping patterns that hold</a> for what
+          that layer should actually contain.)</li>
+      </ul>
+
+      <h2>What we publish, flat, before any call</h2>
+      <p>
+        We think the "book a call for a quote" pattern is mostly there to hide the fact that the
+        number depends on a scoping conversation the vendor doesn't want to have in public. Ours is a
+        genuine scoping-gated ladder — the exact rung still depends on your one tool, its auth model,
+        and whether the API is documented — but the rungs themselves are public, not gated behind a
+        form:
+      </p>
+      <div class="evidence">
+        <h3>The actual ladder</h3>
+        <ul>
+          <li><strong>Readiness Audit — $1,500 flat.</strong> A 2–3 day read of your stack, delivered
+            as a written MCP spec + risk report. No code — the report is the product, and it's fully
+            credited toward a Sprint if you proceed within 60 days.</li>
+          <li><strong>Integration Sprint (single-source) — $5,000–$8,000.</strong> One internal tool,
+            shipped as a production-grade MCP server: auth-scoping, fail-soft handling,
+            version-pinning, a test suite, setup docs, and handoff. Typically ships in 1–2 weeks from
+            signed SOW.</li>
+          <li><strong>Multi-source / platform — $12,000–$25,000.</strong> More than one system or a
+            broader platform surface, scoped as its own statement of work.</li>
+          <li><strong>Terms.</strong> 50% on signature, 50% on acceptance — no hourly billing, no
+            surprise invoice for scope that was foreseeable at kickoff.</li>
+        </ul>
+      </div>
+      <p>
+        That puts a single-source build at roughly the low end of the independent market range
+        above, for the same shape of work — auth-scoped, fail-soft, tested, documented — plus a
+        14-day support window after handoff. If your situation is genuinely multi-system or
+        undocumented-API territory, the audit is exactly the mechanism for finding that out before
+        either of us commits to a number, and its cost rolls into whatever you build next.
+      </p>
+
+      <h2>How to budget before you talk to anyone</h2>
+      <ol>
+        <li><strong>Count your systems, not your tools.</strong> One system, however many actions —
+          single-source tier. More than one system that has to reconcile — multi-source tier.</li>
+        <li><strong>Check if the upstream API is documented.</strong> If it isn't, budget for a
+          discovery line-item on top of the base tier, not inside it.</li>
+        <li><strong>Decide up front whether "done" includes the auth/audit layer.</strong> A build
+          that skips scoped auth and structured logging isn't cheaper — it's the same cost, deferred
+          to whenever the first incident forces it.</li>
+        <li><strong>Get the cheap read before the expensive build.</strong> A fixed-price audit that
+          credits toward the build removes the asymmetry where only the vendor knows the real scope
+          going into a quote.</li>
+      </ol>
+
+      <div class="cta-box">
+        <h3>Want your actual number, not a range?</h3>
+        <p>
+          Start with the $1,500 Readiness Audit — a short scoping questionnaire, a written spec and
+          risk report back in 2–3 days, and the sprint tier that fits, before any SOW. Fully credited
+          toward the build if you proceed.
+        </p>
+        <a class="btn btn-primary" href="mailto:jaime@jaimenbell.dev?subject=MCP%20Integration%20Sprint%20%E2%80%94%20scoping">Scope a sprint</a>
+        &nbsp;<a class="btn btn-ghost" href="../index.html#pricing">See the full pricing ladder</a>
+      </div>
+    </article>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    <span>MCP Server Engineering · auth-scoped, fail-soft, tested.</span>
+    <span><a href="https://github.com/jaimenbell/MCP-Factory">GitHub</a> · <a href="mailto:jaime@jaimenbell.dev">jaime@jaimenbell.dev</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

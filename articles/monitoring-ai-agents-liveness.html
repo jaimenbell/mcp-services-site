@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monitoring AI Agents in Production: Liveness Beyond Uptime</title>
+  <meta name="description" content="A dashboard that shows a process is running isn't the same as one that shows an agent is actually alive. A real false-PASS incident, and the liveness discipline that catches dead agents rendering as live ones.">
+  <link rel="canonical" href="https://jaimenbell.dev/articles/monitoring-ai-agents-liveness.html">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="MCP Integration Sprint">
+  <meta property="og:title" content="Monitoring AI Agents in Production: Liveness Beyond Uptime">
+  <meta property="og:description" content="A dashboard that shows a process is running isn't the same as one that shows an agent is actually alive. A real false-PASS incident, and the liveness discipline that catches dead agents rendering as live ones.">
+  <meta property="og:url" content="https://jaimenbell.dev/articles/monitoring-ai-agents-liveness.html">
+  <meta property="og:image" content="https://jaimenbell.dev/img/og-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="jaimenbell.dev — Production MCP servers for AI agents">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Monitoring AI Agents in Production: Liveness Beyond Uptime">
+  <meta name="twitter:description" content="A process being up isn't the same as an agent being alive. A real false-PASS incident, and the liveness discipline that catches it.">
+  <meta name="twitter:image" content="https://jaimenbell.dev/img/og-card.png">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="../index.html" style="text-decoration:none">MCP<span class="dot">·</span>Engineering</a>
+    <nav class="top">
+      <a href="../index.html#proof">Proof</a>
+      <a href="../index.html#retainer">Offer</a>
+      <a href="../index.html#faq">FAQ</a>
+      <a href="mailto:jaime@jaimenbell.dev">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<section style="border-bottom:0">
+  <div class="wrap">
+    <article class="cs">
+      <a class="back" href="../index.html">← Back to MCP Integration Sprint</a>
+      <h1>Monitoring AI Agents in Production: Liveness Beyond Uptime</h1>
+      <div class="meta">// practitioner guide · observability · ~8 min read</div>
+
+      <span class="pill">agent observability</span>
+      <span class="pill">liveness vs uptime</span>
+      <span class="pill">false-PASS detection</span>
+
+      <div class="honest">
+        <p>
+          <strong>Up front:</strong> the incident below is one my own fleet shipped and had to
+          publicly correct. That's the point of this piece — not "here's the theory of agent
+          monitoring," but a real case where "the dashboard says it's fine" was wrong, why, and the
+          discipline that catches it before a stranger does.
+        </p>
+      </div>
+
+      <h2>Uptime answers the wrong question</h2>
+      <p>
+        "Is the process running" is the easiest signal to collect and the least useful one for an
+        agent fleet. A scheduled task can show green in Task Scheduler while its actual work — the
+        thing it was supposed to be doing — has been silently dead for over a week. 2026 tooling
+        trends back this up: the field is converging on treating the full agent
+        <em>session</em> as the unit of analysis — prompts, tool calls, retrievals, multi-turn
+        state — rather than treating "the process didn't crash" as sufficient. A live process with a
+        dead task inside it is the failure mode uptime monitoring is structurally blind to.
+      </p>
+
+      <h2>A real incident: the dashboard that couldn't show death</h2>
+      <p>
+        Running a fleet of background agent "lanes" against a live coordination bus, a visual
+        dashboard tab existed to show which lanes were active. A design critique and a separate
+        structural rubric both ran against it the same day — the critique scored it 60/100, the
+        rubric ~74 with one component at a hard-fail tier. Both converged on the same root cause:
+        <strong>dead agents were rendering identically to live ones.</strong> An accent color was
+        applied as a whole-area visual treatment, not tied to any actual liveness signal — a bot dead
+        for ten days looked exactly like one that had fired an hour ago. The dashboard had no
+        vocabulary for "this stopped working."
+      </p>
+      <p>
+        The fix that followed shipped, converged to the main branch, and was reported
+        <strong>visually verified</strong>. Twelve minutes later, a separate lane flagged it as
+        falsified — the verification had screenshotted before an async-loaded background asset
+        finished rendering, and once it finished loading a few seconds later, it painted straight
+        through gaps the fix hadn't actually closed. The "verified" screenshot had been taken against
+        an incomplete render, not the real end state. See the fuller
+        <a href="../case-studies/fleet-reliability-day.html">day-by-day case study</a> for the commit
+        SHAs and the exact timeline.
+      </p>
+
+      <h2>The general lesson, not just the one bug</h2>
+      <p>
+        Generalize past the specific screenshot bug and the pattern is this: any liveness check that
+        runs once, on a stale or partially-loaded view, and gets trusted as ground truth, will
+        eventually certify something dead as alive. That applies to a visual dashboard just as much
+        as it applies to a health-check endpoint that returns 200 because the process caught the
+        request, not because the work behind it is actually happening. The fix isn't "check more
+        often" — it's checking the <em>right layer</em>:
+      </p>
+      <ul>
+        <li><strong>Verify against the target's own evidence, not a proxy for it.</strong> A fresh
+          log line, a beacon file with a recent timestamp, an actual output artifact — not just
+          "the process didn't crash" or "the command returned."</li>
+        <li><strong>Wait for the full state before trusting a snapshot.</strong> Any check that runs
+          against something still loading — an async asset, a warm-up phase, a startup race — needs
+          to confirm the load finished before treating the result as final, not fire on a fixed
+          timer and hope.</li>
+        <li><strong>Show absence explicitly, don't infer it from silence.</strong> "No recent signal"
+          and "actively dead" are both different from "healthy," and a monitoring surface that can
+          only render two states (up/down) will misrender the third as one of the two it has.</li>
+        <li><strong>A second, adversarial check catches what the first one missed.</strong> The false
+          PASS above wasn't caught by the lane that shipped it — it was caught by a different pass
+          twelve minutes later. Liveness monitoring that only ever checks itself will validate its
+          own blind spot indefinitely.</li>
+      </ul>
+
+      <h2>What this cost, and what it caught</h2>
+      <p>
+        The same fleet, the same day, also revived a trading bot that a monitoring dashboard had
+        shown as dead — except the diagnosis lane didn't stop at "the dashboard says dead," it
+        cross-referenced the bot's own beacon file, its session logs, and the host's boot-time
+        record, all independently, and found the scheduled task had actually been disabled after a
+        reboot over a week earlier, plus a second bug where the monitor itself was watching the
+        wrong task name. Uptime monitoring alone would have kept reporting the wrong thing dead —
+        or wrong — indefinitely, because it never checked the target's own evidence.
+      </p>
+      <p>
+        The honest framing, not a highlight reel: a fleet moving fast will produce false positives —
+        a screenshot taken early, a stale assumption, a monitor watching the wrong name. None of
+        that is avoidable. What's controllable is whether the harness catches it same-day, before a
+        user or a stranger does, and whether the correction gets written down as a standing rule
+        instead of a one-off apology. That correction is now a checked clause every future check
+        runs against, not a war story that quietly stopped mattering.
+      </p>
+
+      <h2>A liveness checklist that isn't just uptime</h2>
+      <ul>
+        <li>Every "healthy" signal traces to the target's own fresh evidence — a log, a beacon, an
+          output file — not a proxy that only proves the process exists.</li>
+        <li>Any check against something still loading confirms the load finished before it reports
+          a result — no fixed-sleep-and-hope.</li>
+        <li>The monitoring surface can express "unknown / no signal" as its own state, not force
+          silence into either "up" or "down."</li>
+        <li>At least one adversarial or independent second pass exists to catch what the primary
+          check missed — and its findings get treated as real, not noise.</li>
+        <li>Every caught false-positive becomes a written rule the next check inherits, not a fix
+          that quietly disappears into a commit message.</li>
+      </ul>
+
+      <div class="cta-box">
+        <h3>Is your agent fleet's "green dashboard" actually verified?</h3>
+        <p>
+          The AI Agent Reliability Retainer builds a validation harness for your agent — scoped to
+          its real failure modes, delivered as a repo with a live pass/fail count you can run
+          yourself, then kept honest as your agent, model, and prompts drift. The harness is the
+          deliverable, not a slide deck about one.
+        </p>
+        <a class="btn btn-primary" href="mailto:jaime@jaimenbell.dev?subject=AI%20Agent%20Reliability%20Retainer%20%E2%80%94%20Monitor">Talk through monitoring</a>
+        &nbsp;<a class="btn btn-ghost" href="../index.html#retainer">See the Retainer offer</a>
+      </div>
+    </article>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    <span>MCP Server Engineering · auth-scoped, fail-soft, tested.</span>
+    <span><a href="https://github.com/jaimenbell/MCP-Factory">GitHub</a> · <a href="mailto:jaime@jaimenbell.dev">jaime@jaimenbell.dev</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MCP Server Security: Auth-Scoping Patterns That Actually Hold</title>
+  <meta name="description" content="Most MCP servers ship with one fat API key behind every tool. Here's the auth-scoping pattern that survives a compromised call instead of handing it the whole blast radius.">
+  <link rel="canonical" href="https://jaimenbell.dev/articles/mcp-server-security-auth-scoping.html">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="MCP Integration Sprint">
+  <meta property="og:title" content="MCP Server Security: Auth-Scoping Patterns That Actually Hold">
+  <meta property="og:description" content="Most MCP servers ship with one fat API key behind every tool. Here's the auth-scoping pattern that survives a compromised call instead of handing it the whole blast radius.">
+  <meta property="og:url" content="https://jaimenbell.dev/articles/mcp-server-security-auth-scoping.html">
+  <meta property="og:image" content="https://jaimenbell.dev/img/og-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="jaimenbell.dev — Production MCP servers for AI agents">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="MCP Server Security: Auth-Scoping Patterns That Actually Hold">
+  <meta name="twitter:description" content="The auth-scoping pattern that survives a compromised call instead of handing it the whole blast radius.">
+  <meta name="twitter:image" content="https://jaimenbell.dev/img/og-card.png">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="../index.html" style="text-decoration:none">MCP<span class="dot">·</span>Engineering</a>
+    <nav class="top">
+      <a href="../index.html#proof">Proof</a>
+      <a href="../index.html#pricing">Offer</a>
+      <a href="../index.html#faq">FAQ</a>
+      <a href="mailto:jaime@jaimenbell.dev">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<section style="border-bottom:0">
+  <div class="wrap">
+    <article class="cs">
+      <a class="back" href="../index.html">← Back to MCP Integration Sprint</a>
+      <h1>MCP Server Security: Auth-Scoping Patterns That Actually Hold</h1>
+      <div class="meta">// practitioner guide · security · ~9 min read</div>
+
+      <span class="pill">auth-scoping</span>
+      <span class="pill">least privilege</span>
+      <span class="pill">tool poisoning</span>
+      <span class="pill">prompt injection</span>
+
+      <div class="honest">
+        <p>
+          <strong>Up front:</strong> this isn't a "10 security tips" listicle. It's one pattern —
+          trust-tier isolation — walked through concretely enough that you could implement it this
+          week, plus the research that shows why the alternative (one credential, every tool) keeps
+          failing in public.
+        </p>
+      </div>
+
+      <h2>The default shape, and why it's the problem</h2>
+      <p>
+        Wire an agent to a new system and the fastest path looks like this: mint one API key, hand
+        it to the MCP server, expose three or four tools that all use it. It works in the demo. The
+        problem shows up later, and it isn't a bug in any one tool — it's that every tool call now
+        runs at the full privilege of that one key. A prompt-injected instruction, a confused
+        multi-step chain, or a single malformed input doesn't get contained to "the tool it happened
+        in." It inherits the blast radius of whatever that credential can touch.
+      </p>
+      <p>
+        This isn't hypothetical risk. Security researchers at Knostic scanned nearly 2,000 publicly
+        accessible MCP servers and found that <strong>every single verified instance</strong> granted
+        access to internal tool listings without any authentication at all — the servers weren't
+        misconfigured exceptions, that was the norm they found. A separate analysis of more than
+        5,000 open-source MCP servers found over half storing credentials as static API keys or
+        personal access tokens directly in environment variables, with only a small fraction using
+        OAuth for downstream connections. The pattern isn't rare. It's closer to default.
+      </p>
+
+      <h2>Tool poisoning: why "the model didn't misuse the tool" isn't the whole threat model</h2>
+      <p>
+        Auth-scoping alone doesn't cover everything, and it's worth being honest about the adjacent
+        risk: Invariant Labs documented "tool poisoning" attacks where instructions hidden inside a
+        <em>tool's own description</em> — invisible to the user, read by the model — can hijack how
+        the agent uses <em>other, trusted</em> servers in the same session. And the MCPTox benchmark
+        found a 72.8% attack success rate for o1-mini across a test set of 20 LLM agents, 45 MCP
+        servers, and 353 tools. The takeaway isn't "give up on MCP security" — it's that scoping the
+        credential and validating the tool surface are two separate controls, and you need both, not
+        either.
+      </p>
+
+      <h2>The pattern: trust-tier isolation, not one key for everything</h2>
+      <p>
+        The fix that actually holds up under those numbers isn't "write better prompts" or "add a
+        disclaimer." It's scoping each tool to the minimum privilege it needs, so a compromised call
+        can only do the one small thing that tool was scoped for — not everything the underlying
+        system allows:
+      </p>
+      <ul>
+        <li><strong>Per-tool scopes, not per-service keys.</strong> Define scopes at the action level
+          — <code>billing:read</code>, <code>billing:refund</code>, <code>orders:read</code> — and
+          mint a credential (or a token with that exact claim) per tool, not per upstream service.
+          A read tool should be structurally incapable of writing, not just "not supposed to."</li>
+        <li><strong>Separate the resource server from the authorization server.</strong> Your MCP
+          server's job is to validate a token, not to issue one. If your server is reachable over a
+          network at all, treat OAuth 2.1-shaped authorization as the baseline, not an upgrade path
+          for later.</li>
+        <li><strong>An allowlist control plane, not an implicit one.</strong> The agent should be
+          granted exactly what a manifest says it's granted — nothing inferred, nothing "probably
+          fine because the key can do it." If the upstream system has no fine-grained scopes of its
+          own, wrap it in a narrow internal proxy that only accepts the specific calls the tool needs.</li>
+        <li><strong>Short-lived tokens, rotated on a schedule.</strong> If a scoped token leaks, the
+          damage window should be measured in minutes, not the lifetime of a static key nobody
+          remembers to rotate.</li>
+        <li><strong>Log which scope was used on every call.</strong> If you can't answer "what could
+          this tool have done" from your own logs after the fact, the scoping isn't finished — it's
+          aspirational.</li>
+      </ul>
+
+      <h2>What this looks like on a real tool</h2>
+      <pre><code># before: one fat key, implicit trust
+billing_client = BillingClient(api_key=BILLING_MASTER_KEY)  # can refund, delete, export
+
+# after: scoped credential, tool can only do what it's scoped for
+billing_client = BillingClient(api_key=BILLING_REFUND_ONLY_KEY)  # billing:refund, nothing else
+
+@mcp.tool()
+async def refund(order_id: str, amount_cents: int) -> dict:
+    """Issue a refund. Requires billing:refund scope — cannot delete or export."""
+    logger.info("tool_call", tool="refund", scope="billing:refund", order_id=order_id)
+    try:
+        result = await billing_client.refund(order_id, amount_cents)
+        return {"status": "ok", "refund_id": result.id}
+    except billing_client.Unauthorized:
+        return {"status": "error", "retryable": False,
+                "message": "Refund scope rejected — check credential scope, not the code path."}</code></pre>
+      <p>
+        Notice what changed isn't the function body — it's what the credential behind it is
+        structurally capable of. That's the actual control. Code-level "please only do X" is advice;
+        a scoped credential is an invariant.
+      </p>
+
+      <h2>The checklist version</h2>
+      <ul>
+        <li>Every tool's credential is scoped to the narrowest action it performs — verified by
+          trying the tool with a scope it shouldn't have, not by reading the code and assuming.</li>
+        <li>No tool accepts free-form input and dispatches at run time based on it — that's the
+          single most common critical finding in real audits, and it collapses trust-tier isolation
+          back into "one key for everything" even if the key itself was scoped.</li>
+        <li>Tokens are short-lived and rotate on a schedule someone owns, not "whenever we remember."</li>
+        <li>Every call logs which scope authorized it, queryable after the fact.</li>
+        <li>Tool descriptions themselves are treated as untrusted input from other servers in the
+          same session — not just the arguments a model passes.</li>
+      </ul>
+
+      <div class="cta-box">
+        <h3>Not sure your own server's scoping would survive this checklist?</h3>
+        <p>
+          The MCP Readiness Audit is a 2–3 day outside read of your server or planned build —
+          auth-scoping gaps, fail-soft coverage, and the tool-poisoning surface, delivered as a
+          written risk report. $1,500 flat, no code changes, fully credited toward a Sprint if you
+          proceed.
+        </p>
+        <a class="btn btn-primary" href="mailto:jaime@jaimenbell.dev?subject=MCP%20Readiness%20Audit%20%E2%80%94%20Security">Start with an audit</a>
+        &nbsp;<a class="btn btn-ghost" href="../index.html#pricing">See pricing</a>
+      </div>
+    </article>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    <span>MCP Server Engineering · auth-scoped, fail-soft, tested.</span>
+    <span><a href="https://github.com/jaimenbell/MCP-Factory">GitHub</a> · <a href="mailto:jaime@jaimenbell.dev">jaime@jaimenbell.dev</a></span>
+  </div>
+</footer>
+
+</body>
+</html>
