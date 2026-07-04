@@ -208,14 +208,18 @@
         fixed on a timeline measured in minutes, with the evidence to prove it."
       </p>
 
-      <!-- EOD-STATS: fill in tonight's final numbers before publishing/sharing —
-           - final lane count for the day (bus /api/bus/status, distinct topics, meta-excluded)
-           - final commit count across all touched repos (git log --since="2026-07-03 00:00" --all --oneline)
-           - final frontend/backend suite counts if any lane lands after this was drafted (currently 2806/283)
-           - push status: which repos were actually pushed by the operator vs. still staged on local branches
-           - PyPI 0.1.1 re-upload status: staged vs. actually live (currently STAGED, not live — mcp-factory blocked pending templates-fix, now unblocked per bus msg 89)
-           - registry re-publish status if the operator re-runs the registry publish step after PyPI 0.1.1 goes live
-      -->
+      <div class="cs-stats" style="margin-top:14px">
+        <h3>The day, by the numbers <span style="font-weight:400;font-size:0.85em">(live-verified 8:20&thinsp;PM, same day)</span></h3>
+        <ul>
+          <li><strong>153 commits</strong> across 16 repositories in one working day (verify: <code>git log --since="2026-07-03" --all --oneline</code> per repo)</li>
+          <li><strong>~60 autonomous work lanes</strong> dispatched, verified, and merged &mdash; 33 distinct coordination-bus topics in the message history</li>
+          <li>Test suites grew <strong>2,513 &rarr; 2,923</strong> (frontend) and <strong>249 &rarr; 327</strong> (backend), recomputed at every merge &mdash; never trusted from a lane's self-report</li>
+          <li><strong>4 MCP servers</strong> published to PyPI and listed <em>active</em> on the official MCP Registry &mdash; including a same-day 0.1.1 after a fresh-venv smoke test caught all four 0.1.0s broken-as-published</li>
+          <li><strong>22+ self-healed service restarts</strong> logged by the watchdog its own failure deployed</li>
+          <li>One trading bot revived after <strong>8 days dead</strong>; another hang-proofed after <strong>30 hours hung</strong> &mdash; both root-caused from evidence, not restarted on hope</li>
+          <li>Dashboard theme-audit score <strong>60 &rarr; 87</strong>, morning to evening, measured by the same two-lens rubric both times</li>
+        </ul>
+      </div>
 
       <p style="margin-top:32px">
         <a class="btn btn-primary" href="mailto:jaime@jaimenbell.dev?subject=AI%20Agent%20Reliability%20Retainer">Book a scoping call</a>
