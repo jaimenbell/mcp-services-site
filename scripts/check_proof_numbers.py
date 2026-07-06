@@ -205,13 +205,54 @@ class Finding:
         return f"WARN {rel}:{self.line_no}: found {self.number}{repo_part} -- not in manifest -- {snippet}"
 
 
+class ManifestValidationError(Exception):
+    """Raised when proof-manifest.toml fails schema validation.
+
+    Finding 3: previously, load_manifest() silently skipped any section that
+    didn't have a lowercase "value" key (e.g. a typo'd "Value = 187"), so a
+    single malformed section made the WHOLE manifest key disappear -- every
+    citation that would have been checked against it silently demoted to an
+    unresolved WARN, and the gate still exited 0. Fail closed instead: any
+    schema violation aborts the load entirely (see load_manifest below).
+    """
+
+
 def load_manifest(path: Path = MANIFEST_PATH) -> dict[str, int]:
     with open(path, "rb") as fh:
         data = tomllib.load(fh)
     manifest = {}
     for key, entry in data.items():
-        if isinstance(entry, dict) and "value" in entry:
+        # Every top-level table in this manifest is a repo record and MUST
+        # contribute a "value" (the number allowed to be cited) and a
+        # "source_cmd" (how that value was actually verified) -- see this
+        # file's own header comment. A missing/malformed section (a typo'd
+        # field name, an empty table, a non-table entry) is not silently
+        # skipped: it fails the whole load, because a silently-dropped
+        # manifest key means every citation for that repo would otherwise go
+        # unresolved (WARN, not FAIL) forever.
+        if not isinstance(entry, dict):
+            raise ManifestValidationError(
+                f'proof-manifest.toml: entry "{key}" is not a table '
+                f"(expected [\"{key}\"] with value/source_cmd fields)"
+            )
+        if "value" not in entry:
+            raise ManifestValidationError(
+                f'proof-manifest.toml: entry ["{key}"] is missing required '
+                f'field "value" (found fields: {sorted(entry.keys())}) -- '
+                f"check for a typo (e.g. \"Value\" instead of \"value\")"
+            )
+        if "source_cmd" not in entry:
+            raise ManifestValidationError(
+                f'proof-manifest.toml: entry ["{key}"] is missing required '
+                f'field "source_cmd" (found fields: {sorted(entry.keys())})'
+            )
+        try:
             manifest[key] = int(entry["value"])
+        except (TypeError, ValueError) as exc:
+            raise ManifestValidationError(
+                f'proof-manifest.toml: entry ["{key}"]\'s "value" is not an '
+                f"integer: {entry['value']!r}"
+            ) from exc
     return manifest
 
 
@@ -365,7 +406,12 @@ def resolve_targets(root: Path, patterns: list[str]) -> list[Path]:
 
 def run(root: Path = REPO_ROOT, manifest_path: Path = MANIFEST_PATH,
         target_patterns: list[str] | None = None) -> int:
-    manifest = load_manifest(manifest_path)
+    try:
+        manifest = load_manifest(manifest_path)
+    except ManifestValidationError as exc:
+        print(f"check_proof_numbers: FATAL -- {exc}")
+        print("check_proof_numbers: manifest is malformed; failing closed (exit 2).")
+        return 2
     targets = resolve_targets(root, target_patterns or DEFAULT_TARGET_GLOBS)
 
     all_fails: list[Finding] = []
@@ -401,7 +447,12 @@ def main(argv: list[str]) -> int:
         # Explicit file args (used by tests): scan exactly those files, manifest
         # still loaded from the real repo root unless overridden by env/caller.
         root = REPO_ROOT
-        manifest = load_manifest(MANIFEST_PATH)
+        try:
+            manifest = load_manifest(MANIFEST_PATH)
+        except ManifestValidationError as exc:
+            print(f"check_proof_numbers: FATAL -- {exc}")
+            print("check_proof_numbers: manifest is malformed; failing closed (exit 2).")
+            return 2
         all_fails: list[Finding] = []
         all_warns: list[Finding] = []
         for arg in argv:

@@ -8,6 +8,8 @@ tests must not mutate real site files.
 import sys
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
@@ -275,11 +277,55 @@ def test_labelled_number_hyphenated_n_test(tmp_path):
     assert fails[0].expected == 187
 
 
+def test_manifest_typo_field_exits_2_not_silent_pass(tmp_path):
+    """Reviewer finding 3 repro: a typo'd field name (`Value = 187` instead of
+    `value = 187`) must NOT make load_manifest() silently return {} (which
+    would turn every FAIL into an unresolved WARN and still exit 0). Loading
+    a malformed manifest must fail closed: print an error and raise, so
+    run()/main() can exit 2 instead of silently passing."""
+    manifest_toml = tmp_path / "proof-manifest.toml"
+    manifest_toml.write_text(
+        '["mcp-factory"]\n'
+        'Value = 187\n'  # typo: capital V -- schema requires lowercase "value"
+        'source_cmd = "pytest -q"\n',
+        encoding="utf-8",
+    )
+    with pytest.raises(cpn.ManifestValidationError):
+        cpn.load_manifest(manifest_toml)
+
+
+def test_manifest_missing_source_cmd_exits_2_not_silent_pass(tmp_path):
+    """A section with `value` but no `source_cmd` is equally malformed per
+    the schema (every section MUST contribute both) and must fail closed."""
+    manifest_toml = tmp_path / "proof-manifest.toml"
+    manifest_toml.write_text(
+        '["mcp-factory"]\nvalue = 187\n',
+        encoding="utf-8",
+    )
+    with pytest.raises(cpn.ManifestValidationError):
+        cpn.load_manifest(manifest_toml)
+
+
+def test_manifest_typo_field_run_exits_2(tmp_path):
+    """End-to-end: run() against a malformed manifest exits 2 (fail-closed),
+    never silently exits 0 with every citation demoted to WARN."""
+    manifest_toml = tmp_path / "proof-manifest.toml"
+    manifest_toml.write_text(
+        '["mcp-factory"]\nValue = 187\nsource_cmd = "pytest -q"\n',
+        encoding="utf-8",
+    )
+    site_dir = tmp_path / "site"
+    site_dir.mkdir()
+    write(site_dir, "index.html", "<p>mcp-factory: 179 passing tests</p>\n")
+    exit_code = cpn.run(root=site_dir, manifest_path=manifest_toml, target_patterns=["*.html"])
+    assert exit_code == 2
+
+
 def test_run_end_to_end_exit_codes(tmp_path):
     """run() against a tmp root: clean fixture -> exit 0, stale fixture -> exit 2."""
     manifest_toml = tmp_path / "proof-manifest.toml"
     manifest_toml.write_text(
-        '["mcp-factory"]\nvalue = 187\n',
+        '["mcp-factory"]\nvalue = 187\nsource_cmd = "pytest -q"\n',
         encoding="utf-8",
     )
 
