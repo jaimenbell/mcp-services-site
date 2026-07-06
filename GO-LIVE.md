@@ -90,7 +90,7 @@ git push origin main
 
 ## 8. Verify live
 
-- Load `https://jaimenbell.github.io/mcp-services-site/` — hero, proof stats (179 / 50), offer
+- Load `https://jaimenbell.github.io/mcp-services-site/` — hero, proof stats (187 / 51), offer
   tiers, case studies, FAQ all render.
 - Load a non-existent path (e.g. `.../nope`) — confirm the custom `404.html` shows, not GitHub's
   default 404.
@@ -99,13 +99,13 @@ git push origin main
   either the mail client with the right address + subject, or the Calendly page if that path was
   used.
 - Click the footer "Contact" link and the footer email text link — same check.
-- Confirm the "179 passing tests" / "mcp-factory" and "50 tests" / "rag-mcp" links resolve to the
+- Confirm the "187 passing tests" / "mcp-factory" and "51 tests" / "rag-mcp" links resolve to the
   public repos.
 
 ## Notes for future updates
 
-- Test counts (179 mcp-factory, 50 rag-mcp, 186 options-bot) were live-verified today
-  (2026-07-02) by running each suite in its own repo's venv — not copied from an old claim. If
+- Test counts (187 mcp-factory, 51 rag-mcp, 186 options-bot) were live-verified today
+  (2026-07-06) by running each suite in its own repo's venv — not copied from an old claim. If
   either upstream repo's suite grows/shrinks, re-run and re-grep this site for the stale number
   before it goes stale again.
 - `[SITE_URL]` is already resolved to `https://jaimenbell.github.io/mcp-services-site` (GitHub

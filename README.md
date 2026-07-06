@@ -9,8 +9,8 @@ HTML/CSS, no backend, deployable free on GitHub Pages.
 ```
 index.html                         landing page (hero, proof, offer, process, FAQ, CTA)
 css/style.css                      single stylesheet (no frameworks, no build step)
-case-studies/mcp-factory.html      case study 1 — manifest-driven MCP scaffolder (179 tests, public + Loom)
-case-studies/rag-mcp.html          case study 2 — RAG retrieval MCP (50 tests, local/$0)
+case-studies/mcp-factory.html      case study 1 — manifest-driven MCP scaffolder (187 tests, public + Loom)
+case-studies/rag-mcp.html          case study 2 — RAG retrieval MCP (51 tests, local/$0)
 case-studies/honest-harness.html   case study 3 — honest validation harness (rigor, not returns)
 404.html                           GitHub Pages custom 404 (no build step needed for this to work)
 scripts/swap_email.py              one-shot jaime@jaimenbell.dev -> real address swap (+ optional Calendly)
@@ -45,8 +45,8 @@ grep -rn "\[EMAIL\]" .
 
 This is a public asset with our name on it. Every number is real and checkable:
 
-- **mcp-factory — 179 passing tests**, public repo + 90-second Loom demo.
-- **rag-mcp — 50 tests**, local ONNX (bge-large) embeddings, $0 inference cost.
+- **mcp-factory — 187 passing tests**, public repo + 90-second Loom demo.
+- **rag-mcp — 51 tests**, local ONNX (bge-large) embeddings, $0 inference cost.
 - The fleet section sells **engineering rigor, not trading performance**. It states plainly that
   strategies that don't clear costs are killed (e.g. one bot retired at **−$735.66 over 1,002
   trades**). **No returns, profit, or gains are claimed anywhere** — by design.
