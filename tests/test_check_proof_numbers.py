@@ -116,6 +116,101 @@ def test_roster_idiom_pairs_numbers_with_repo_slugs(tmp_path):
     assert "options-bot" in warns
 
 
+def test_deco_span_bare_numbers_are_checked_by_value_when_correct(tmp_path):
+    """Reviewer finding 1 repro: index.html:897's decorative span cites
+    '187 passing / 74 tests / 121 tests' with NO repo label within the
+    10-line window (unlike the proof-card blocks, which sit far below).
+    When the bare numbers match manifest values exactly, they must be
+    associated by value and pass silently -- not WARN as unassociated."""
+    manifest = {"mcp-factory": 187, "github-mcp": 74, "desktop-mcp": 121}
+    f = write(
+        tmp_path,
+        "index.html",
+        '<span class="deco"><span class="n">check</span> 187 passing<br>'
+        '<span class="n">check</span> 74 tests<br>'
+        '<span class="n">check</span> 121 tests</span>\n',
+    )
+    findings = cpn.scan_file(f, manifest)
+    fails = [x for x in findings if x.verdict == "FAIL"]
+    warns = [x for x in findings if x.verdict == "WARN"]
+    assert fails == []
+    # These numbers must be resolved (associated by value), not left as
+    # unassociated WARNs -- the whole point of the fix.
+    assert warns == []
+    repo_keys_seen = {x.repo_key for x in findings}
+    assert repo_keys_seen <= {"mcp-factory", "github-mcp", "desktop-mcp"}
+
+
+def test_deco_span_bare_numbers_fail_when_manifest_value_mutated(tmp_path):
+    """Acceptance bar for finding 1: mutate mcp-factory's manifest value and
+    confirm the 897-style span (and meta-tag-style citation) now FAIL instead
+    of silently passing/warning."""
+    manifest = {"mcp-factory": 200, "github-mcp": 74, "desktop-mcp": 121}
+    f = write(
+        tmp_path,
+        "index.html",
+        '<span class="deco"><span class="n">check</span> 187 passing<br>'
+        '<span class="n">check</span> 74 tests<br>'
+        '<span class="n">check</span> 121 tests</span>\n',
+    )
+    findings = cpn.scan_file(f, manifest)
+    fails = [x for x in findings if x.verdict == "FAIL"]
+    assert len(fails) == 1
+    assert fails[0].number == 187
+
+
+def test_meta_description_bare_number_fails_when_manifest_value_mutated(tmp_path):
+    """Same repro as above but for the og:/twitter:description meta-tag style
+    citation (index.html:15,23): a single bare number, far from any proof
+    card, in a one-line file where no manifest key appears anywhere."""
+    manifest = {"mcp-factory": 200}
+    f = write(
+        tmp_path,
+        "index.html",
+        '<meta property="og:description" content="Public proof: 187 passing tests." />\n',
+    )
+    findings = cpn.scan_file(f, manifest)
+    fails = [x for x in findings if x.verdict == "FAIL"]
+    assert len(fails) == 1
+    assert fails[0].number == 187
+
+
+def test_known_noncanonical_orphaned_number_still_warns_not_fails(tmp_path):
+    """Guardrail: numbers that are legitimately cited in test-count context but
+    do not correspond to any manifest-tracked repo (the options-bot 186, the
+    fleet-reliability-day composite 2806/283) must remain WARN, never FAIL --
+    the by-value hardening must not false-positive on these."""
+    manifest = {"mcp-factory": 187}
+    assert cpn.KNOWN_NONCANONICAL_NUMBERS, "fixture assumes a non-empty allowlist"
+    for number in sorted(cpn.KNOWN_NONCANONICAL_NUMBERS):
+        f = write(
+            tmp_path,
+            f"noncanonical-{number}.html",
+            f'<span class="pill">{number} tests (some-untracked-thing)</span>\n',
+        )
+        findings = cpn.scan_file(f, manifest)
+        fails = [x for x in findings if x.verdict == "FAIL"]
+        assert fails == [], f"{number} should WARN, not FAIL: {[x.format() for x in findings]}"
+
+
+def test_orphaned_unknown_number_in_test_context_fails_as_suspicious(tmp_path):
+    """A number that matches NO manifest value and is not in the documented
+    known-non-canonical allowlist, cited in a test-count context with no
+    nearby repo label, is presumed a drifted/uncanonical proof-number citation
+    and must FAIL rather than silently WARN."""
+    manifest = {"mcp-factory": 187}
+    assert 999983 not in cpn.KNOWN_NONCANONICAL_NUMBERS
+    f = write(
+        tmp_path,
+        "orphaned.html",
+        '<span class="pill">999983 passing tests</span>\n',
+    )
+    findings = cpn.scan_file(f, manifest)
+    fails = [x for x in findings if x.verdict == "FAIL"]
+    assert len(fails) == 1
+    assert fails[0].number == 999983
+
+
 def test_run_end_to_end_exit_codes(tmp_path):
     """run() against a tmp root: clean fixture -> exit 0, stale fixture -> exit 2."""
     manifest_toml = tmp_path / "proof-manifest.toml"

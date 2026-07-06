@@ -94,6 +94,43 @@ ROSTER_PAIR_RE = re.compile(rf"{NUM}\s+([a-zA-Z][a-zA-Z0-9_-]{{1,40}})")
 
 WINDOW = 10  # lines to search above/below for association fallback (d)
 
+# Rule 4f (by-value fallback): when a labelled proof-number has no nearby
+# repo label at all (steps a-d all miss), associate it by VALUE instead of
+# leaving it as a silent, unchecked WARN:
+#   - if the number equals EXACTLY ONE manifest entry's value, treat it as
+#     that repo's citation and verify it normally (this is what makes
+#     index.html's decorative "187 passing / 74 tests / 121 tests" span and
+#     the og:/twitter:description meta tags -- all of which sit far outside
+#     the 10-line WINDOW of any proof-card's repo label -- actually get
+#     checked instead of silently WARNing forever);
+#   - if it matches NO manifest value and isn't in KNOWN_NONCANONICAL_NUMBERS
+#     below, it is presumed a drifted/uncanonical proof-number citation and
+#     FAILs (rather than WARNing) -- an orphaned number in test-count context
+#     with no explanation is exactly the kind of silent drift this gate
+#     exists to catch;
+#   - if it matches MORE THAN ONE manifest value (a value collision) it is
+#     ambiguous -- we cannot know which repo it was meant to cite -- so it is
+#     treated the same as "matches no manifest value" for verdict purposes:
+#     FAIL unless it is in the known-noncanonical allowlist below (never
+#     silently assumed correct just because it happens to match something).
+#
+# KNOWN_NONCANONICAL_NUMBERS is a small, deliberately curated allowlist of
+# numbers that legitimately appear in test-count-shaped prose but do NOT
+# correspond to any single manifest-tracked repo suite, so by-value
+# association can never resolve them and they must not be escalated to FAIL:
+#   - 186: options-bot's own test count. options-bot is a separate project
+#     outside this manifest's scope (not one of the MCP servers this site
+#     sells) -- see case-studies/honest-harness.html and GO-LIVE.md. Its
+#     count is cited for narrative honesty but is not live-verified by this
+#     repo's tooling, so it has no proof-manifest.toml entry to check against.
+#   - 2806, 283: case-studies/fleet-reliability-day.html's "N + M tests"
+#     composite -- an aggregate across ~30 fleet lanes, not any single repo's
+#     suite count, so it has no single manifest entry either.
+# When adding a new named-but-untracked proof-number callout to the site,
+# add its value(s) here (with a comment explaining why it's untracked) or it
+# will start FAILing the commit gate as a suspicious orphaned number.
+KNOWN_NONCANONICAL_NUMBERS = {186, 2806, 283}
+
 
 class Finding:
     def __init__(self, file: Path, line_no: int, line_text: str, number: int,
@@ -114,6 +151,13 @@ class Finding:
         # (curly quotes, em-dashes, checkmarks) are replaced, never crashed on.
         snippet = self.line_text.strip().encode("ascii", errors="replace").decode("ascii")
         if self.verdict == "FAIL":
+            if self.repo_key is None and self.expected is None:
+                return (
+                    f"FAIL {rel}:{self.line_no}: found {self.number} -- no manifest"
+                    f" entry has this value and it is not a documented"
+                    f" known-non-canonical exception; suspicious/uncanonical"
+                    f" proof-number citation -- {snippet}"
+                )
             return (
                 f"FAIL {rel}:{self.line_no}: found {self.number}"
                 f" (repo={self.repo_key}), expected {self.expected}"
@@ -228,11 +272,23 @@ def scan_file(path: Path, manifest: dict[str, int]) -> list[Finding]:
                     if repo_key is None:
                         repo_key = _window_key(lines, idx, manifest_keys)
 
+                if repo_key is None:
+                    # Rule 4f: no repo label anywhere nearby -- fall back to
+                    # associating by value before giving up.
+                    value_matches = [k for k, v in manifest.items() if v == number]
+                    if len(value_matches) == 1:
+                        repo_key = value_matches[0]
+
                 if repo_key is not None and repo_key in manifest:
                     expected = manifest[repo_key]
                     if number != expected:
                         findings.append(Finding(path, line_no, line, number, repo_key, "FAIL", expected))
                     # else: matches -- silent pass
+                elif repo_key is None and number not in KNOWN_NONCANONICAL_NUMBERS:
+                    # Orphaned: no label, no value match, not a documented
+                    # exception -- presumed drifted/uncanonical. FAIL rather
+                    # than silently WARN (this is finding 1's whole point).
+                    findings.append(Finding(path, line_no, line, number, None, "FAIL", None))
                 else:
                     findings.append(Finding(path, line_no, line, number, repo_key, "WARN"))
 
