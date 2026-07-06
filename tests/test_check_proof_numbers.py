@@ -211,6 +211,70 @@ def test_orphaned_unknown_number_in_test_context_fails_as_suspicious(tmp_path):
     assert fails[0].number == 999983
 
 
+def test_labelled_number_with_intervening_word_is_detected(tmp_path):
+    """Reviewer finding 2 repro: 'mcp-factory ships with 200 unit tests' --
+    number-before-label with one intervening word between them. Previously
+    invisible (zero findings, not even WARN) because PATTERN_LABELLED only
+    matched NUM directly adjacent to the label word."""
+    manifest = {"mcp-factory": 187}
+    f = write(
+        tmp_path,
+        "mcp-factory.html",
+        "<p>mcp-factory ships with 200 unit tests, public repo.</p>\n",
+    )
+    findings = cpn.scan_file(f, manifest)
+    assert findings, "the 200 citation must be detected, not silently invisible"
+    fails = [x for x in findings if x.verdict == "FAIL" and x.number == 200]
+    assert len(fails) == 1
+    assert fails[0].expected == 187
+
+
+def test_labelled_number_reversed_label_before_number_with_colon(tmp_path):
+    """Reviewer finding 2 repro: 'tests passing: 200' -- label before number,
+    separated by a colon."""
+    manifest = {"mcp-factory": 187}
+    f = write(
+        tmp_path,
+        "mcp-factory.html",
+        "<p>mcp-factory: tests passing: 200</p>\n",
+    )
+    findings = cpn.scan_file(f, manifest)
+    assert findings, "the 200 citation must be detected, not silently invisible"
+    fails = [x for x in findings if x.verdict == "FAIL" and x.number == 200]
+    assert len(fails) == 1
+    assert fails[0].expected == 187
+
+
+def test_labelled_number_reversed_label_colon_number_bare(tmp_path):
+    """Reviewer finding 2 repro: 'tests: 200' -- bare label-before-number."""
+    manifest = {"mcp-factory": 187}
+    f = write(
+        tmp_path,
+        "mcp-factory.html",
+        "<p>mcp-factory tests: 200</p>\n",
+    )
+    findings = cpn.scan_file(f, manifest)
+    assert findings, "the 200 citation must be detected, not silently invisible"
+    fails = [x for x in findings if x.verdict == "FAIL" and x.number == 200]
+    assert len(fails) == 1
+    assert fails[0].expected == 187
+
+
+def test_labelled_number_hyphenated_n_test(tmp_path):
+    """Reviewer finding 2 repro: '200-test suite' -- hyphenated N-test."""
+    manifest = {"mcp-factory": 187}
+    f = write(
+        tmp_path,
+        "mcp-factory.html",
+        "<p>mcp-factory ships a 200-test suite, public repo.</p>\n",
+    )
+    findings = cpn.scan_file(f, manifest)
+    assert findings, "the 200 citation must be detected, not silently invisible"
+    fails = [x for x in findings if x.verdict == "FAIL" and x.number == 200]
+    assert len(fails) == 1
+    assert fails[0].expected == 187
+
+
 def test_run_end_to_end_exit_codes(tmp_path):
     """run() against a tmp root: clean fixture -> exit 0, stale fixture -> exit 2."""
     manifest_toml = tmp_path / "proof-manifest.toml"

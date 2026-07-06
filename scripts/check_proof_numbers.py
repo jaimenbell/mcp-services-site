@@ -18,12 +18,22 @@ MATCHING / ASSOCIATION RULES (read this before changing the regexes below)
    ("18 tools"), day counts, etc. never appear next to those words and are
    never touched.
 
-2. Within a trigger line, PATTERN_LABELLED finds numbers that sit directly
-   next to a labelling word: "<N> tests", "<N> passing tests", "<N> passed",
-   "<N> passing", or the "<N> + <M> tests" fleet-stat shape. The label must
-   be adjacent (not just present anywhere on the line) -- this is what lets
-   "121 passing tests" match while "18 tools . 121 passing tests" still only
-   flags the 121, never the 18.
+2. Within a trigger line, LABEL_PATTERNS finds numbers that are labelled as
+   a test count, in any of these realistic copy-editing shapes:
+     a. PATTERN_LABELLED: "<N> tests", "<N> passing tests", "<N> passed",
+        "<N> passing", or the "<N> + <M> tests" fleet-stat shape -- number
+        directly adjacent to the label.
+     b. PATTERN_LABELLED_GAP: "<N> <word> tests" -- one intervening word
+        between the number and the label, e.g. "200 unit tests".
+     c. PATTERN_HYPHENATED: "<N>-test(s)" -- hyphenated, e.g. "200-test
+        suite".
+     d. PATTERN_LABEL_BEFORE: "tests: <N>", "tests passing: <N>", "passing:
+        <N>" -- label before the number, colon-separated.
+   Each pattern requires the label to be genuinely adjacent (not just present
+   anywhere on the line) -- this is what lets "121 passing tests" match while
+   "18 tools . 121 passing tests" still only flags the 121, never the 18. A
+   candidate match is discarded if its span overlaps one already accepted by
+   an earlier pattern, so one citation is never counted twice.
 
 3. PATTERN_ROSTER additionally catches the "Test counts (179 mcp-factory, 50
    rag-mcp, 186 options-bot)" idiom: a line whose text contains "test count"
@@ -87,6 +97,34 @@ PATTERN_LABELLED = re.compile(
     rf"{NUM}(?:\s*\+\s*{NUM})?\s+(?:passing\s+tests|passed\s+tests|passing|passed|tests?)\b",
     re.IGNORECASE,
 )
+
+# "<N> <word> <label>" -- number-before-label with ONE intervening word, e.g.
+# "mcp-factory ships with 200 unit tests". The negative lookahead keeps this
+# from double-matching plain "<N> passing tests" (already caught by
+# PATTERN_LABELLED above) by refusing to treat a label word itself as the
+# "intervening word".
+PATTERN_LABELLED_GAP = re.compile(
+    rf"{NUM}\s+(?!(?:passing|passed|tests?)\b)[a-zA-Z]+\s+"
+    rf"(?:passing\s+tests|passed\s+tests|passing|passed|tests?)\b",
+    re.IGNORECASE,
+)
+
+# "<N>-test[s]" -- hyphenated number-before-label, e.g. "a 200-test suite".
+PATTERN_HYPHENATED = re.compile(rf"{NUM}-tests?\b", re.IGNORECASE)
+
+# Label-before-number, e.g. "tests: 200", "tests passing: 200", "passing: 200".
+# Bounded intervening word (max 20 chars) keeps this from wandering across
+# unrelated colons elsewhere on a long line.
+PATTERN_LABEL_BEFORE = re.compile(
+    rf"\b(?:tests?|passing|passed)\b(?:\s+\w{{1,20}})?\s*:\s*{NUM}\b",
+    re.IGNORECASE,
+)
+
+# Every labelled-number matcher, tried in order; a candidate match is skipped
+# if it overlaps a span already accepted by an earlier pattern in the list,
+# so a single citation is never counted twice (see rule 2 in the module
+# docstring below for the realistic copy-editing variants each one covers).
+LABEL_PATTERNS = [PATTERN_LABELLED, PATTERN_LABELLED_GAP, PATTERN_HYPHENATED, PATTERN_LABEL_BEFORE]
 
 # "Test count(s) (<N> repo-slug, <M> repo-slug, ...)" idiom.
 ROSTER_LINE_RE = re.compile(r"test\s+counts?", re.IGNORECASE)
@@ -181,6 +219,22 @@ def _parse_int(token: str) -> int:
     return int(token.replace(",", ""))
 
 
+def _iter_labelled_matches(line: str):
+    """Yield non-overlapping matches for `line` across all LABEL_PATTERNS, in
+    priority order. A candidate match is skipped if its span overlaps one
+    already accepted from an earlier pattern, so a single citation (e.g.
+    "187 passing tests") is never counted twice even though more than one
+    pattern could technically match the same text."""
+    accepted: list[tuple[int, int]] = []
+    for pattern in LABEL_PATTERNS:
+        for m in pattern.finditer(line):
+            start, end = m.start(), m.end()
+            if any(start < a_end and end > a_start for a_start, a_end in accepted):
+                continue
+            accepted.append((start, end))
+            yield m
+
+
 def _nearest_key_on_line(line: str, manifest_keys: list[str], approx_pos: int) -> str | None:
     """Return the manifest key on `line` whose match position is closest to approx_pos."""
     best_key = None
@@ -256,7 +310,7 @@ def scan_file(path: Path, manifest: dict[str, int]) -> list[Finding]:
         if not TRIGGER_RE.search(line):
             continue
 
-        for m in PATTERN_LABELLED.finditer(line):
+        for m in _iter_labelled_matches(line):
             groups = [g for g in m.groups() if g]
             for num_str in groups:
                 number = _parse_int(num_str)
