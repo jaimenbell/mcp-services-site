@@ -1,0 +1,47 @@
+#!/bin/sh
+# pre-commit -- proof-number gate.
+#
+# Blocks a commit if any cited proof number (test count, etc.) in committed
+# site content contradicts proof-manifest.toml. See scripts/check_proof_numbers.py
+# for the full matching/association rule set.
+#
+# This hook is wired up via:
+#   git config core.hooksPath .githooks
+# (run once per clone -- see README.md "Dev setup" for the one-line command.)
+#
+# ASCII-only, POSIX sh, no bashisms -- must run under Git Bash on Windows and
+# under bash/sh on Linux/macOS alike.
+
+set -e
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+cd "$REPO_ROOT"
+
+PYTHON_BIN=""
+if command -v python3 >/dev/null 2>&1; then
+    PYTHON_BIN="python3"
+elif command -v python >/dev/null 2>&1; then
+    PYTHON_BIN="python"
+elif command -v py >/dev/null 2>&1; then
+    PYTHON_BIN="py"
+fi
+
+if [ -z "$PYTHON_BIN" ]; then
+    echo "pre-commit: no python3/python/py found on PATH -- cannot run the proof-number gate."
+    echo "pre-commit: install Python or fix PATH, then retry the commit."
+    exit 1
+fi
+
+"$PYTHON_BIN" scripts/check_proof_numbers.py
+STATUS=$?
+
+if [ "$STATUS" -ne 0 ]; then
+    echo ""
+    echo "pre-commit: BLOCKED -- one or more proof numbers in site content"
+    echo "disagree with proof-manifest.toml. Fix the cited number (or the"
+    echo "manifest, if the manifest itself is stale -- re-run the upstream"
+    echo "suite first) and re-commit."
+    exit "$STATUS"
+fi
+
+exit 0
