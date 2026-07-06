@@ -321,6 +321,47 @@ def test_manifest_typo_field_run_exits_2(tmp_path):
     assert exit_code == 2
 
 
+def test_default_target_globs_cover_articles_scoreboard_404(tmp_path):
+    """Reviewer finding 6 repro: the pre-commit hook invokes this script with
+    no argv, so it relies entirely on DEFAULT_TARGET_GLOBS. That list omitted
+    articles/*.html, scoreboard.html, and 404.html -- a stale proof number
+    committed in any of those files would never be scanned at all."""
+    manifest_toml = tmp_path / "proof-manifest.toml"
+    manifest_toml.write_text(
+        '["mcp-factory"]\nvalue = 187\nsource_cmd = "pytest -q"\n',
+        encoding="utf-8",
+    )
+    site_dir = tmp_path / "site"
+    (site_dir / "articles").mkdir(parents=True)
+    write(site_dir, "scoreboard.html", "<p>mcp-factory: 179 passing tests</p>\n")
+    write(site_dir, "404.html", "<p>mcp-factory: 179 passing tests</p>\n")
+    write(site_dir / "articles", "post.html", "<p>mcp-factory: 179 passing tests</p>\n")
+
+    exit_code = cpn.run(root=site_dir, manifest_path=manifest_toml)
+    assert exit_code == 2, (
+        "a stale number in articles/*.html, scoreboard.html, or 404.html must "
+        "be caught by the default (no-argv) scan the pre-commit hook uses"
+    )
+
+
+def test_verb_usage_of_tests_is_not_a_proof_number_citation(tmp_path):
+    """Regression for a real false-positive surfaced by widening
+    DEFAULT_TARGET_GLOBS to scoreboard.html (finding 6) combined with the
+    finding-1 by-value-fallback hardening: scoreboard.html:501 reads 'Wave 7
+    tests whether this collapses into news_veto...' -- "tests" used as a
+    VERB (Wave 7 [subject] tests [verb] whether...), not a test-count noun.
+    This must never be treated as a proof-number citation at all."""
+    manifest = {"mcp-factory": 187}
+    f = write(
+        tmp_path,
+        "scoreboard.html",
+        '<td class="sb-notes">LIKELY-REDUNDANT hint; Wave 7 tests whether '
+        "this collapses into news_veto with no independent lift</td>\n",
+    )
+    findings = cpn.scan_file(f, manifest)
+    assert findings == [], f"'Wave 7 tests whether...' must not be flagged at all: {[x.format() for x in findings]}"
+
+
 def test_run_end_to_end_exit_codes(tmp_path):
     """run() against a tmp root: clean fixture -> exit 0, stale fixture -> exit 2."""
     manifest_toml = tmp_path / "proof-manifest.toml"

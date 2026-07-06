@@ -35,6 +35,13 @@ MATCHING / ASSOCIATION RULES (read this before changing the regexes below)
    candidate match is discarded if its span overlaps one already accepted by
    an earlier pattern, so one citation is never counted twice.
 
+   PATTERN_LABELLED and PATTERN_LABELLED_GAP additionally refuse to match
+   when "tests"/"passing"/"passed" is immediately followed by a complement
+   word (whether/if/that/how/what/why/this/these/those/the/a/an) -- this is
+   the guard against "tests" used as a VERB, e.g. scoreboard.html's "Wave 7
+   tests whether this collapses into news_veto..." ("[Wave 7] tests
+   [whether ...]" is a sentence, not a "7 tests" proof-number citation).
+
 3. PATTERN_ROSTER additionally catches the "Test counts (179 mcp-factory, 50
    rag-mcp, 186 options-bot)" idiom: a line whose text contains "test count"
    followed by a parenthesised comma list of "<N> <repo-slug>" pairs. This is
@@ -86,6 +93,9 @@ DEFAULT_TARGET_GLOBS = [
     "README.md",
     "case-studies/*.html",
     "case-studies/*.md",
+    "articles/*.html",
+    "scoreboard.html",
+    "404.html",
 ]
 
 TRIGGER_RE = re.compile(r"\b(?:tests?|passing|passed)\b", re.IGNORECASE)
@@ -93,8 +103,16 @@ TRIGGER_RE = re.compile(r"\b(?:tests?|passing|passed)\b", re.IGNORECASE)
 NUM = r"(\d{1,3}(?:,\d{3})+|\d+)"
 
 # "<N> [+ <M>] <label>" -- number(s) immediately followed by a labelling word.
+# Guard against "tests" used as a VERB rather than a test-count noun, e.g.
+# "Wave 7 tests whether this collapses..." (scoreboard.html) -- "tests" here
+# is present-tense "[Wave 7] tests [whether ...]", not "7 tests" the count.
+# As a noun/participle, "tests"/"passing"/"passed" is followed by a phrase
+# boundary (punctuation, a closing tag, "and", "cover", "exercise", etc);
+# as a verb it takes a direct complement introduced by one of these words.
+_NOT_VERB_COMPLEMENT = r"(?!\s+(?:whether|if|that|how|what|why|this|these|those|the|a|an)\b)"
+
 PATTERN_LABELLED = re.compile(
-    rf"{NUM}(?:\s*\+\s*{NUM})?\s+(?:passing\s+tests|passed\s+tests|passing|passed|tests?)\b",
+    rf"{NUM}(?:\s*\+\s*{NUM})?\s+(?:passing\s+tests|passed\s+tests|passing|passed|tests?)\b{_NOT_VERB_COMPLEMENT}",
     re.IGNORECASE,
 )
 
@@ -105,7 +123,7 @@ PATTERN_LABELLED = re.compile(
 # "intervening word".
 PATTERN_LABELLED_GAP = re.compile(
     rf"{NUM}\s+(?!(?:passing|passed|tests?)\b)[a-zA-Z]+\s+"
-    rf"(?:passing\s+tests|passed\s+tests|passing|passed|tests?)\b",
+    rf"(?:passing\s+tests|passed\s+tests|passing|passed|tests?)\b{_NOT_VERB_COMPLEMENT}",
     re.IGNORECASE,
 )
 
