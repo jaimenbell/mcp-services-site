@@ -32,8 +32,20 @@ if [ -z "$PYTHON_BIN" ]; then
     exit 1
 fi
 
-"$PYTHON_BIN" scripts/check_proof_numbers.py
-STATUS=$?
+
+# Note: the checker call is the condition of this `if`, not a bare command.
+# Under `set -e`, a bare failing command aborts the script immediately --
+# which previously ran the checker on its own line, then read $? on the
+# NEXT line, a line that `set -e` never let the shell reach on failure. That
+# skipped the STATUS/if block below entirely, so a blocked commit got a raw
+# tool dump with no fix guidance. Using the command directly as the `if`
+# condition is exempt from `set -e` (POSIX: the exit status of commands in
+# an `if` test is not subject to `set -e`), so both branches always run.
+if "$PYTHON_BIN" scripts/check_proof_numbers.py; then
+    STATUS=0
+else
+    STATUS=$?
+fi
 
 if [ "$STATUS" -ne 0 ]; then
     echo ""

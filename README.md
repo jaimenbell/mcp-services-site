@@ -86,6 +86,10 @@ Enable it once per clone:
 git config core.hooksPath .githooks
 ```
 
+`.githooks/pre-commit` is committed with its executable bit set (mode 100755), so this one-line
+`core.hooksPath` config is all that's needed on Linux/macOS. If a checkout ever loses the exec bit
+(e.g. some non-git file transfer), restore it with `git update-index --chmod=+x .githooks/pre-commit`.
+
 Tests: `pip install -r requirements-dev.txt` then `python -m pytest` (see `pytest.ini`).
 
 ## License / status

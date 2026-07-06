@@ -5,6 +5,8 @@ Uses only temp fixtures (tmp_path) -- never touches the real site content files
 tests must not mutate real site files.
 """
 
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -381,3 +383,82 @@ def test_run_end_to_end_exit_codes(tmp_path):
     write(stale_dir, "index.html", "<p>mcp-factory: 179 passing tests</p>\n")
     exit_code = cpn.run(root=stale_dir, manifest_path=manifest_toml, target_patterns=["*.html"])
     assert exit_code == 2
+
+
+def _bash_path() -> str:
+    path = shutil.which("bash")
+    if path is None:
+        pytest.skip("bash not found on PATH -- cannot exercise the shell hook end-to-end")
+    return path
+
+
+def _build_temp_hook_repo(tmp_path: Path, manifest_toml_text: str, index_html_text: str) -> Path:
+    """Build a minimal git repo with the REAL .githooks/pre-commit and the
+    REAL scripts/check_proof_numbers.py wired up, so the shell-script-level
+    fixes (findings 4 and 5) are exercised end-to-end rather than only
+    unit-tested at the Python level. Never touches the real repo's checkout."""
+    repo = tmp_path / "hookrepo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.name", "Test"], cwd=repo, check=True)
+
+    (repo / "scripts").mkdir()
+    shutil.copy2(REPO_ROOT / "scripts" / "check_proof_numbers.py", repo / "scripts" / "check_proof_numbers.py")
+    (repo / ".githooks").mkdir()
+    shutil.copy2(REPO_ROOT / ".githooks" / "pre-commit", repo / ".githooks" / "pre-commit")
+
+    (repo / "proof-manifest.toml").write_text(manifest_toml_text, encoding="utf-8", newline="\n")
+    (repo / "index.html").write_text(index_html_text, encoding="utf-8", newline="\n")
+    return repo
+
+
+def test_hook_file_is_committed_executable():
+    """Reviewer finding 4 repro: .githooks/pre-commit was checked in
+    non-executable (mode 100644). On Linux/macOS, git silently skips a
+    non-executable hook file -- core.hooksPath would be configured but the
+    gate would never actually run. The exec bit must be committed (100755)."""
+    result = subprocess.run(
+        ["git", "ls-files", "-s", ".githooks/pre-commit"],
+        cwd=REPO_ROOT, capture_output=True, text=True, check=True,
+    )
+    mode = result.stdout.split()[0]
+    assert mode == "100755", f"expected the hook committed executable (100755), got: {result.stdout!r}"
+
+
+def test_hook_blocked_message_survives_set_e(tmp_path):
+    """Reviewer finding 5 repro: `set -e` previously aborted the hook's shell
+    on the checker's non-zero exit BEFORE the STATUS=$?/guidance-message
+    block ran (a bare failing command is not exempt from set -e; only a
+    command used as an `if`/`&&`/`||` operand is), so a blocked commit
+    printed a bare tool dump instead of the 'pre-commit: BLOCKED ...' fix
+    guidance. Runs the REAL .githooks/pre-commit end-to-end against a stale
+    fixture and asserts both: the commit is still blocked (non-zero exit)
+    AND the guidance message actually printed."""
+    bash = _bash_path()
+    manifest_toml_text = '["mcp-factory"]\nvalue = 187\nsource_cmd = "pytest -q"\n'
+    stale_index = "<p>mcp-factory: 179 passing tests</p>\n"
+    repo = _build_temp_hook_repo(tmp_path, manifest_toml_text, stale_index)
+
+    result = subprocess.run([bash, ".githooks/pre-commit"], cwd=repo, capture_output=True, text=True)
+
+    assert result.returncode != 0, f"stale commit must still be blocked: {result.stdout}\n{result.stderr}"
+    assert "BLOCKED" in result.stdout, (
+        f"guidance message must survive set -e, not be swallowed by it: "
+        f"stdout={result.stdout!r} stderr={result.stderr!r}"
+    )
+
+
+def test_hook_allows_clean_commit_with_no_blocked_message(tmp_path):
+    """Sanity companion to the set-e regression: the same real hook, run
+    against a fixture where the proof number is correct, exits 0 and never
+    prints the BLOCKED guidance."""
+    bash = _bash_path()
+    manifest_toml_text = '["mcp-factory"]\nvalue = 187\nsource_cmd = "pytest -q"\n'
+    clean_index = "<p>mcp-factory: 187 passing tests</p>\n"
+    repo = _build_temp_hook_repo(tmp_path, manifest_toml_text, clean_index)
+
+    result = subprocess.run([bash, ".githooks/pre-commit"], cwd=repo, capture_output=True, text=True)
+
+    assert result.returncode == 0, f"clean commit must pass: {result.stdout}\n{result.stderr}"
+    assert "BLOCKED" not in result.stdout
