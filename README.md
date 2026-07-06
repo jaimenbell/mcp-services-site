@@ -76,6 +76,18 @@ Open `index.html` directly in a browser, or serve the folder:
 python -m http.server 8000   # then visit http://localhost:8000
 ```
 
+## Dev setup — proof-number gate
+
+This repo enforces a commit-time gate against proof-number drift (a cited test count going
+stale relative to reality — see `proof-manifest.toml` and `scripts/check_proof_numbers.py`).
+Enable it once per clone:
+
+```
+git config core.hooksPath .githooks
+```
+
+Tests: `pip install -r requirements-dev.txt` then `python -m pytest` (see `pytest.ini`).
+
 ## License / status
 
 Private marketing asset. Pricing is proposed pending operator confirmation; case-study numbers are

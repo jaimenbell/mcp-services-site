@@ -1,0 +1,59 @@
+# proof-manifest.toml
+#
+# Canonical register of proof numbers (test counts) that may be cited on the public
+# site (index.html, GO-LIVE.md, case-studies/*.html, README.md, etc.).
+#
+# Each entry's `value` is the ONLY number that is allowed to be cited for that repo
+# anywhere in committed site content. It is produced by ACTUALLY RUNNING the suite
+# named in `source_cmd`, in `source_repo`, and reading the pytest summary line's
+# "N passed" count (never "collected", never "passed + skipped" summed together).
+#
+# scripts/check_proof_numbers.py reads this file and fails a commit if any citation
+# in site content contradicts it. See that script's module docstring for the exact
+# matching/association rules.
+#
+# Key = the repo keyword as it is expected to appear in site text (e.g. "mcp-factory").
+
+["mcp-factory"]
+value = 187
+source_repo = "C:\\Users\\jaime\\projects\\mcp-factory"
+source_cmd = ".venv/Scripts/python.exe -m pytest -q"
+tail_line = "187 passed, 8 skipped in 10.79s"
+verified_utc = "2026-07-06T20:04:40+00:00"
+status = "verified"
+
+["github-mcp"]
+value = 74
+source_repo = "C:\\Users\\jaime\\projects\\github-mcp"
+source_cmd = "python -m pytest -v --no-header"
+tail_line = "74 passed, 1 skipped in 9.49s"
+verified_utc = "2026-07-06T20:04:40+00:00"
+status = "verified"
+note = "no .venv in this repo; ran with the global python per fallback rule. Also note: this repo's own -q addopts silently drops the summary line under pytest 9.0.3 in this shell -- -v was required to see it; the count itself (74 passed, 1 skipped) is unaffected by that verbosity flag."
+
+["desktop-mcp"]
+value = 121
+source_repo = "C:\\Users\\jaime\\projects\\desktop-mcp"
+source_cmd = "python -m pytest -v --no-header"
+tail_line = "121 passed, 2 skipped in 1.18s"
+verified_utc = "2026-07-06T20:04:40+00:00"
+status = "verified"
+note = "no .venv in this repo; ran with the global python per fallback rule. Same -q-suppresses-summary quirk as github-mcp; -v used to confirm the count only."
+
+["rag-mcp"]
+value = 51
+source_repo = "C:\\Users\\jaime\\projects\\rag-mcp"
+source_cmd = ".venv/Scripts/python.exe -m pytest -v --no-header"
+tail_line = "51 passed in 2.29s"
+verified_utc = "2026-07-06T20:04:40+00:00"
+status = "verified"
+note = "DRIFT FOUND: site/README/GO-LIVE all cite '50 tests' for rag-mcp. Live run is 51 passed. This is a second drift instance beyond the two the mission called out -- see lane report."
+
+["bus-mcp"]
+value = 54
+source_repo = "C:\\Users\\jaime\\projects\\bus-mcp"
+source_cmd = ".venv/Scripts/python.exe -m pytest -v --no-header"
+tail_line = "54 passed, 1 skipped in 7.16s"
+verified_utc = "2026-07-06T20:04:40+00:00"
+status = "verified"
+note = "bus-mcp is not currently cited as a proof number anywhere in site content (grep-confirmed); seeded per the mission's register list for completeness/future-proofing."
