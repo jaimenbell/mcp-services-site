@@ -769,6 +769,25 @@
   </div>
 </header>
 
+<!-- DISCORD COMMUNITY CTA — hero-adjacent "join the build" band.
+     Hidden by default; js/discord-cta.js unhides + sets the href only once
+     the operator fills in DISCORD_INVITE (server doesn't exist yet). -->
+<section id="discord" class="band band--dark">
+  <div class="wrap">
+    <div class="cta-box reveal" id="discord-cta" style="display:none">
+      <div class="sec-tag">Join the build</div>
+      <h2>Real MCP builds, in public — no hype, just proof.</h2>
+      <p>Auth-scoping fights, fail-soft edge cases, version-pinning war stories — a community around the same harness discipline this whole site is built on.</p>
+      <div class="btn-row" style="justify-content:center; margin-bottom:0">
+        <a href="" id="discord-cta-link" target="_blank" rel="noopener" class="btn btn-primary">
+          Join the Discord
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- PROBLEM -->
 <section id="problem" class="band band--dark">
   <span class="deco" style="top:90px; right:max(18px, calc(50% - 770px));">try:<br>&nbsp;&nbsp;<span class="s">refund</span>(order)<br>except:<br>&nbsp;&nbsp;<span class="k">crash</span> 💥</span>
@@ -1339,11 +1358,12 @@
     </a>
     <div class="foot-honest">
       Production MCP servers — auth-scoped, fail-soft, tested. <span class="v">187 passing tests</span> on the open engine; the production layer is hand-built per engagement. No trading claims, no fabricated metrics.
-      <br><a href="https://github.com/jaimenbell/MCP-Factory" style="color:var(--muted)">GitHub</a> · <a href="scoreboard.html" style="color:var(--muted)">Scoreboard</a> · <a href="mailto:jaime@jaimenbell.dev" style="color:var(--muted)">jaime@jaimenbell.dev</a>
+      <br><a href="https://github.com/jaimenbell/MCP-Factory" style="color:var(--muted)">GitHub</a> · <a href="scoreboard.html" style="color:var(--muted)">Scoreboard</a> · <a href="mailto:jaime@jaimenbell.dev" style="color:var(--muted)">jaime@jaimenbell.dev</a> <span id="discord-footer-link-wrap" style="display:none">· <a id="discord-footer-link" href="" target="_blank" rel="noopener" style="color:var(--muted)">Discord</a></span>
     </div>
   </div>
 </footer>
 
+<script src="js/discord-cta.js" defer></script>
 <script>
   // nav border on scroll
   const nav = document.getElementById('nav');
