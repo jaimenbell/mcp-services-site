@@ -18,42 +18,61 @@
 value = 187
 source_repo = "C:\\Users\\jaime\\projects\\mcp-factory"
 source_cmd = ".venv/Scripts/python.exe -m pytest -q"
-tail_line = "187 passed, 8 skipped in 10.79s"
-verified_utc = "2026-07-06T20:04:40+00:00"
+tail_line = "187 passed, 8 skipped in 11.54s"
+verified_utc = "2026-07-09T20:40:05+00:00"
 status = "verified"
+note = "re-verified 2026-07-09 (prior check 2026-07-06) -- value unchanged, no drift."
 
 ["github-mcp"]
 value = 74
 source_repo = "C:\\Users\\jaime\\projects\\github-mcp"
 source_cmd = "python -m pytest -v --no-header"
-tail_line = "74 passed, 1 skipped in 9.49s"
-verified_utc = "2026-07-06T20:04:40+00:00"
+tail_line = "74 passed, 1 skipped in 7.22s"
+verified_utc = "2026-07-09T20:40:05+00:00"
 status = "verified"
-note = "no .venv in this repo; ran with the global python per fallback rule. Also note: this repo's own -q addopts silently drops the summary line under pytest 9.0.3 in this shell -- -v was required to see it; the count itself (74 passed, 1 skipped) is unaffected by that verbosity flag."
+note = "no .venv in this repo; ran with the global python per fallback rule. Also note: this repo's own -q addopts silently drops the summary line under pytest 9.0.3 in this shell -- -v was required to see it; the count itself (74 passed, 1 skipped) is unaffected by that verbosity flag. Re-verified 2026-07-09 (prior check 2026-07-06) -- value unchanged, no drift."
 
 ["desktop-mcp"]
 value = 121
 source_repo = "C:\\Users\\jaime\\projects\\desktop-mcp"
 source_cmd = "python -m pytest -v --no-header"
-tail_line = "121 passed, 2 skipped in 1.18s"
-verified_utc = "2026-07-06T20:04:40+00:00"
+tail_line = "121 passed, 2 skipped in 1.07s"
+verified_utc = "2026-07-09T20:40:05+00:00"
 status = "verified"
-note = "no .venv in this repo; ran with the global python per fallback rule. Same -q-suppresses-summary quirk as github-mcp; -v used to confirm the count only."
+note = "no .venv in this repo; ran with the global python per fallback rule. Same -q-suppresses-summary quirk as github-mcp; -v used to confirm the count only. Re-verified 2026-07-09 (prior check 2026-07-06) -- value unchanged, no drift."
 
 ["rag-mcp"]
 value = 51
 source_repo = "C:\\Users\\jaime\\projects\\rag-mcp"
 source_cmd = ".venv/Scripts/python.exe -m pytest -v --no-header"
-tail_line = "51 passed in 2.29s"
-verified_utc = "2026-07-06T20:04:40+00:00"
+tail_line = "51 passed in 3.02s"
+verified_utc = "2026-07-09T20:40:05+00:00"
 status = "verified"
-note = "DRIFT FOUND: site/README/GO-LIVE all cite '50 tests' for rag-mcp. Live run is 51 passed. This is a second drift instance beyond the two the mission called out -- see lane report."
+note = "DRIFT FOUND 2026-07-06: site/README/GO-LIVE all cited '50 tests' for rag-mcp at the time; live run was 51 passed (fixed same day). Re-verified again 2026-07-09 -- value unchanged at 51, no further drift. rag-mcp's GitHub repo visibility is being flipped private->public by the operator around this time; if found still private that is expected/in-progress, not a defect."
 
 ["bus-mcp"]
-value = 54
+value = 62
 source_repo = "C:\\Users\\jaime\\projects\\bus-mcp"
-source_cmd = ".venv/Scripts/python.exe -m pytest -v --no-header"
-tail_line = "54 passed, 1 skipped in 7.16s"
-verified_utc = "2026-07-06T20:04:40+00:00"
+source_cmd = ".venv/Scripts/python.exe -m pytest -q --junitxml=<scratch>/bus.xml"
+tail_line = "errors=0 failures=0 skipped=1 tests=63 (62 passed, 1 skipped)"
+verified_utc = "2026-07-09T03:38:55+00:00"
 status = "verified"
-note = "bus-mcp is not currently cited as a proof number anywhere in site content (grep-confirmed); seeded per the mission's register list for completeness/future-proofing."
+note = "bus-mcp is not currently cited as a proof number anywhere in site content (grep-confirmed 2026-07-08); value updated 54->62 (suite grew since 07-06). Tool count live-verified at 6 (server.py has 6 @mcp.tool() defs: post_message, read_messages, claim_lane, release_lane, heartbeat_lane, get_bus_status) -- NOT 8 as a stale memory note claimed; no tool-count field is tracked by this manifest/gate today."
+
+["options-bot"]
+value = 281
+source_repo = "C:\\Users\\jaime\\projects\\options-bot"
+source_cmd = ".venv/Scripts/python.exe -m pytest -q"
+tail_line = "281 passed, 1 skipped in 61.67s"
+verified_utc = "2026-07-09T20:40:05+00:00"
+status = "verified"
+note = "DRIFT FOUND 2026-07-09: honest-harness.html cited '186 tests' (set at 2026-07-02 initial site squash, never updated) against a suite that has since grown via sched_guard/order-rate-breaker/portfolio-starting-capital work (07-06..07-08). Fixed 186->281 in case-studies/honest-harness.html (pill + body line). GO-LIVE.md:107 also said '186 options-bot' as part of a 2026-07-06 historical verification note -- updated to 281 with the 186-as-of-07-06 history preserved in prose, since the check_proof_numbers.py gate treats any repo-associated citation as a hard FAIL against the current manifest value regardless of surrounding date context (no historical-snapshot exception in the gate logic)."
+
+["discord-mcp"]
+value = 77
+source_repo = "C:\\Users\\jaime\\projects\\discord-mcp"
+source_cmd = ".venv/Scripts/python.exe -m pytest -q --junitxml=<scratch>/discord.xml"
+tail_line = "errors=0 failures=0 skipped=1 tests=78 (77 passed, 1 skipped)"
+verified_utc = "2026-07-09T03:38:55+00:00"
+status = "verified"
+note = "discord-mcp is not currently cited as a proof number anywhere in site content or sales-reps drafts (grep-confirmed 2026-07-08); seeded for completeness/future-proofing. Live tool count: 5 (list_channels, list_roles, list_categories, get_channel_permission_overwrites, get_member_roles)."
