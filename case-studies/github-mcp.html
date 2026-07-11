@@ -3,21 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Case study: github-mcp — read+write MCP over the GitHub REST API (74 tests)</title>
-  <meta name="description" content="github-mcp: a public read+write MCP server over the GitHub REST API. Write tools off by default, typed rate-limit handling, PAT from env, 74 passing tests. The exact pattern a client asks for — public to verify.">
+  <title>Case study: github-mcp — read+write MCP over the GitHub REST API (86 tests)</title>
+  <meta name="description" content="github-mcp: a public read+write MCP server over the GitHub REST API. Write tools off by default, typed rate-limit handling, PAT from env, 86 passing tests. The exact pattern a client asks for — public to verify.">
   <link rel="canonical" href="https://jaimenbell.dev/case-studies/github-mcp.html">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="MCP Integration Sprint">
-  <meta property="og:title" content="Case study: github-mcp — read+write MCP over the GitHub REST API (74 tests)">
-  <meta property="og:description" content="github-mcp: a public read+write MCP server over the GitHub REST API. Write tools off by default, typed rate-limit handling, PAT from env, 74 passing tests. The exact pattern a client asks for — public to verify.">
+  <meta property="og:title" content="Case study: github-mcp — read+write MCP over the GitHub REST API (86 tests)">
+  <meta property="og:description" content="github-mcp: a public read+write MCP server over the GitHub REST API. Write tools off by default, typed rate-limit handling, PAT from env, 86 passing tests. The exact pattern a client asks for — public to verify.">
   <meta property="og:url" content="https://jaimenbell.dev/case-studies/github-mcp.html">
   <meta property="og:image" content="https://jaimenbell.dev/img/og-card.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="jaimenbell.dev — Production MCP servers for AI agents">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Case study: github-mcp — read+write MCP over the GitHub REST API (74 tests)">
-  <meta name="twitter:description" content="github-mcp: a public read+write MCP server over the GitHub REST API. Write tools off by default, typed rate-limit handling, PAT from env, 74 passing tests.">
+  <meta name="twitter:title" content="Case study: github-mcp — read+write MCP over the GitHub REST API (86 tests)">
+  <meta name="twitter:description" content="github-mcp: a public read+write MCP server over the GitHub REST API. Write tools off by default, typed rate-limit handling, PAT from env, 86 passing tests.">
   <meta name="twitter:image" content="https://jaimenbell.dev/img/og-card.png">
   <link rel="stylesheet" href="../css/style.css">
 </head>
@@ -40,10 +40,10 @@
     <article class="cs">
       <a class="back" href="../index.html#cases">← All case studies</a>
       <h1>github-mcp — a read+write MCP over a real external API</h1>
-      <div class="meta">// public repo · read + write · 74 passing tests · write tools off by default</div>
+      <div class="meta">// public repo · read + write · 86 passing tests · write tools off by default</div>
 
       <span class="pill">Python</span>
-      <span class="pill">74 passing tests</span>
+      <span class="pill">86 passing tests</span>
       <span class="pill">read + write</span>
       <span class="pill">write-gated by default</span>
       <span class="pill">typed rate-limit handling</span>
@@ -77,7 +77,7 @@
         </p>
         <ul>
           <li>Repo: <a href="https://github.com/jaimenbell/github-mcp">github.com/jaimenbell/github-mcp</a></li>
-          <li>Tests: <code>python -m pytest</code> → <code>74 passed, 1 skipped, 0 failed</code> (the skip is a live-API smoke, gated behind an env flag)</li>
+          <li>Tests: <code>python -m pytest</code> → <code>86 passed, 1 skipped, 0 failed</code> (the skip is a live-API smoke, gated behind an env flag)</li>
           <li>Safety: try any write tool without <code>GITHUB_MCP_ENABLE_WRITE=1</code> and it returns a structured policy refusal — write access is opt-in per deployment, not a default.</li>
         </ul>
       </div>

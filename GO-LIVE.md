@@ -90,7 +90,7 @@ git push origin main
 
 ## 8. Verify live
 
-- Load `https://jaimenbell.github.io/mcp-services-site/` — hero, proof stats (187 / 51), offer
+- Load `https://jaimenbell.github.io/mcp-services-site/` — hero, proof stats (187 / 53), offer
   tiers, case studies, FAQ all render.
 - Load a non-existent path (e.g. `.../nope`) — confirm the custom `404.html` shows, not GitHub's
   default 404.
@@ -99,14 +99,15 @@ git push origin main
   either the mail client with the right address + subject, or the Calendly page if that path was
   used.
 - Click the footer "Contact" link and the footer email text link — same check.
-- Confirm the "187 passing tests" / "mcp-factory" and "51 tests" / "rag-mcp" links resolve to the
+- Confirm the "187 passing tests" / "mcp-factory" and "53 tests" / "rag-mcp" links resolve to the
   public repos.
 
 ## Notes for future updates
 
-- Test counts (187 mcp-factory, 51 rag-mcp, 281 options-bot) were live-verified 2026-07-09
+- Test counts (187 mcp-factory, 53 rag-mcp, 292 options-bot) were live-verified 2026-07-11
   by running each suite in its own repo's venv — not copied from an old claim. options-bot was
-  186 as of the 2026-07-06 check below and grew to 281 by 2026-07-09 (sched_guard / order-rate
+  186 as of the 2026-07-06 check below, grew to 281 by 2026-07-09, and rotted again to 292 by
+  2026-07-11 (sched_guard / order-rate
   breaker / portfolio-starting-capital work); this is the recurring drift pattern the
   proof-manifest.toml gate exists to catch — if any upstream repo's suite grows/shrinks, re-run
   and re-grep this site for the stale number before it goes stale again.

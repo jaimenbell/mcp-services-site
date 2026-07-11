@@ -24,31 +24,31 @@ status = "verified"
 note = "re-verified 2026-07-09 (prior check 2026-07-06) -- value unchanged, no drift."
 
 ["github-mcp"]
-value = 74
+value = 86
 source_repo = "C:\\Users\\jaime\\projects\\github-mcp"
-source_cmd = "python -m pytest -v --no-header"
-tail_line = "74 passed, 1 skipped in 7.22s"
-verified_utc = "2026-07-09T20:40:05+00:00"
+source_cmd = "python -m pytest -q --tb=no"
+tail_line = "86 passed, 1 skipped (dot/char count, -q summary line still suppressed under this shell/pytest combo)"
+verified_utc = "2026-07-11T22:21:22+00:00"
 status = "verified"
-note = "no .venv in this repo; ran with the global python per fallback rule. Also note: this repo's own -q addopts silently drops the summary line under pytest 9.0.3 in this shell -- -v was required to see it; the count itself (74 passed, 1 skipped) is unaffected by that verbosity flag. Re-verified 2026-07-09 (prior check 2026-07-06) -- value unchanged, no drift."
+note = "DRIFT FOUND 2026-07-11 (proof-numbers pre-publish audit): rate limiter (fd0664c, 07-10) added 12 tests, 74->86. no .venv in this repo; ran with the global python per fallback rule. Re-verified 2026-07-11 -- value now 86, drift fixed on site + case study + README badge."
 
 ["desktop-mcp"]
-value = 121
+value = 128
 source_repo = "C:\\Users\\jaime\\projects\\desktop-mcp"
-source_cmd = "python -m pytest -v --no-header"
-tail_line = "121 passed, 2 skipped in 1.07s"
-verified_utc = "2026-07-09T20:40:05+00:00"
+source_cmd = "python -m pytest -q --tb=no"
+tail_line = "128 passed, 2 skipped (dot/char count, -q summary line still suppressed under this shell/pytest combo)"
+verified_utc = "2026-07-11T22:21:22+00:00"
 status = "verified"
-note = "no .venv in this repo; ran with the global python per fallback rule. Same -q-suppresses-summary quirk as github-mcp; -v used to confirm the count only. Re-verified 2026-07-09 (prior check 2026-07-06) -- value unchanged, no drift."
+note = "DRIFT FOUND 2026-07-11 (proof-numbers pre-publish audit): suite grew 121->128 since 07-09. no .venv in this repo; ran with the global python per fallback rule. Re-verified 2026-07-11 -- value now 128, drift fixed on site + case study + README badge (badge text also updated from stale '123 total' to '130 total')."
 
 ["rag-mcp"]
-value = 51
+value = 53
 source_repo = "C:\\Users\\jaime\\projects\\rag-mcp"
-source_cmd = ".venv/Scripts/python.exe -m pytest -v --no-header"
-tail_line = "51 passed in 3.02s"
-verified_utc = "2026-07-09T20:40:05+00:00"
+source_cmd = ".venv/Scripts/python.exe -m pytest -q --tb=no"
+tail_line = "53 passed (dot count; query-cap fix 000f23b added 2 tests since 07-09)"
+verified_utc = "2026-07-11T22:21:22+00:00"
 status = "verified"
-note = "DRIFT FOUND 2026-07-06: site/README/GO-LIVE all cited '50 tests' for rag-mcp at the time; live run was 51 passed (fixed same day). Re-verified again 2026-07-09 -- value unchanged at 51, no further drift. rag-mcp's GitHub repo visibility is being flipped private->public by the operator around this time; if found still private that is expected/in-progress, not a defect."
+note = "DRIFT FOUND 2026-07-11 (proof-numbers pre-publish audit): query-cap fix (000f23b) added 2 tests, 51->53. Re-verified 2026-07-11 -- value now 53, drift fixed on site + case study + README."
 
 ["bus-mcp"]
 value = 62
@@ -60,13 +60,13 @@ status = "verified"
 note = "bus-mcp is not currently cited as a proof number anywhere in site content (grep-confirmed 2026-07-08); value updated 54->62 (suite grew since 07-06). Tool count live-verified at 6 (server.py has 6 @mcp.tool() defs: post_message, read_messages, claim_lane, release_lane, heartbeat_lane, get_bus_status) -- NOT 8 as a stale memory note claimed; no tool-count field is tracked by this manifest/gate today."
 
 ["options-bot"]
-value = 281
+value = 292
 source_repo = "C:\\Users\\jaime\\projects\\options-bot"
 source_cmd = ".venv/Scripts/python.exe -m pytest -q"
-tail_line = "281 passed, 1 skipped in 61.67s"
-verified_utc = "2026-07-09T20:40:05+00:00"
+tail_line = "292 passed, 1 skipped in 26.39s"
+verified_utc = "2026-07-11T22:21:22+00:00"
 status = "verified"
-note = "DRIFT FOUND 2026-07-09: honest-harness.html cited '186 tests' (set at 2026-07-02 initial site squash, never updated) against a suite that has since grown via sched_guard/order-rate-breaker/portfolio-starting-capital work (07-06..07-08). Fixed 186->281 in case-studies/honest-harness.html (pill + body line). GO-LIVE.md:107 also said '186 options-bot' as part of a 2026-07-06 historical verification note -- updated to 281 with the 186-as-of-07-06 history preserved in prose, since the check_proof_numbers.py gate treats any repo-associated citation as a hard FAIL against the current manifest value regardless of surrounding date context (no historical-snapshot exception in the gate logic)."
+note = "DRIFT FOUND 2026-07-11 (proof-numbers pre-publish audit): suite rotted AGAIN since the 07-09 186->281 fix, now 281->292. Fixed in case-studies/honest-harness.html (pill + body line). Re-verified 2026-07-11 in options-bot's own .venv."
 
 ["discord-mcp"]
 value = 77
