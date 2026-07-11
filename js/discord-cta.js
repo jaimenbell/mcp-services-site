@@ -10,7 +10,7 @@
    this ONE constant and stays hidden until it's filled in. Never ships a dead
    invite link.
    ============================================================================ */
-var DISCORD_INVITE = "https://discord.gg/wBAjtpBHn"; // The Exit Strategy — unified AI builder community
+var DISCORD_INVITE = "https://discord.gg/Xw3QNsUdYh"; // The Exit Strategy — unified AI builder community (never-expires)
 
 (function () {
   var invite = (DISCORD_INVITE || "").trim();
