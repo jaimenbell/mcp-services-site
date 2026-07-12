@@ -60,13 +60,13 @@ status = "verified"
 note = "bus-mcp is not currently cited as a proof number anywhere in site content (grep-confirmed 2026-07-08); value updated 54->62 (suite grew since 07-06). Tool count live-verified at 6 (server.py has 6 @mcp.tool() defs: post_message, read_messages, claim_lane, release_lane, heartbeat_lane, get_bus_status) -- NOT 8 as a stale memory note claimed; no tool-count field is tracked by this manifest/gate today."
 
 ["options-bot"]
-value = 292
+value = 299
 source_repo = "C:\\Users\\jaime\\projects\\options-bot"
 source_cmd = ".venv/Scripts/python.exe -m pytest -q"
-tail_line = "292 passed, 1 skipped in 26.39s"
-verified_utc = "2026-07-11T22:21:22+00:00"
+tail_line = "299 passed, 1 skipped in 25.95s"
+verified_utc = "2026-07-12T19:26:00+00:00"
 status = "verified"
-note = "DRIFT FOUND 2026-07-11 (proof-numbers pre-publish audit): suite rotted AGAIN since the 07-09 186->281 fix, now 281->292. Fixed in case-studies/honest-harness.html (pill + body line). Re-verified 2026-07-11 in options-bot's own .venv."
+note = "DRIFT AGAIN 2026-07-12 (fourth rot since 07-06: 186->281->292->299): suite grew with the 07-12 push wave's 4 options-bot commits. Fixed in case-studies/honest-harness.html (pill + body line). Re-verified 2026-07-12 in options-bot's own .venv. Prior: DRIFT FOUND 2026-07-11 (281->292)."
 
 ["discord-mcp"]
 value = 77
