@@ -15,13 +15,13 @@
 # Key = the repo keyword as it is expected to appear in site text (e.g. "mcp-factory").
 
 ["mcp-factory"]
-value = 187
+value = 213
 source_repo = "C:\\Users\\jaime\\projects\\mcp-factory"
 source_cmd = ".venv/Scripts/python.exe -m pytest -q"
-tail_line = "187 passed, 8 skipped in 11.54s"
-verified_utc = "2026-07-09T20:40:05+00:00"
+tail_line = "213 passed, 8 skipped in 9.15s"
+verified_utc = "2026-07-13T00:00:00+00:00"
 status = "verified"
-note = "re-verified 2026-07-09 (prior check 2026-07-06) -- value unchanged, no drift."
+note = "DRIFT 2026-07-13: codegen-injection security fix (e3841bd, repr/json.dumps all manifest slots + env-name charset validation) added 26 tests, 187->213. Live-verified in mcp-factory's own .venv. Coupled to the security push of mcp-factory + mcp-factory-public main."
 
 ["github-mcp"]
 value = 86
