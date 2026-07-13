@@ -385,6 +385,179 @@ def test_run_end_to_end_exit_codes(tmp_path):
     assert exit_code == 2
 
 
+def _write_fake_runner(repo_dir: Path, passed_count: int, extra_py: str = "") -> None:
+    """Write a tiny standalone script that mimics a pytest summary line, so
+    live-check tests don't depend on any real sibling repo's suite/venv."""
+    repo_dir.mkdir(parents=True, exist_ok=True)
+    (repo_dir / "fake_runner.py").write_text(
+        f"{extra_py}\nprint('{passed_count} passed in 0.01s')\n",
+        encoding="utf-8",
+    )
+
+
+def _fake_entry(repo_dir: Path, value: int) -> "cpn.ManifestEntry":
+    return cpn.ManifestEntry(
+        key="mcp-factory",
+        value=value,
+        source_cmd=f"{sys.executable} fake_runner.py",
+        source_repo=str(repo_dir),
+    )
+
+
+def test_live_check_mismatch_fails_with_clear_message(tmp_path):
+    """Core fix: a manifest value that disagrees with the LIVE repo's actual
+    test count must FAIL with a message naming both numbers and telling the
+    operator to refresh the manifest AND the site citations -- this is the
+    self-referential-gate bug the whole lane exists to close."""
+    repo_dir = tmp_path / "mcp-factory"
+    _write_fake_runner(repo_dir, passed_count=207)
+    entries = {"mcp-factory": _fake_entry(repo_dir, value=199)}
+
+    results = cpn.live_verify_manifest(entries)
+
+    fails = [r for r in results if r.status == "FAIL"]
+    assert len(fails) == 1
+    assert fails[0].live_value == 207
+    assert fails[0].expected == 199
+    rendered = fails[0].format()
+    assert "199" in rendered and "207" in rendered
+    assert "stale" in rendered.lower()
+    assert "manifest" in rendered.lower()
+
+
+def test_live_check_agreement_passes(tmp_path):
+    """When the live repo's count matches the manifest, no FAIL is produced."""
+    repo_dir = tmp_path / "mcp-factory"
+    _write_fake_runner(repo_dir, passed_count=199)
+    entries = {"mcp-factory": _fake_entry(repo_dir, value=199)}
+
+    results = cpn.live_verify_manifest(entries)
+
+    fails = [r for r in results if r.status == "FAIL"]
+    oks = [r for r in results if r.status == "OK"]
+    assert fails == []
+    assert len(oks) == 1
+    assert oks[0].live_value == 199
+
+
+def test_live_check_missing_repo_warns_not_fails(tmp_path):
+    """A source_repo that doesn't exist on this machine (e.g. CI without every
+    sibling repo checked out) must WARN, never FAIL -- it must not block an
+    unrelated commit just because one repo isn't present locally."""
+    missing_repo = tmp_path / "does-not-exist"
+    entries = {
+        "mcp-factory": cpn.ManifestEntry(
+            key="mcp-factory", value=199,
+            source_cmd=f"{sys.executable} fake_runner.py",
+            source_repo=str(missing_repo),
+        )
+    }
+
+    results = cpn.live_verify_manifest(entries)
+
+    assert len(results) == 1
+    assert results[0].status == "WARN"
+    fails = [r for r in results if r.status == "FAIL"]
+    assert fails == []
+
+
+def test_live_check_missing_venv_warns_not_fails(tmp_path):
+    """A repo that exists but whose pinned venv interpreter is missing
+    (e.g. ".venv/Scripts/python.exe" not present) must WARN, not FAIL --
+    a repo without its venv set up locally shouldn't block a site commit."""
+    repo_dir = tmp_path / "mcp-factory"
+    repo_dir.mkdir()
+    entries = {
+        "mcp-factory": cpn.ManifestEntry(
+            key="mcp-factory", value=199,
+            source_cmd=".venv/Scripts/python.exe -m pytest -q",
+            source_repo=str(repo_dir),
+        )
+    }
+
+    results = cpn.live_verify_manifest(entries)
+
+    assert len(results) == 1
+    assert results[0].status == "WARN"
+    assert "venv" in results[0].message.lower() or "interpreter" in results[0].message.lower()
+
+
+def test_live_check_timeout_warns_not_fails(tmp_path):
+    """A source_cmd that hangs past the timeout must WARN, not FAIL or hang
+    the commit forever."""
+    repo_dir = tmp_path / "mcp-factory"
+    _write_fake_runner(repo_dir, passed_count=199, extra_py="import time; time.sleep(5)")
+    entries = {"mcp-factory": _fake_entry(repo_dir, value=199)}
+
+    results = cpn.live_verify_manifest(entries, timeout=1)
+
+    assert len(results) == 1
+    assert results[0].status == "WARN"
+    assert "timed out" in results[0].message.lower()
+    fails = [r for r in results if r.status == "FAIL"]
+    assert fails == []
+
+
+def test_live_check_no_source_repo_is_skipped_silently(tmp_path):
+    """Entries with no source_repo (schema allows it -- only value/source_cmd
+    are required) simply can't be live-checked and produce no result at all,
+    not even a WARN -- this is the normal/expected shape for such entries."""
+    entries = {"mcp-factory": cpn.ManifestEntry(key="mcp-factory", value=199, source_cmd="pytest -q", source_repo=None)}
+    results = cpn.live_verify_manifest(entries)
+    assert results == []
+
+
+def test_run_end_to_end_live_check_fails_even_when_citations_agree(tmp_path, monkeypatch):
+    """Integration: three-way agreement. Site citations matching the manifest
+    is no longer sufficient -- if the manifest itself has drifted from the
+    live repo, run() must still exit 2, with the live-check FAIL printed."""
+    monkeypatch.delenv(cpn.SKIP_LIVE_CHECK_ENV_VAR, raising=False)
+    repo_dir = tmp_path / "mcp-factory"
+    _write_fake_runner(repo_dir, passed_count=207)
+
+    manifest_toml = tmp_path / "proof-manifest.toml"
+    manifest_toml.write_text(
+        '["mcp-factory"]\n'
+        "value = 199\n"
+        f'source_cmd = "{Path(sys.executable).as_posix()} fake_runner.py"\n'
+        f'source_repo = "{repo_dir.as_posix()}"\n',
+        encoding="utf-8",
+    )
+    site_dir = tmp_path / "site"
+    site_dir.mkdir()
+    # Site citation agrees with the (stale) manifest -- the old citation-only
+    # gate would have passed this commit.
+    write(site_dir, "index.html", "<p>mcp-factory: 199 passing tests</p>\n")
+
+    exit_code = cpn.run(root=site_dir, manifest_path=manifest_toml, target_patterns=["*.html"])
+
+    assert exit_code == 2, "manifest-vs-live drift must fail the gate even when site citations match the manifest"
+
+
+def test_run_respects_skip_live_check_env_var(tmp_path, monkeypatch):
+    """Opt-out escape hatch: PROOF_NUMBERS_SKIP_LIVE_CHECK=1 skips the live
+    pass entirely (citation-vs-manifest check still runs)."""
+    monkeypatch.setenv(cpn.SKIP_LIVE_CHECK_ENV_VAR, "1")
+    repo_dir = tmp_path / "mcp-factory"
+    _write_fake_runner(repo_dir, passed_count=207)
+
+    manifest_toml = tmp_path / "proof-manifest.toml"
+    manifest_toml.write_text(
+        '["mcp-factory"]\n'
+        "value = 199\n"
+        f'source_cmd = "{Path(sys.executable).as_posix()} fake_runner.py"\n'
+        f'source_repo = "{repo_dir.as_posix()}"\n',
+        encoding="utf-8",
+    )
+    site_dir = tmp_path / "site"
+    site_dir.mkdir()
+    write(site_dir, "index.html", "<p>mcp-factory: 199 passing tests</p>\n")
+
+    exit_code = cpn.run(root=site_dir, manifest_path=manifest_toml, target_patterns=["*.html"])
+
+    assert exit_code == 0, "with the live check skipped, citation-vs-manifest agreement alone should pass"
+
+
 def _bash_path() -> str:
     path = shutil.which("bash")
     if path is None:

@@ -76,13 +76,20 @@ Stdlib only. ASCII-only. Works under any of python3 / python / py.
 
 from __future__ import annotations
 
+import os
 import re
+import shlex
+import subprocess
 import sys
 import tomllib
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MANIFEST_PATH = REPO_ROOT / "proof-manifest.toml"
+
+# Live-check knobs (see LiveCheckResult / live_verify_manifest below).
+LIVE_CHECK_TIMEOUT_SECONDS = 90
+SKIP_LIVE_CHECK_ENV_VAR = "PROOF_NUMBERS_SKIP_LIVE_CHECK"
 
 # Files scanned by default when this script is run with no arguments (the
 # pre-commit hook uses this list). Callers (tests) may pass explicit paths
@@ -223,6 +230,156 @@ class Finding:
         return f"WARN {rel}:{self.line_no}: found {self.number}{repo_part} -- not in manifest -- {snippet}"
 
 
+PASSED_RE = re.compile(r"(\d+)\s+passed")
+
+
+class LiveCheckResult:
+    """Outcome of live-verifying one manifest entry against its source_repo.
+
+    status is one of:
+      "FAIL" -- repo + interpreter were reachable, source_cmd ran and produced
+                a parseable "N passed" count, and it DISAGREES with the
+                manifest's value. This is the case the whole live-check exists
+                to catch: the manifest itself has gone stale relative to the
+                repo it claims to describe.
+      "WARN" -- live-checking wasn't possible (no source_repo on this machine,
+                venv/interpreter missing, source_cmd timed out or errored, or
+                its output couldn't be parsed). Never escalated to FAIL --
+                CI or a teammate's clone won't have every sibling repo
+                checked out, and that must not block an unrelated commit.
+      "OK"   -- ran cleanly and agrees with the manifest. Silent in normal
+                output (matches the existing citation-check convention of
+                "pass (silent)"), just tallied in the summary line.
+    """
+
+    def __init__(self, repo_key: str, status: str, message: str,
+                 live_value: int | None = None, expected: int | None = None):
+        self.repo_key = repo_key
+        self.status = status
+        self.message = message
+        self.live_value = live_value
+        self.expected = expected
+
+    def format(self) -> str:
+        return f"LIVE-CHECK {self.status} [{self.repo_key}]: {self.message}"
+
+
+def _resolve_live_check_argv(source_cmd: str, source_repo: Path) -> list[str] | None:
+    """Split a manifest source_cmd into argv, resolving a repo-relative
+    interpreter path (e.g. ".venv/Scripts/python.exe") against source_repo.
+
+    Returns None if the command looks like it names a specific interpreter
+    path that does not actually exist on disk -- the caller treats that as
+    "venv unavailable" (WARN), not a hard failure. A bare command with no
+    path separator (e.g. "python", "py") is left to resolve via PATH as-is,
+    since that's how source_cmd already reads for repos with no venv.
+    """
+    try:
+        parts = shlex.split(source_cmd, posix=False)
+    except ValueError:
+        return None
+    if not parts:
+        return None
+    exe = parts[0].strip('"')
+    exe_path = Path(exe)
+    if exe_path.is_absolute():
+        if not exe_path.exists():
+            return None
+        return parts
+    if "/" in exe or "\\" in exe:
+        candidate = source_repo / exe_path
+        if not candidate.exists():
+            return None
+        parts[0] = str(candidate)
+        return parts
+    # Bare command (e.g. "python", "py") -- rely on PATH.
+    return parts
+
+
+def live_verify_manifest(
+    entries: dict[str, ManifestEntry],
+    timeout: int = LIVE_CHECK_TIMEOUT_SECONDS,
+) -> list[LiveCheckResult]:
+    """For each manifest entry that carries a source_repo + source_cmd,
+    actually run the source_cmd in that repo and compare the live "N passed"
+    count against the manifest's recorded value. This is the fix for the
+    self-referential-gate problem: check_proof_numbers previously only ever
+    compared site citations to proof-manifest.toml, never the manifest to
+    the repos it claims to describe -- so the manifest itself could rot
+    (mcp-factory 152->156->179->187->...) and the gate would pass anyway.
+    """
+    results: list[LiveCheckResult] = []
+    for key, entry in entries.items():
+        if not entry.source_repo or not entry.source_cmd:
+            continue  # nothing to live-check for this entry -- not an error
+        source_repo = Path(entry.source_repo)
+        if not source_repo.is_dir():
+            results.append(LiveCheckResult(
+                key, "WARN",
+                f"source_repo not found on this machine ({source_repo}) -- "
+                f"skipping live check (expected on CI / other clones)",
+            ))
+            continue
+
+        argv = _resolve_live_check_argv(entry.source_cmd, source_repo)
+        if argv is None:
+            results.append(LiveCheckResult(
+                key, "WARN",
+                f"interpreter for source_cmd ({entry.source_cmd!r}) not found "
+                f"under {source_repo} -- skipping live check (venv missing?)",
+            ))
+            continue
+
+        try:
+            proc = subprocess.run(
+                argv, cwd=source_repo, capture_output=True, text=True,
+                timeout=timeout,
+            )
+        except subprocess.TimeoutExpired:
+            results.append(LiveCheckResult(
+                key, "WARN",
+                f"source_cmd timed out after {timeout}s in {source_repo} -- "
+                f"skipping live check ({entry.source_cmd!r})",
+            ))
+            continue
+        except OSError as exc:
+            results.append(LiveCheckResult(
+                key, "WARN",
+                f"could not run source_cmd in {source_repo}: {exc} -- "
+                f"skipping live check",
+            ))
+            continue
+
+        output = f"{proc.stdout}\n{proc.stderr}"
+        tail_line = None
+        for line in output.splitlines():
+            if PASSED_RE.search(line):
+                tail_line = line  # keep the LAST matching line (pytest summary)
+        if tail_line is None:
+            results.append(LiveCheckResult(
+                key, "WARN",
+                f"could not parse a 'N passed' summary from source_cmd output "
+                f"in {source_repo} -- skipping live check",
+            ))
+            continue
+
+        live_value = int(PASSED_RE.search(tail_line).group(1))
+        if live_value != entry.value:
+            results.append(LiveCheckResult(
+                key, "FAIL",
+                f"manifest is stale: {key} manifest says {entry.value}, live "
+                f"repo says {live_value} -- refresh the manifest AND the site "
+                f"citations",
+                live_value=live_value, expected=entry.value,
+            ))
+        else:
+            results.append(LiveCheckResult(
+                key, "OK", f"live count {live_value} matches manifest",
+                live_value=live_value, expected=entry.value,
+            ))
+    return results
+
+
 class ManifestValidationError(Exception):
     """Raised when proof-manifest.toml fails schema validation.
 
@@ -235,10 +392,28 @@ class ManifestValidationError(Exception):
     """
 
 
-def load_manifest(path: Path = MANIFEST_PATH) -> dict[str, int]:
+class ManifestEntry:
+    """A validated proof-manifest.toml record.
+
+    `value`/`source_cmd` are required by the schema (see load_manifest_entries).
+    `source_repo` is optional in the schema -- entries built ad hoc in tests
+    (or a future manually-seeded entry) may omit it -- but is required for the
+    live-repo-verification pass in live_verify_manifest(): an entry with no
+    source_repo simply can't be live-checked and is skipped (WARN), not FAIL.
+    """
+
+    def __init__(self, key: str, value: int, source_cmd: str | None = None,
+                 source_repo: str | None = None):
+        self.key = key
+        self.value = value
+        self.source_cmd = source_cmd
+        self.source_repo = source_repo
+
+
+def load_manifest_entries(path: Path = MANIFEST_PATH) -> dict[str, ManifestEntry]:
     with open(path, "rb") as fh:
         data = tomllib.load(fh)
-    manifest = {}
+    manifest: dict[str, ManifestEntry] = {}
     for key, entry in data.items():
         # Every top-level table in this manifest is a repo record and MUST
         # contribute a "value" (the number allowed to be cited) and a
@@ -265,13 +440,25 @@ def load_manifest(path: Path = MANIFEST_PATH) -> dict[str, int]:
                 f'field "source_cmd" (found fields: {sorted(entry.keys())})'
             )
         try:
-            manifest[key] = int(entry["value"])
+            value = int(entry["value"])
         except (TypeError, ValueError) as exc:
             raise ManifestValidationError(
                 f'proof-manifest.toml: entry ["{key}"]\'s "value" is not an '
                 f"integer: {entry['value']!r}"
             ) from exc
+        manifest[key] = ManifestEntry(
+            key=key,
+            value=value,
+            source_cmd=entry.get("source_cmd"),
+            source_repo=entry.get("source_repo"),
+        )
     return manifest
+
+
+def load_manifest(path: Path = MANIFEST_PATH) -> dict[str, int]:
+    """Back-compat wrapper: value-only view of the manifest, used by the
+    citation-vs-manifest scan (scan_file) which never needed source_repo."""
+    return {key: e.value for key, e in load_manifest_entries(path).items()}
 
 
 def _parse_int(token: str) -> int:
@@ -422,22 +609,37 @@ def resolve_targets(root: Path, patterns: list[str]) -> list[Path]:
     return result
 
 
+def _live_check_findings(entries: dict[str, ManifestEntry]) -> tuple[list[LiveCheckResult], list[LiveCheckResult]]:
+    """Run live_verify_manifest unless explicitly skipped, split into
+    (fails, warns). Skipping is opt-in only (PROOF_NUMBERS_SKIP_LIVE_CHECK=1)
+    -- by default every run three-way-checks live repo == manifest == site
+    citations, since a silently-skipped live check is exactly how the
+    self-referential-gate bug (this fix's whole reason to exist) recurs."""
+    if os.environ.get(SKIP_LIVE_CHECK_ENV_VAR):
+        print(f"check_proof_numbers: {SKIP_LIVE_CHECK_ENV_VAR} set -- skipping live-repo verification.")
+        return [], []
+    results = live_verify_manifest(entries)
+    fails = [r for r in results if r.status == "FAIL"]
+    warns = [r for r in results if r.status == "WARN"]
+    return fails, warns
+
+
 def run(root: Path = REPO_ROOT, manifest_path: Path = MANIFEST_PATH,
         target_patterns: list[str] | None = None) -> int:
     try:
-        manifest = load_manifest(manifest_path)
+        entries = load_manifest_entries(manifest_path)
     except ManifestValidationError as exc:
         print(f"check_proof_numbers: FATAL -- {exc}")
         print("check_proof_numbers: manifest is malformed; failing closed (exit 2).")
         return 2
+    manifest = {key: e.value for key, e in entries.items()}
     targets = resolve_targets(root, target_patterns or DEFAULT_TARGET_GLOBS)
 
-    all_fails: list[Finding] = []
-    all_warns: list[Finding] = []
+    all_fails: list[Finding | LiveCheckResult] = []
+    all_warns: list[Finding | LiveCheckResult] = []
 
     for path in targets:
         for finding in scan_file(path, manifest):
-            rel_path = finding.file
             try:
                 finding.file = finding.file.relative_to(root)
             except ValueError:
@@ -446,6 +648,10 @@ def run(root: Path = REPO_ROOT, manifest_path: Path = MANIFEST_PATH,
                 all_fails.append(finding)
             else:
                 all_warns.append(finding)
+
+    live_fails, live_warns = _live_check_findings(entries)
+    all_fails.extend(live_fails)
+    all_warns.extend(live_warns)
 
     for w in all_warns:
         print(w.format())
@@ -464,15 +670,15 @@ def main(argv: list[str]) -> int:
     if argv:
         # Explicit file args (used by tests): scan exactly those files, manifest
         # still loaded from the real repo root unless overridden by env/caller.
-        root = REPO_ROOT
         try:
-            manifest = load_manifest(MANIFEST_PATH)
+            entries = load_manifest_entries(MANIFEST_PATH)
         except ManifestValidationError as exc:
             print(f"check_proof_numbers: FATAL -- {exc}")
             print("check_proof_numbers: manifest is malformed; failing closed (exit 2).")
             return 2
-        all_fails: list[Finding] = []
-        all_warns: list[Finding] = []
+        manifest = {key: e.value for key, e in entries.items()}
+        all_fails: list[Finding | LiveCheckResult] = []
+        all_warns: list[Finding | LiveCheckResult] = []
         for arg in argv:
             path = Path(arg)
             for finding in scan_file(path, manifest):
@@ -480,6 +686,11 @@ def main(argv: list[str]) -> int:
                     all_fails.append(finding)
                 else:
                     all_warns.append(finding)
+
+        live_fails, live_warns = _live_check_findings(entries)
+        all_fails.extend(live_fails)
+        all_warns.extend(live_warns)
+
         for w in all_warns:
             print(w.format())
         for f in all_fails:
