@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Case study: the AI Agent Reliability Retainer — the audit that catches the lie your dashboard can't</title>
+  <meta name="description" content="The methodology behind the AI Agent Reliability Retainer: a portable Week-1 audit tool (6 universal hazard principles, 4 platform appendices), a zero-effector rail that's test-enforced not just promised, and the self-dogfooded proof — 239 passing tests, a real sample audit report, and the fleet-reliability-day incidents that motivated it.">
+  <link rel="canonical" href="https://jaimenbell.dev/case-studies/reliability-retainer.html">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="MCP Integration Sprint">
+  <meta property="og:title" content="Case study: the AI Agent Reliability Retainer">
+  <meta property="og:description" content="A portable Week-1 audit tool (6 universal hazard principles, 4 platform appendices), a zero-effector rail that's test-enforced not just promised, and the self-dogfooded proof behind the offer — 239 passing tests, a real sample audit report, no fabricated client.">
+  <meta property="og:url" content="https://jaimenbell.dev/case-studies/reliability-retainer.html">
+  <meta property="og:image" content="https://jaimenbell.dev/img/og-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="jaimenbell.dev — Production MCP servers for AI agents">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Case study: the AI Agent Reliability Retainer">
+  <meta name="twitter:description" content="The methodology + self-dogfood proof behind the Reliability Retainer's Week-1 Audit: a portable hazard-catalog tool, a zero-effector rail, 239 passing tests. No fabricated client.">
+  <meta name="twitter:image" content="https://jaimenbell.dev/img/og-card.png">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="../index.html" style="text-decoration:none">MCP<span class="dot">·</span>Engineering</a>
+    <nav class="top">
+      <a href="../index.html#proof">Proof</a>
+      <a href="../index.html#offer">Offer</a>
+      <a href="../index.html#faq">FAQ</a>
+      <a href="mailto:jaime@jaimenbell.dev">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<section style="border-bottom:0">
+  <div class="wrap">
+    <article class="cs">
+      <a class="back" href="../index.html#cases">← All case studies</a>
+      <h1>The AI Agent Reliability Retainer — the audit that catches the lie your dashboard can't</h1>
+      <div class="meta">// methodology + self-dogfood proof · no client story (yet) · every claim below is a file you can open</div>
+
+      <span class="pill">portable Week-1 audit tool</span>
+      <span class="pill">6 hazard principles, 4 platform appendices</span>
+      <span class="pill">zero-effector rail (test-enforced)</span>
+      <span class="pill">239 passing tests</span>
+
+      <div class="honest">
+        <p>
+          <strong>Up front, because honesty is the whole point of this page:</strong> this is not a client
+          success story — there isn't one to tell yet. What follows is the methodology, the tool, and the
+          proof that I use it on my own systems first. No fabricated logo, no invented client quote. If
+          you're evaluating whether this offer is real, this is the page that shows the actual repo instead
+          of asserting the value.
+        </p>
+      </div>
+
+      <h2>The problem, in one story</h2>
+      <p>
+        Agent fleets fail quietly. I watched a scheduled job report success five runs in a row — exit code
+        0, dashboard green — while the process it was supposed to run had been dead for four days. The lie
+        wasn't in the bot; it was in the wrapper: a log handle inherited by a background server bricked
+        every future run in under a second, and the success ledger got written anyway. No exit code caught
+        it. No heartbeat caught it. In one week on my own fleet I hit three flavors of this: that four-day
+        green-but-dead wrapper, a trading bot that crash-looped 187 times in a single day because its
+        restarter faithfully relaunched a process an exhausted API quota kept killing, and a pipeline that
+        ran "healthy" for five weeks on default inputs because its real data sources had silently died —
+        and its own graceful degradation was designed to hide exactly that. A green dashboard proves the
+        process returned. It never proves the work happened.
+      </p>
+
+      <h2>What I built</h2>
+      <p>
+        The Reliability Retainer's Week-1 Audit is a read-only sweep of a client's scheduled tasks and
+        wrappers against a hazard catalog — every finding gets a file:line, a severity, and a hazard class.
+        The engineering that makes that sellable standalone, not just a plausible pitch:
+      </p>
+      <ul>
+        <li><strong>6 universal failure principles, not one platform's dialect</strong> — lying-green
+          (PR-1), split-brain logging (PR-2), authority-vs-need (PR-3), fail-open-vs-fail-closed (PR-4),
+          missing freshness asserts (PR-5), unbounded retry/restart (PR-6). Each principle cross-references
+          its tooled check ID and its per-platform mechanism appendix (Windows, Linux/cron/systemd,
+          cloud/IaC, CI/CD). <code>tools/hazard_catalog.md</code></li>
+        <li><strong>A portable static-check layer</strong> — <code>tools/portable_checks.py</code>: six
+          language-aware heuristics (UC-1..UC-6) over bash/python/node/yaml/hcl, plus
+          <code>tools/discovery.py</code> enumerating cron, systemd timers, GitHub Actions, and
+          Windows Task Scheduler CSV exports. Every finding is honestly labelled
+          <code>confidence: "tool-flagged"</code> — the tool can never emit "expert-confirmed" itself; that
+          promotion is a structural, code-enforced honesty boundary (spec §5), not a documentation
+          promise.</li>
+        <li><strong>A zero-effector rail, test-enforced</strong> — the audit layer only reads a list of text
+          lines and returns findings. It never writes to, deletes from, executes, or networks against a
+          scanned target. That's not a claim in a pitch deck; it's asserted by
+          <code>tests/test_portable_checks.py::test_portable_checks_module_has_no_effector_shaped_symbol</code>.</li>
+        <li><strong>An 8-section client-facing report generator</strong> — <code>tools/report.py</code> and
+          <code>tools/audit_report_gen.py</code> turn the findings into the actual A1-A4 deliverables
+          (findings table, live-evidence appendix, ranked fix-lane plan, hazard-catalog cross-reference),
+          not a hand-written summary.</li>
+        <li><strong>The Month-1 status surface, built and wired</strong> — <code>fleet-health-mcp/</code>: a
+          config-driven MCP (<code>fleet_status</code> / <code>bot_status</code> / <code>recent_alerts</code>
+          / <code>dump_markdown_report</code>) that distinguishes "process alive" from "actually producing"
+          from "inputs still fresh" — the exact distinction a lying-green wrapper erases. It's wired out of
+          the box to this repo's own toy fleet, not a diagram.</li>
+      </ul>
+
+      <div class="evidence">
+        <h3>Evidence: a real sample report, generated live, not hand-written</h3>
+        <p>
+          <code>demo/</code> is a live toy fleet, not a hypothetical: <code>lying_wrapper.bat</code>
+          reproduces two real hazard classes (dishonest exit code + unconditional success write);
+          <code>honest_wrapper.bat</code> is the fixed contrast. Running the audit tool against it produces
+          the committed <code>RELIABILITY-AUDIT.md</code>:
+        </p>
+        <ul>
+          <li><code>lying_wrapper.bat:38</code> — <strong>CRIT</strong>, HZ-3: <code>endlocal</code> on its
+            own line followed by a separate <code>exit /b %VAR%</code> — the exit-code variable does not
+            reliably survive the scope pop.</li>
+          <li><code>lying_wrapper.bat:34</code> — <strong>HIGH</strong>, HZ-8: a history/heartbeat write with
+            no gating <code>if</code> in the preceding lines — looks unconditional on merely reaching this
+            line, not gated on positive payload evidence.</li>
+          <li><code>honest_wrapper.bat</code> and <code>payload_worker.bat</code>: zero findings, confirming
+            the tool doesn't just flag everything.</li>
+        </ul>
+        <p>
+          Verify it yourself: <code>python tools/audit_report_gen.py --target demo --out
+          RELIABILITY-AUDIT.md</code> reproduces the same two findings, at the same two lines, every time.
+        </p>
+      </div>
+
+      <h2>The self-dogfood proof: I found this failure mode on my own fleet first</h2>
+      <p>
+        This offer didn't start as a market hypothesis — it started as an incident. The
+        <a href="fleet-reliability-day.html">fleet-reliability-day case study</a> walks through the same
+        day a monitoring dashboard reported one of my own trading bots as dead, and a diagnosis lane
+        wouldn't take the dashboard's word for it: it cross-referenced the bot's beacon file, its session
+        logs, and Windows' own boot-time record, and found two independent bugs layered on top of each
+        other — a disabled scheduled task <em>and</em> a monitor watching the wrong task name. Three earlier
+        manual restarts had each produced a silent 0-byte log because nobody was watching the right thing.
+        The bot came back after eight days dark, closed the same day it was found — not restarted on hope,
+        root-caused from evidence. That's the Week-1 Audit's whole thesis, applied to my own stack before
+        it was ever pitched to anyone else's.
+      </p>
+
+      <h2>What it shows about how I work</h2>
+      <p>
+        Anyone can promise a reliability audit. The honest version of that promise is a tool with a
+        code-enforced boundary on what it's allowed to touch, a sample report you can regenerate yourself
+        and get the identical two findings at the identical two lines, and an incident history on my own
+        infrastructure that predates the pitch. That's the same standard behind a client engagement:
+        no finding without a file:line, no severity without live evidence, no "trust the dashboard."
+      </p>
+
+      <div class="cs-stats" style="margin-top:14px">
+        <h3>What's actually built <span style="font-weight:400;font-size:0.85em">(live-verified, gate-checked)</span></h3>
+        <ul>
+          <li><strong>239 passing tests</strong> across the repo (tool checks, discovery, report generation, and the fleet-health-mcp status surface) — verify: <code>python -m pytest -q</code></li>
+          <li><strong>6 universal hazard principles</strong>, cross-referenced to <strong>4 platform appendices</strong> (Windows, Linux/cron/systemd, cloud/IaC, CI/CD)</li>
+          <li><strong>6 portable static checks</strong> (UC-1..UC-6) plus Windows-specific checks (HZ-1..HZ-10) in the original audit generator</li>
+          <li><strong>1 zero-effector rail</strong>, asserted by a dedicated test — not a policy statement</li>
+          <li><strong>1 real, regenerable sample report</strong> — 2 findings, same file, same lines, every run</li>
+        </ul>
+      </div>
+
+      <p style="margin-top:32px">
+        <a class="btn btn-primary" href="mailto:jaime@jaimenbell.dev?subject=AI%20Agent%20Reliability%20Retainer">Book a scoping call</a>
+        &nbsp;<a class="btn btn-ghost" href="fleet-reliability-day.html">← The incident that motivated this</a>
+      </p>
+    </article>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    <span>MCP Server Engineering · auth-scoped, fail-soft, tested.</span>
+    <span><a href="https://github.com/jaimenbell/MCP-Factory">GitHub</a> · <a href="mailto:jaime@jaimenbell.dev">jaime@jaimenbell.dev</a> <span id="discord-footer-link-wrap" style="display:none">· <a id="discord-footer-link" href="" target="_blank" rel="noopener">Discord</a></span></span>
+  </div>
+</footer>
+
+<script src="../js/discord-cta.js" defer></script>
+</body>
+</html>

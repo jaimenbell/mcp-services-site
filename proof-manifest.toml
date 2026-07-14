@@ -76,3 +76,12 @@ tail_line = "errors=0 failures=0 skipped=1 tests=78 (77 passed, 1 skipped)"
 verified_utc = "2026-07-09T03:38:55+00:00"
 status = "verified"
 note = "discord-mcp is not currently cited as a proof number anywhere in site content or sales-reps drafts (grep-confirmed 2026-07-08); seeded for completeness/future-proofing. Live tool count: 5 (list_channels, list_roles, list_categories, get_channel_permission_overwrites, get_member_roles)."
+
+["reliability-retainer"]
+value = 239
+source_repo = "C:\\Users\\jaime\\projects\\reliability-retainer"
+source_cmd = "python -m pytest -q --tb=no"
+tail_line = "239 passed in 4.23s"
+verified_utc = "2026-07-14T03:17:20+00:00"
+status = "verified"
+note = "Seeded 2026-07-13 for the new (unlinked, staged) case-studies/reliability-retainer.html page, which cites the repo's full-suite count. Live-verified at commit a4733c3 on branch slice5-runbook-sow-reconcile (unmerged slice1-5 work; no .venv in this repo, ran with the global python per the github-mcp/desktop-mcp fallback convention). 239 covers the whole repo (tools/, tests/, fleet-health-mcp/) -- not the same as the README's 'tests/ -- 39 tests' figure, which is a narrower subdirectory count from an earlier slice and is NOT cited on the site."
