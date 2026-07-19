@@ -104,11 +104,11 @@ git push origin main
 
 ## Notes for future updates
 
-- Test counts (213 mcp-factory, 53 rag-mcp, 299 options-bot) were live-verified 2026-07-12
+- Test counts (213 mcp-factory, 53 rag-mcp, 321 options-bot) were live-verified 2026-07-19
   by running each suite in its own repo's venv — not copied from an old claim. options-bot was
   186 as of the 2026-07-06 check below, grew to 281 by 2026-07-09, 292 by
   2026-07-11 (sched_guard / order-rate
-  breaker / portfolio-starting-capital work), and 299 by 2026-07-12; this is the recurring drift pattern the
+  breaker / portfolio-starting-capital work), 299 by 2026-07-12, and 321 by 2026-07-19; this is the recurring drift pattern the
   proof-manifest.toml gate exists to catch — if any upstream repo's suite grows/shrinks, re-run
   and re-grep this site for the stale number before it goes stale again.
 - `[SITE_URL]` is already resolved to `https://jaimenbell.github.io/mcp-services-site` (GitHub

@@ -60,13 +60,13 @@ status = "verified"
 note = "bus-mcp is not currently cited as a proof number anywhere in site content (grep-confirmed 2026-07-08); value updated 54->62 (suite grew since 07-06). Tool count live-verified at 6 (server.py has 6 @mcp.tool() defs: post_message, read_messages, claim_lane, release_lane, heartbeat_lane, get_bus_status) -- NOT 8 as a stale memory note claimed; no tool-count field is tracked by this manifest/gate today."
 
 ["options-bot"]
-value = 299
+value = 321
 source_repo = "C:\\Users\\jaime\\projects\\options-bot"
 source_cmd = ".venv/Scripts/python.exe -m pytest -q"
-tail_line = "299 passed, 1 skipped in 25.95s"
-verified_utc = "2026-07-12T19:26:00+00:00"
+tail_line = "321 passed, 1 skipped in 26.92s"
+verified_utc = "2026-07-19T17:02:11+00:00"
 status = "verified"
-note = "DRIFT AGAIN 2026-07-12 (fourth rot since 07-06: 186->281->292->299): suite grew with the 07-12 push wave's 4 options-bot commits. Fixed in case-studies/honest-harness.html (pill + body line). Re-verified 2026-07-12 in options-bot's own .venv. Prior: DRIFT FOUND 2026-07-11 (281->292)."
+note = "DRIFT AGAIN 2026-07-19 (fifth rot since 07-06: 186->281->292->299->321): caught by scripts/check_proof_numbers.py's own live-check during an unrelated 3-new-repo audit. Fixed in case-studies/honest-harness.html (pill + body line). Re-verified 2026-07-19 in options-bot's own .venv. Prior: DRIFT AGAIN 2026-07-12 (292->299)."
 
 ["discord-mcp"]
 value = 77
@@ -85,3 +85,30 @@ tail_line = "239 passed in 4.23s"
 verified_utc = "2026-07-14T03:17:20+00:00"
 status = "verified"
 note = "Seeded 2026-07-13 for the new (unlinked, staged) case-studies/reliability-retainer.html page, which cites the repo's full-suite count. Live-verified at commit a4733c3 on branch slice5-runbook-sow-reconcile (unmerged slice1-5 work; no .venv in this repo, ran with the global python per the github-mcp/desktop-mcp fallback convention). 239 covers the whole repo (tools/, tests/, fleet-health-mcp/) -- not the same as the README's 'tests/ -- 39 tests' figure, which is a narrower subdirectory count from an earlier slice and is NOT cited on the site."
+
+["rails-mcp"]
+value = 95
+source_repo = "C:\\Users\\jaime\\projects\\rails-mcp"
+source_cmd = ".venv/Scripts/python.exe -m pytest -q"
+tail_line = "95 passed in 1.03s"
+verified_utc = "2026-07-19T17:02:11+00:00"
+status = "verified"
+note = "8th flagship (governance category), went public/private-GitHub 2026-07-19. Not currently cited anywhere in site content (grep-confirmed 2026-07-19) -- seeded for completeness/future-proofing per the bus-mcp/discord-mcp precedent. Repo's own README badge (95 passing) matches. Tool count live-verified at 6 (classify_action, is_action_registered, get_rails_hash, get_signoff_state, record_spend_intent, evaluate_budget)."
+
+["vllm-ops-mcp"]
+value = 76
+source_repo = "C:\\Users\\jaime\\projects\\vllm-ops-mcp"
+source_cmd = ".venv/Scripts/python.exe -m pytest -q"
+tail_line = "76 passed, 7 skipped in 0.85s"
+verified_utc = "2026-07-19T17:02:11+00:00"
+status = "verified"
+note = "7th flagship, went public/private-GitHub 2026-07-19. Not currently cited anywhere in site content (grep-confirmed 2026-07-19) -- seeded for completeness/future-proofing. DRIFT FOUND + FIXED 2026-07-19: repo's own README badge said '78 (71 passing, 7 live-skipped)' -- stale, corrected in-repo to '83 (76 passing, 7 live-skipped)' (76+7=83, matches this live run exactly). Per this manifest's own convention the citable headline number is passed-only (76), not the 83 combined total. Tool count live-verified at 6 (check_health, get_gpu_status, get_serve_config, get_service_status, list_models, test_completion)."
+
+["mcp-security-scanner"]
+value = 48
+source_repo = "C:\\Users\\jaime\\projects\\mcp-security-scanner"
+source_cmd = "python -m pytest -q --tb=no"
+tail_line = "48 passed, 7 skipped in 0.49s"
+verified_utc = "2026-07-19T17:02:11+00:00"
+status = "verified"
+note = "Not currently cited anywhere in site content (grep-confirmed 2026-07-19) -- seeded for completeness/future-proofing; no .venv in this repo, ran with global python per the github-mcp/desktop-mcp fallback convention. DRIFT FOUND + FIXED 2026-07-19: README.md, ANNOUNCEMENT.md, PRODUCT.md, docs/CLIENT_ONE_PAGER.md, docs/SOW_TEMPLATE.md, staged/sales-kit/objection-faq.md, staged/sales-kit/pricing-tiers.md all said 'four detector families' / '44 tests' and described write-tools-on-by-default/tool-scope-creep + secret-leak-via-tool-response as 'not yet built' -- both detectors shipped 2026-07-19 (detector count is genuinely 6, not 4; test count 55 collected / 48 passing, not 44). All 7 files corrected in the same wave per objection-faq.md's own standing instruction."

@@ -45,7 +45,7 @@
       <span class="pill">forward-testing</span>
       <span class="pill">cost-reality gate</span>
       <span class="pill">fail-soft real-time data</span>
-      <span class="pill">299 tests (options-bot)</span>
+      <span class="pill">321 tests (options-bot)</span>
 
       <div class="honest">
         <p>
@@ -101,7 +101,7 @@
         <li><strong>Bounded waits</strong> — only a freshly-subscribed symbol pays a short wait for its first quote; everything after is a cache read.</li>
         <li><strong>Fail-soft + self-healing</strong> — any error returns a clean <code>None</code> to the caller (never a crash); the handler backs off exponentially (1s → 30s) and auto-reconnects, re-subscribing known symbols so the cache heals itself.</li>
         <li><strong>Honest paper mode</strong> — in paper mode an order is validated and logged but never submitted live; auth failures are caught, logged, and exit cleanly.</li>
-        <li><strong>Tested</strong> — 299 tests cover the streamer, signals, P&amp;L accounting, market hours, and the data-source fallbacks.</li>
+        <li><strong>Tested</strong> — 321 tests cover the streamer, signals, P&amp;L accounting, market hours, and the data-source fallbacks.</li>
       </ul>
 
       <h2>What it shows about how I work</h2>
