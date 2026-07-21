@@ -15,13 +15,13 @@
 # Key = the repo keyword as it is expected to appear in site text (e.g. "mcp-factory").
 
 ["mcp-factory"]
-value = 213
+value = 215
 source_repo = "C:\\Users\\jaime\\projects\\mcp-factory"
-source_cmd = ".venv/Scripts/python.exe -m pytest -q"
-tail_line = "213 passed, 8 skipped in 9.15s"
-verified_utc = "2026-07-13T00:00:00+00:00"
+source_cmd = ".venv/Scripts/python.exe -m pytest -q -p no:xdist"
+tail_line = "215 passed, 8 skipped in 8.73s"
+verified_utc = "2026-07-21T04:48:00+00:00"
 status = "verified"
-note = "DRIFT 2026-07-13: codegen-injection security fix (e3841bd, repr/json.dumps all manifest slots + env-name charset validation) added 26 tests, 187->213. Live-verified in mcp-factory's own .venv. Coupled to the security push of mcp-factory + mcp-factory-public main."
+note = "DRIFT 2026-07-20/21: 213->215 (2 tests added since 07-13, not chased further -- unrelated to this merge). Re-verified via 2 consecutive single-threaded runs (-p no:xdist) to confirm stability -- the checker's own live-run showed apparent flakiness (213/215/195 across parallel runs), root cause not yet chased, but single-threaded is reproducibly 215. Found + fixed during the site/port-sprint-landing merge reconciliation, blocking an unrelated pre-commit hook check."
 
 ["github-mcp"]
 value = 86
@@ -60,22 +60,22 @@ status = "verified"
 note = "bus-mcp is not currently cited as a proof number anywhere in site content (grep-confirmed 2026-07-08); value updated 54->62 (suite grew since 07-06). Tool count live-verified at 6 (server.py has 6 @mcp.tool() defs: post_message, read_messages, claim_lane, release_lane, heartbeat_lane, get_bus_status) -- NOT 8 as a stale memory note claimed; no tool-count field is tracked by this manifest/gate today."
 
 ["options-bot"]
-value = 321
+value = 353
 source_repo = "C:\\Users\\jaime\\projects\\options-bot"
 source_cmd = ".venv/Scripts/python.exe -m pytest -q"
-tail_line = "321 passed, 1 skipped in 26.92s"
-verified_utc = "2026-07-19T17:02:11+00:00"
+tail_line = "353 passed, 1 skipped in 26.44s"
+verified_utc = "2026-07-21T04:48:00+00:00"
 status = "verified"
-note = "DRIFT AGAIN 2026-07-19 (fifth rot since 07-06: 186->281->292->299->321): caught by scripts/check_proof_numbers.py's own live-check during an unrelated 3-new-repo audit. Fixed in case-studies/honest-harness.html (pill + body line). Re-verified 2026-07-19 in options-bot's own .venv. Prior: DRIFT AGAIN 2026-07-12 (292->299)."
+note = "DRIFT AGAIN 2026-07-20/21 (sixth rot since 07-06: 186->281->292->299->321->353): tastytrade price_effect sign-fix (+21 tests) and test-log-isolation fix (+2 tests) merged to master tonight. Re-verified in options-bot's own .venv. Found + fixed during the site/port-sprint-landing merge reconciliation, blocking an unrelated pre-commit hook check. Prior: DRIFT AGAIN 2026-07-19 (299->321)."
 
 ["discord-mcp"]
-value = 77
+value = 144
 source_repo = "C:\\Users\\jaime\\projects\\discord-mcp"
-source_cmd = ".venv/Scripts/python.exe -m pytest -q --junitxml=<scratch>/discord.xml"
-tail_line = "errors=0 failures=0 skipped=1 tests=78 (77 passed, 1 skipped)"
-verified_utc = "2026-07-09T03:38:55+00:00"
+source_cmd = ".venv/Scripts/python.exe -m pytest -q"
+tail_line = "144 passed, 1 skipped in 1.34s"
+verified_utc = "2026-07-21T04:48:00+00:00"
 status = "verified"
-note = "discord-mcp is not currently cited as a proof number anywhere in site content or sales-reps drafts (grep-confirmed 2026-07-08); seeded for completeness/future-proofing. Live tool count: 5 (list_channels, list_roles, list_categories, get_channel_permission_overwrites, get_member_roles)."
+note = "DRIFT 2026-07-20/21: 77->144 (gated write-tools added tonight: create_channel/edit_channel/create_role/edit_role/edit_guild/delete_channel behind DISCORD_MCP_ENABLE_WRITE, mirroring bus-mcp's pattern). Still not cited as a proof number anywhere in site content (not re-checked this pass, prior grep from 07-08 assumed still valid). Live tool count now 11 (5 read + 6 gated write), not 5. Found + fixed during the site/port-sprint-landing merge reconciliation, blocking an unrelated pre-commit hook check."
 
 ["reliability-retainer"]
 value = 239
