@@ -331,9 +331,23 @@ def live_verify_manifest(
             continue
 
         try:
+            # Strip inherited GIT_* env vars before invoking a DIFFERENT
+            # repo's test suite. When this script runs as a real git hook,
+            # git sets GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE (and friends) for
+            # ITS OWN hook subprocess -- those leak into any child process
+            # spawned here via plain inheritance. If the target repo's own
+            # tests do git operations (e.g. mcp-factory's
+            # test_workflow_runner.py calling `git ls-files`), those
+            # operations get pointed at THIS repo's git internals instead of
+            # the target's, and fail. Real incident 2026-07-21: 20 tests in
+            # mcp-factory failed this way (215 -> 195 passed) only when
+            # invoked through an actual `git commit`, never when run
+            # standalone -- silent and hard to reproduce outside a real hook.
+            clean_env = {k: v for k, v in os.environ.items()
+                         if not k.startswith("GIT_")}
             proc = subprocess.run(
                 argv, cwd=source_repo, capture_output=True, text=True,
-                timeout=timeout,
+                timeout=timeout, env=clean_env,
             )
         except subprocess.TimeoutExpired:
             results.append(LiveCheckResult(

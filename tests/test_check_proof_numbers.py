@@ -498,6 +498,47 @@ def test_live_check_timeout_warns_not_fails(tmp_path):
     assert fails == []
 
 
+def test_live_check_strips_inherited_git_env_vars(tmp_path, monkeypatch):
+    """Real 2026-07-21 incident: when this script runs as an actual git
+    pre-commit hook, git sets GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE for its
+    OWN hook subprocess -- those leaked into the live-check's subprocess.run
+    via plain env inheritance. Since the live-check spawns a DIFFERENT
+    repo's test suite, and that suite may do its own git operations
+    (mcp-factory's test_workflow_runner.py calls `git ls-files`), the
+    inherited vars pointed those git calls at the WRONG repo -- 20 tests
+    failed as a result (215 -> 195 passed), silently, and only when invoked
+    through a real `git commit` (never reproduced standalone). This test
+    simulates that exact environment and proves the live-check reports the
+    clean count regardless."""
+    monkeypatch.setenv("GIT_DIR", str(tmp_path / "unrelated-other-repo" / ".git"))
+    monkeypatch.setenv("GIT_WORK_TREE", str(tmp_path / "unrelated-other-repo"))
+    monkeypatch.setenv("GIT_INDEX_FILE", str(tmp_path / "unrelated-other-repo" / ".git" / "index"))
+
+    repo_dir = tmp_path / "mcp-factory"
+    # The fake runner reports a DIFFERENT (corrupted) count if it can see
+    # GIT_DIR in its own environment -- mirroring the real bug's shape,
+    # where an inherited git-context var changes the subprocess's behavior.
+    _write_fake_runner(
+        repo_dir, passed_count=215,
+        extra_py=(
+            "import os\n"
+            "if os.environ.get('GIT_DIR'):\n"
+            "    print('195 passed in 0.01s')\n"
+            "    raise SystemExit(0)\n"
+        ),
+    )
+    entries = {"mcp-factory": _fake_entry(repo_dir, value=215)}
+
+    results = cpn.live_verify_manifest(entries)
+
+    fails = [r for r in results if r.status == "FAIL"]
+    assert fails == [], (
+        f"live-check should report the clean 215 count regardless of the "
+        f"caller's own GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE -- got {results!r}")
+    oks = [r for r in results if r.status == "OK"]
+    assert len(oks) == 1 and oks[0].live_value == 215
+
+
 def test_live_check_no_source_repo_is_skipped_silently(tmp_path):
     """Entries with no source_repo (schema allows it -- only value/source_cmd
     are required) simply can't be live-checked and produce no result at all,
