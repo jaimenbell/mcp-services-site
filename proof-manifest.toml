@@ -105,10 +105,10 @@ status = "verified"
 note = "7th flagship, went public/private-GitHub 2026-07-19. Not currently cited anywhere in site content (grep-confirmed 2026-07-19) -- seeded for completeness/future-proofing. DRIFT FOUND + FIXED 2026-07-19: repo's own README badge said '78 (71 passing, 7 live-skipped)' -- stale, corrected in-repo to '83 (76 passing, 7 live-skipped)' (76+7=83, matches this live run exactly). Per this manifest's own convention the citable headline number is passed-only (76), not the 83 combined total. Tool count live-verified at 6 (check_health, get_gpu_status, get_serve_config, get_service_status, list_models, test_completion)."
 
 ["mcp-security-scanner"]
-value = 48
+value = 59
 source_repo = "C:\\Users\\jaime\\projects\\mcp-security-scanner"
 source_cmd = "python -m pytest -q --tb=no"
-tail_line = "48 passed, 7 skipped in 0.49s"
-verified_utc = "2026-07-19T17:02:11+00:00"
+tail_line = "59 passed, 7 skipped in 0.67s"
+verified_utc = "2026-07-21T23:57:09+00:00"
 status = "verified"
-note = "Not currently cited anywhere in site content (grep-confirmed 2026-07-19) -- seeded for completeness/future-proofing; no .venv in this repo, ran with global python per the github-mcp/desktop-mcp fallback convention. DRIFT FOUND + FIXED 2026-07-19: README.md, ANNOUNCEMENT.md, PRODUCT.md, docs/CLIENT_ONE_PAGER.md, docs/SOW_TEMPLATE.md, staged/sales-kit/objection-faq.md, staged/sales-kit/pricing-tiers.md all said 'four detector families' / '44 tests' and described write-tools-on-by-default/tool-scope-creep + secret-leak-via-tool-response as 'not yet built' -- both detectors shipped 2026-07-19 (detector count is genuinely 6, not 4; test count 55 collected / 48 passing, not 44). All 7 files corrected in the same wave per objection-faq.md's own standing instruction."
+note = "Not currently cited anywhere in site content (grep-confirmed 2026-07-19, re-confirmed 2026-07-21) -- seeded for completeness/future-proofing; no .venv in this repo, ran with global python per the github-mcp/desktop-mcp fallback convention. DRIFT FOUND + FIXED 2026-07-19: see prior note (44->48). SECOND DRIFT FOUND + FIXED 2026-07-21 (site/starter-kit lane, unrelated task, pre-commit hook caught it live-checking the whole manifest): 48->59, re-verified 3/3 stable runs same session. Pre-commit hook transiently reported 58 on one run just before this fix -- 3 direct reruns all landed 59 passed/7 skipped, so treating 58 as a one-off flake, not the true count; flag for a re-check next session if it recurs."
