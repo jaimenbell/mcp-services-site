@@ -355,6 +355,14 @@ def live_verify_manifest(
             # standalone -- silent and hard to reproduce outside a real hook.
             clean_env = {k: v for k, v in os.environ.items()
                          if not k.startswith("GIT_")}
+            # Per-entry env overrides (manifest "source_env" table). Real
+            # use: mcp-factory's clean-checkout count (what public CI gates
+            # on) differs from a bare run on the fleet machine, where
+            # test_smoke_hub auto-discovers the live bot fleet -- pointing
+            # MCP_FACTORY_SMOKE_ROOTS at an empty fixture dir makes the
+            # live-check reproduce the clean-checkout number.
+            if entry.source_env:
+                clean_env.update(entry.source_env)
             proc = subprocess.run(
                 argv, cwd=source_repo, capture_output=True, text=True,
                 timeout=timeout, env=clean_env,
@@ -427,11 +435,13 @@ class ManifestEntry:
     """
 
     def __init__(self, key: str, value: int, source_cmd: str | None = None,
-                 source_repo: str | None = None):
+                 source_repo: str | None = None,
+                 source_env: dict[str, str] | None = None):
         self.key = key
         self.value = value
         self.source_cmd = source_cmd
         self.source_repo = source_repo
+        self.source_env = source_env
 
 
 def load_manifest_entries(path: Path = MANIFEST_PATH) -> dict[str, ManifestEntry]:
@@ -470,11 +480,23 @@ def load_manifest_entries(path: Path = MANIFEST_PATH) -> dict[str, ManifestEntry
                 f'proof-manifest.toml: entry ["{key}"]\'s "value" is not an '
                 f"integer: {entry['value']!r}"
             ) from exc
+        source_env = entry.get("source_env")
+        if source_env is not None:
+            if not isinstance(source_env, dict) or not all(
+                isinstance(k, str) and isinstance(v, str)
+                for k, v in source_env.items()
+            ):
+                raise ManifestValidationError(
+                    f'proof-manifest.toml: entry ["{key}"]\'s "source_env" '
+                    f"must be a table of string values (env var name -> "
+                    f"value); got: {source_env!r}"
+                )
         manifest[key] = ManifestEntry(
             key=key,
             value=value,
             source_cmd=entry.get("source_cmd"),
             source_repo=entry.get("source_repo"),
+            source_env=source_env,
         )
     return manifest
 

@@ -676,3 +676,77 @@ def test_hook_allows_clean_commit_with_no_blocked_message(tmp_path):
 
     assert result.returncode == 0, f"clean commit must pass: {result.stdout}\n{result.stderr}"
     assert "BLOCKED" not in result.stdout
+
+
+def test_live_check_source_env_reaches_subprocess(tmp_path):
+    """A manifest entry may carry a source_env table; those variables must be
+    set in the source_cmd subprocess. Real use: mcp-factory's live count on
+    the fleet machine differs from the clean-checkout count because
+    test_smoke_hub discovers the live bot fleet -- pointing
+    MCP_FACTORY_SMOKE_ROOTS at an empty fixture dir reproduces the
+    clean-checkout number (222) that public CI gates on."""
+    repo_dir = tmp_path / "mcp-factory"
+    _write_fake_runner(
+        repo_dir,
+        passed_count=224,
+        extra_py=(
+            "import os\n"
+            "if os.environ.get('FAKE_SMOKE_ROOTS'):\n"
+            "    print('222 passed in 0.01s')\n"
+            "    raise SystemExit(0)\n"
+        ),
+    )
+    entry = cpn.ManifestEntry(
+        key="mcp-factory",
+        value=222,
+        source_cmd=f"{sys.executable} fake_runner.py",
+        source_repo=str(repo_dir),
+        source_env={"FAKE_SMOKE_ROOTS": "anything"},
+    )
+
+    results = cpn.live_verify_manifest({"mcp-factory": entry})
+
+    fails = [r for r in results if r.status == "FAIL"]
+    oks = [r for r in results if r.status == "OK"]
+    assert fails == []
+    assert len(oks) == 1
+    assert oks[0].live_value == 222
+
+
+def test_live_check_without_source_env_unchanged(tmp_path):
+    """Entries with no source_env behave exactly as before (env untouched)."""
+    repo_dir = tmp_path / "mcp-factory"
+    _write_fake_runner(repo_dir, passed_count=199)
+    entries = {"mcp-factory": _fake_entry(repo_dir, value=199)}
+    results = cpn.live_verify_manifest(entries)
+    assert [r.status for r in results] == ["OK"]
+
+
+def test_manifest_source_env_loads_and_validates(tmp_path):
+    """source_env loads as a str->str table; a non-string value fails the
+    whole load loudly (same philosophy as the other schema checks)."""
+    good = tmp_path / "good.toml"
+    good.write_text(
+        '["mcp-factory"]\n'
+        'value = 222\n'
+        'source_cmd = "python -m pytest -q"\n'
+        'source_env = { MCP_FACTORY_SMOKE_ROOTS = "C:/x/empty" }\n',
+        encoding="utf-8",
+    )
+    entries = cpn.load_manifest_entries(good)
+    assert entries["mcp-factory"].source_env == {
+        "MCP_FACTORY_SMOKE_ROOTS": "C:/x/empty"}
+
+    bad = tmp_path / "bad.toml"
+    bad.write_text(
+        '["mcp-factory"]\n'
+        'value = 222\n'
+        'source_cmd = "python -m pytest -q"\n'
+        'source_env = { MCP_FACTORY_SMOKE_ROOTS = 7 }\n',
+        encoding="utf-8",
+    )
+    try:
+        cpn.load_manifest_entries(bad)
+        raise AssertionError("expected ManifestValidationError")
+    except cpn.ManifestValidationError as exc:
+        assert "source_env" in str(exc)

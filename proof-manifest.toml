@@ -15,13 +15,16 @@
 # Key = the repo keyword as it is expected to appear in site text (e.g. "mcp-factory").
 
 ["mcp-factory"]
-value = 224
+value = 222
 source_repo = "C:\\Users\\jaime\\projects\\mcp-factory"
 source_cmd = "python -m pytest -q"
-tail_line = "224 passed, 8 skipped in 9.94s"
-verified_utc = "2026-07-22T17:15:00+00:00"
+# Neutralizes test_smoke_hub's live-bot auto-discovery on the fleet machine so
+# the live-check reproduces the clean-checkout count that public CI gates on.
+source_env = { MCP_FACTORY_SMOKE_ROOTS = "C:\\Users\\jaime\\projects\\mcp-factory\\tests\\fixtures\\empty_smoke_root" }
+tail_line = "222 passed, 10 skipped in 5.13s"
+verified_utc = "2026-07-22T22:55:00+00:00"
 status = "verified"
-note = "DRIFT 2026-07-22 (evening-ceremony preflight, ahead of the paired site refresh + factory push): 216->224 at commit 2491528 (ci: add GitHub Actions CI with README count-verification gate; repo local main ahead of origin by 1 commit at time of this check). Re-verified live in this pass. Prior: DRIFT 2026-07-20/21: 213->215 (2 tests added since 07-13, untraced, unrelated). Re-verified stable across 10+ independent runs after root-causing an unrelated apparent-flakiness report (213/215/195 across different invocations) down to a real bug in THIS checker's own live-check subprocess call -- see check_proof_numbers.py's live_verify_manifest() fix, 2026-07-21: it inherited GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE from git's own hook-invocation environment and leaked them into mcp-factory's test subprocess, corrupting its git-aware tests (test_workflow_runner.py) and producing a phantom 195. Fixed by stripping GIT_* env vars before spawning a different repo's test command. Prior: DRIFT 2026-07-13, 187->213."
+note = "DRIFT 2026-07-22 (evening-ceremony preflight, ahead of the paired site refresh + factory push): 216->224->222 at commit 2491528 (ci: add GitHub Actions CI with README count-verification gate; repo local main ahead of origin by 1 commit at time of this check). Re-verified live in this pass. Prior: DRIFT 2026-07-20/21: 213->215 (2 tests added since 07-13, untraced, unrelated). Re-verified stable across 10+ independent runs after root-causing an unrelated apparent-flakiness report (213/215/195 across different invocations) down to a real bug in THIS checker's own live-check subprocess call -- see check_proof_numbers.py's live_verify_manifest() fix, 2026-07-21: it inherited GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE from git's own hook-invocation environment and leaked them into mcp-factory's test subprocess, corrupting its git-aware tests (test_workflow_runner.py) and producing a phantom 195. Fixed by stripping GIT_* env vars before spawning a different repo's test command. Prior: DRIFT 2026-07-13, 187->213."
 
 ["github-mcp"]
 value = 86

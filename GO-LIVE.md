@@ -90,7 +90,7 @@ git push origin main
 
 ## 8. Verify live
 
-- Load `https://jaimenbell.github.io/mcp-services-site/` — hero, proof stats (224 / 53), offer
+- Load `https://jaimenbell.github.io/mcp-services-site/` — hero, proof stats (222 / 53), offer
   tiers, case studies, FAQ all render.
 - Load a non-existent path (e.g. `.../nope`) — confirm the custom `404.html` shows, not GitHub's
   default 404.
@@ -99,18 +99,18 @@ git push origin main
   either the mail client with the right address + subject, or the Calendly page if that path was
   used.
 - Click the footer "Contact" link and the footer email text link — same check.
-- Confirm the "224 passing tests" / "mcp-factory" and "53 tests" / "rag-mcp" links resolve to the
+- Confirm the "222 passing tests" / "mcp-factory" and "53 tests" / "rag-mcp" links resolve to the
   public repos.
 
 ## Notes for future updates
 
-- Test counts (224 mcp-factory, 53 rag-mcp, 371 options-bot, 195 mcp-security-scanner) were
+- Test counts (222 mcp-factory, 53 rag-mcp, 371 options-bot, 195 mcp-security-scanner) were
   live-verified 2026-07-22 (evening-ceremony preflight) by running each suite in its own repo's
   venv/interpreter — not copied from an old claim. options-bot was 186 as of the 2026-07-06 check
   below, grew to 281 by 2026-07-09, 292 by 2026-07-11 (sched_guard / order-rate breaker /
   portfolio-starting-capital work), 299 by 2026-07-12, 321 by 2026-07-19, and 353 by 2026-07-21
-  (tastytrade price_effect sign-fix + test-log-isolation); mcp-factory grew 213->215->216->224
-  across 2026-07-20 through 2026-07-22 (untraced, unrelated to this site's own changes; 224 at
+  (tastytrade price_effect sign-fix + test-log-isolation); mcp-factory grew 213->215->216->224->222
+  across 2026-07-20 through 2026-07-22 (untraced, unrelated to this site's own changes; 222 at
   commit 2491528, local main 1 commit ahead of origin at the time of this check); scanner grew
   101->137->195 in the same window (195 at commit 14fee01, JS/TS parity landed across 4 detector
   families). This is the recurring drift pattern the proof-manifest.toml gate exists to catch —
