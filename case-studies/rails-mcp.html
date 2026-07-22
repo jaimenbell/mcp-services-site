@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Case study: rails-mcp — a default-deny agent-governance MCP server (106 tests)</title>
+  <meta name="description" content="rails-mcp: a self-hosted default-deny action registry + spend ledger + CLI-only sign-off audit trail, exposed as MCP tools. One invariant that can never be configured away, sign-off deliberately never reachable as a tool. 106 passing tests, public repo.">
+  <link rel="canonical" href="https://jaimenbell.dev/case-studies/rails-mcp.html">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="MCP Integration Sprint">
+  <meta property="og:title" content="Case study: rails-mcp — a default-deny agent-governance MCP server (106 tests)">
+  <meta property="og:description" content="rails-mcp: a self-hosted default-deny action registry + spend ledger + CLI-only sign-off audit trail, exposed as MCP tools. One invariant that can never be configured away. 106 passing tests, public repo.">
+  <meta property="og:url" content="https://jaimenbell.dev/case-studies/rails-mcp.html">
+  <meta property="og:image" content="https://jaimenbell.dev/img/og-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="jaimenbell.dev — Production MCP servers for AI agents">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Case study: rails-mcp — a default-deny agent-governance MCP server (106 tests)">
+  <meta name="twitter:description" content="rails-mcp: a self-hosted default-deny action registry + spend ledger + CLI-only sign-off audit trail. One invariant that can never be configured away. 106 passing tests.">
+  <meta name="twitter:image" content="https://jaimenbell.dev/img/og-card.png">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="../index.html" style="text-decoration:none">MCP<span class="dot">·</span>Engineering</a>
+    <nav class="top">
+      <a href="../index.html#proof">Proof</a>
+      <a href="../index.html#offer">Offer</a>
+      <a href="../index.html#faq">FAQ</a>
+      <a href="mailto:jaime@jaimenbell.dev">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<section style="border-bottom:0">
+  <div class="wrap">
+    <article class="cs">
+      <a class="back" href="../index.html#cases">← All case studies</a>
+      <h1>rails-mcp — a default-deny governance rail for agents</h1>
+      <div class="meta">// governance category · 106 passing tests · one invariant that can't be configured away · public repo</div>
+
+      <span class="pill">Python MCP SDK</span>
+      <span class="pill">106 passing tests</span>
+      <span class="pill">default-deny</span>
+      <span class="pill">CLI-only sign-off</span>
+      <span class="pill">public repo</span>
+
+      <h2>The problem</h2>
+      <p>
+        Every other MCP server I build answers "connect an agent to X." This one answers the opposite
+        question: how do you stop an agent from doing something irreversible without a human noticing?
+        The moment agents can spend money, deploy code, or delete data, the interesting failure mode
+        isn't a bug — it's a fail-open governance layer that quietly approves the thing it was supposed
+        to gate. A rail with a config knob that can flip it permissive is worse than no rail, because it
+        looks like one.
+      </p>
+
+      <h2>What I built</h2>
+      <p>
+        <strong>rails-mcp</strong> is a self-hosted, caller-configured <strong>default-deny action
+        registry</strong> + append-only <strong>spend ledger</strong> + CLI-only <strong>sign-off audit
+        trail</strong>, exposed over the Python MCP SDK. Six read-mostly tools, one hard invariant, one
+        hard boundary:
+      </p>
+      <ul>
+        <li><strong>The invariant that is never configurable</strong> — <code>classify_action(action_type)</code> <em>always</em> returns <code>GATED</code>. No argument, no config field, no loaded registry can make it return anything permissive. A config-driven fail-open knob would defeat the entire product, so the function simply has no parameter through which a caller could ever soften it.</li>
+        <li><strong>Honest-empty, not fail-open</strong> — with no config loaded the registry is empty, and everything is <em>still</em> unconditionally <code>GATED</code>. Adopters supply their own action-types; no fleet's specifics ship in the package.</li>
+        <li><strong>Sign-off is CLI-only, never an MCP tool</strong> — the function that records a human blessing the registry's current hash is exposed only as a hand-run CLI command. An agent holding just this server's tool connection cannot self-approve — enforced structurally (an AST-based test proves the server code never imports or calls it), not by convention.</li>
+        <li><strong>Append-only ledgers</strong> — a spend-intent ledger + rolling-window budget check, and a human sign-off ledger. <code>record_spend_intent</code> never calls a vendor or a paid API; it records intent, nothing more.</li>
+      </ul>
+
+      <div class="evidence">
+        <h3>Evidence you can check yourself</h3>
+        <p>
+          Public on purpose — every claim maps to a file you can open before you reply:
+        </p>
+        <ul>
+          <li>Repo: <a href="https://github.com/jaimenbell/rails-mcp">github.com/jaimenbell/rails-mcp</a> (MIT, also on PyPI)</li>
+          <li>Tests: <code>.venv/Scripts/python.exe -m pytest -q</code> → <code>106 passed</code>, all hermetic (every ledger/config path goes through <code>tmp_path</code>; no network, no live-smoke gate — this server has no external API to fake).</li>
+          <li>The boundary is a test: <code>test_append_signoff_unreachable_via_any_mcp_tool</code> proves — by AST, not a string grep — that no registered tool can reach the sign-off writer, and a behavioral test confirms the sign-off ledger file is never created by any tool.</li>
+        </ul>
+      </div>
+
+      <div class="honest">
+        <p>
+          Stated plainly in the README: rails-mcp is <strong>not an enforcer.</strong>
+          <code>classify_action</code> returning <code>GATED</code> does not block anything by itself —
+          you still wire it into your own PreToolUse hook, deny-list, or CI gate. And the sign-off ledger
+          has no cryptographic tamper-evidence: its integrity rests on filesystem ACLs and the self-hosted
+          model, not on crypto. It stops the narrow, real case of an agent that holds <em>only</em> this
+          server's tools from self-approving — it is not proof a human reviewed anything, and the README
+          says so.
+        </p>
+      </div>
+
+      <h2>What it shows about how I work</h2>
+      <p>
+        This pattern shipped internally against a live multi-bot fleet before it shipped publicly. The
+        discipline it demonstrates is the one that matters for anything with a blast radius: pick the one
+        invariant that must never bend, make it structurally impossible to bend, and prove the boundary
+        with a test rather than asserting it in a comment. That's how I'd build the governance layer in
+        front of your agents' irreversible actions.
+      </p>
+
+      <p style="margin-top:32px">
+        <a class="btn btn-primary" href="mailto:jaime@jaimenbell.dev?subject=MCP%20scoping%20call">Book a scoping call</a>
+        &nbsp;<a class="btn btn-ghost" href="vllm-ops-mcp.html">Next case study →</a>
+      </p>
+    </article>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    <span>MCP Server Engineering · auth-scoped, fail-soft, tested.</span>
+    <span><a href="https://github.com/jaimenbell/rails-mcp">GitHub</a> · <a href="mailto:jaime@jaimenbell.dev">jaime@jaimenbell.dev</a> <span id="discord-footer-link-wrap" style="display:none">· <a id="discord-footer-link" href="" target="_blank" rel="noopener">Discord</a></span></span>
+  </div>
+</footer>
+
+<script src="../js/discord-cta.js" defer></script>
+</body>
+</html>

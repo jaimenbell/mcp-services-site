@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Case study: mcp-security-scanner — a static security scanner for MCP servers (195 tests)</title>
+  <meta name="description" content="mcp-security-scanner: a static security scanner for MCP servers. Seven detector families, Python + JS/TS parity, reachability + tool-parameter taint grading, an honest confidence on every finding, and a dogfood self-audit against six real servers. 195 passing tests, public repo.">
+  <link rel="canonical" href="https://jaimenbell.dev/case-studies/mcp-security-scanner.html">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="MCP Integration Sprint">
+  <meta property="og:title" content="Case study: mcp-security-scanner — a static security scanner for MCP servers (195 tests)">
+  <meta property="og:description" content="mcp-security-scanner: a static security scanner for MCP servers. Seven detector families, Python + JS/TS parity, reachability + taint grading, honest confidence on every finding, dogfood self-audit against six real servers. 195 passing tests, public repo.">
+  <meta property="og:url" content="https://jaimenbell.dev/case-studies/mcp-security-scanner.html">
+  <meta property="og:image" content="https://jaimenbell.dev/img/og-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="jaimenbell.dev — Production MCP servers for AI agents">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Case study: mcp-security-scanner — a static security scanner for MCP servers (195 tests)">
+  <meta name="twitter:description" content="mcp-security-scanner: a static security scanner for MCP servers. Seven detector families, Python + JS/TS parity, reachability + taint grading, honest confidence on every finding. 195 passing tests.">
+  <meta name="twitter:image" content="https://jaimenbell.dev/img/og-card.png">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="../index.html" style="text-decoration:none">MCP<span class="dot">·</span>Engineering</a>
+    <nav class="top">
+      <a href="../index.html#proof">Proof</a>
+      <a href="../index.html#offer">Offer</a>
+      <a href="../index.html#faq">FAQ</a>
+      <a href="mailto:jaime@jaimenbell.dev">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<section style="border-bottom:0">
+  <div class="wrap">
+    <article class="cs">
+      <a class="back" href="../index.html#cases">← All case studies</a>
+      <h1>mcp-security-scanner — a static security scanner for MCP servers</h1>
+      <div class="meta">// security category · 195 passing tests · Python + JS/TS parity · dogfooded on six real servers · public repo</div>
+
+      <span class="pill">Python</span>
+      <span class="pill">195 passing tests</span>
+      <span class="pill">7 detector families</span>
+      <span class="pill">JS/TS parity</span>
+      <span class="pill">reachability + taint grading</span>
+      <span class="pill">public repo</span>
+
+      <h2>The problem</h2>
+      <p>
+        MCP servers are a new attack surface built fast, often by one person, and pointed straight at a
+        model that will do what a tool tells it to. The vulnerability classes are specific — codegen
+        injection, tool-parameter injection into a shell, write tools on by default, secrets handed back
+        in a tool response — but they hide in exactly the code a solo builder ships without a second pair
+        of eyes. And a scanner that cries wolf on every line is ignored by week two, so the hard part
+        isn't finding patterns; it's grading them honestly enough that a human trusts the queue.
+      </p>
+
+      <h2>What I built</h2>
+      <p>
+        <strong>mcp-security-scanner</strong> reads an MCP server's source and flags the vulnerability
+        classes that actually show up in production, each with a severity, a <code>file:line</code>, a
+        remediation, and an honest <strong>confidence</strong>. Seven detector families, with two grading
+        passes layered on top:
+      </p>
+      <ul>
+        <li><strong>Seven detector families</strong> — codegen/template injection, tool-param injection (shell/eval/pickle/unsafe-yaml/SSRF/path-traversal), auth &amp; network posture, secret handling, write-tools-on-by-default, secret-leak-via-tool-response, and job hazards (cron/systemd/CI/deploy-script scope, destructive calls, success-reported-without-verification).</li>
+        <li><strong>Python + JS/TS parity</strong> — four families now cover <code>.js/.mjs/.cjs/.ts/.mts/.cts/.jsx/.tsx</code> on a brace/string-aware regex basis (param-injection, tool-scope-creep, secret-leak-via-tool-response, and secret-in-log). JSX brace syntax was <em>verified</em> not to trip the detectors with a real mixed-fixture pair, not assumed.</li>
+        <li><strong>Reachability grading</strong> — after the detectors run, a static call-graph labels each finding <em>reachable</em> (inside or transitively called from a registered tool handler), <em>unreachable-by-tools</em>, or <em>unknown</em>. Reachable raises confidence, unreachable lowers it — a finding is <strong>never dropped</strong> on this basis.</li>
+        <li><strong>Tool-parameter taint tracking</strong> — a second pass seeds every tool handler's parameters as taint sources and propagates them (assignments, f-strings, containers, same-repo calls up to two import hops) into the injection sinks, labelling each finding <em>tainted</em> / <em>untainted</em> / <em>unknown</em>.</li>
+      </ul>
+
+      <div class="evidence">
+        <h3>Evidence you can check yourself</h3>
+        <p>
+          Public on purpose — every claim maps to a file you can open before you reply:
+        </p>
+        <ul>
+          <li>Repo: <a href="https://github.com/jaimenbell/mcp-security-scanner">github.com/jaimenbell/mcp-security-scanner</a></li>
+          <li>Tests: <code>python -m pytest -q</code> → <code>195 passed, 7 skipped</code> (202 total; the 7 skips are the dogfood self-audit tests, which need <code>MCP_SCANNER_FLEET_ROOT</code> pointed at real repos and skip cleanly in a fresh clone).</li>
+          <li>Every detector ships a matched pair of fixtures — a vulnerable one it must catch, a clean one it must not flag — so the false-positive floor is a tested invariant, not a hope.</li>
+          <li>The dogfood proof (<code>--self-audit</code>, <code>tests/test_self_audit.py</code>): the scanner runs against six of my own in-production MCP servers, must flag the one known codegen-injection class an independent manual audit found, and must give the other five a clean bill. It does both.</li>
+        </ul>
+      </div>
+
+      <div class="honest">
+        <p>
+          Printed on every report on purpose: this is <strong>static analysis, not a prover.</strong> It
+          reads code; it does not run your server, and it does not prove any finding is remotely
+          exploitable. A "clean bill" means <em>these detectors found no critical/high patterns</em> — not
+          a security guarantee. Confidence is load-bearing: <code>low</code> findings are "a human should
+          glance at this" and produce false positives by design. The JS/TS coverage is line-based regex,
+          not a full AST like the Python path — and the README documents exactly which JS/TS shapes it
+          does and does not catch, rather than letting you assume parity it doesn't have.
+        </p>
+      </div>
+
+      <h2>Where it's going: Managed MCP Watch</h2>
+      <p>
+        The engine is MIT-licensed and the repo is public — you can clone it and gate your CI with
+        <code>--fail-on P1</code> for $0, forever, and I say so in every sales conversation. What a public
+        repo <em>can't</em> give you is what the <strong>Managed MCP Watch</strong> subscription sells: a
+        monthly human-triaged digest of net-new findings against your baseline (so your team never chases
+        noise), rule freshness as the MCP threat landscape moves, and a human to ask when a finding is
+        confusing. The scan runs in <em>your</em> CI via the shipped GitHub Action — your source never
+        leaves your machine and I hold no credentials. The open core stays free; the service wrapped
+        around it is the product.
+      </p>
+
+      <h2>What it shows about how I work</h2>
+      <p>
+        An over-flagging scanner is easy; a <em>trustworthy</em> one is the actual engineering. The whole
+        design bends toward honesty — never drop a finding, grade its confidence with a real call-graph
+        and taint pass, prove the false-positive floor with paired fixtures, and dogfood the thing against
+        my own production servers where a miss would be visible. That's the same standard I'd bring to
+        auditing your fleet.
+      </p>
+
+      <p style="margin-top:32px">
+        <a class="btn btn-primary" href="mailto:jaime@jaimenbell.dev?subject=MCP%20scoping%20call">Book a scoping call</a>
+        &nbsp;<a class="btn btn-ghost" href="rails-mcp.html">Next case study →</a>
+      </p>
+    </article>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    <span>MCP Server Engineering · auth-scoped, fail-soft, tested.</span>
+    <span><a href="https://github.com/jaimenbell/mcp-security-scanner">GitHub</a> · <a href="mailto:jaime@jaimenbell.dev">jaime@jaimenbell.dev</a> <span id="discord-footer-link-wrap" style="display:none">· <a id="discord-footer-link" href="" target="_blank" rel="noopener">Discord</a></span></span>
+  </div>
+</footer>
+
+<script src="../js/discord-cta.js" defer></script>
+</body>
+</html>
