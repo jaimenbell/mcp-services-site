@@ -189,10 +189,20 @@ WINDOW = 10  # lines to search above/below for association fallback (d)
 #   - 2806, 283: case-studies/fleet-reliability-day.html's "N + M tests"
 #     composite -- an aggregate across ~30 fleet lanes, not any single repo's
 #     suite count, so it has no single manifest entry either.
+#   - 1002: day-trader's full-suite test count, cited in
+#     case-studies/orphan-position-recovery.html. day-trader is a live trading
+#     repo, deliberately kept off this manifest and out of the public repo set
+#     (see github-profile.md's "do NOT rush to publish" list) -- its count is
+#     quotable for narrative honesty (live-verified in its own .venv,
+#     2026-07-21: 1002 passed) but not tracked here since the repo itself is
+#     never linked from the site.
+#   - 17: the number of new tests shipped with day-trader's orphan-lifecycle
+#     hardening (same case study) -- a delta within the untracked 1002-test
+#     day-trader suite above, not a separate repo's total.
 # When adding a new named-but-untracked proof-number callout to the site,
 # add its value(s) here (with a comment explaining why it's untracked) or it
 # will start FAILing the commit gate as a suspicious orphaned number.
-KNOWN_NONCANONICAL_NUMBERS = {186, 2806, 283}
+KNOWN_NONCANONICAL_NUMBERS = {186, 2806, 283, 1002, 17}
 
 
 class Finding:

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Fleet Audit Methodology: 7 Detectors, One Human Judgment Call</title>
+  <meta name="description" content="How a Week-1 reliability audit actually works: 7 static-detector families that over-flag on purpose, a self-audit that catches the tool's own blind spot, and the one call the scanner never makes for you.">
+  <link rel="canonical" href="https://jaimenbell.dev/articles/fleet-audit-methodology.html">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="MCP Integration Sprint">
+  <meta property="og:title" content="The Fleet Audit Methodology: 7 Detectors, One Human Judgment Call">
+  <meta property="og:description" content="How a Week-1 reliability audit actually works: 7 static-detector families that over-flag on purpose, a self-audit that catches the tool's own blind spot, and the one call the scanner never makes for you.">
+  <meta property="og:url" content="https://jaimenbell.dev/articles/fleet-audit-methodology.html">
+  <meta property="og:image" content="https://jaimenbell.dev/img/og-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="jaimenbell.dev — Production MCP servers for AI agents">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="The Fleet Audit Methodology: 7 Detectors, One Human Judgment Call">
+  <meta name="twitter:description" content="7 static-detector families that over-flag on purpose, a self-audit that caught the tool's own blind spot, and the one call the scanner never makes for you.">
+  <meta name="twitter:image" content="https://jaimenbell.dev/img/og-card.png">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="../index.html" style="text-decoration:none">MCP<span class="dot">·</span>Engineering</a>
+    <nav class="top">
+      <a href="../index.html#proof">Proof</a>
+      <a href="../index.html#pricing">Offer</a>
+      <a href="../index.html#faq">FAQ</a>
+      <a href="mailto:jaime@jaimenbell.dev">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<section style="border-bottom:0">
+  <div class="wrap">
+    <article class="cs">
+      <a class="back" href="../index.html">← Back to MCP Integration Sprint</a>
+      <h1>The fleet audit methodology: 7 detectors, one human judgment call</h1>
+      <div class="meta">// methodology · reliability audits · ~8 min read</div>
+
+      <span class="pill">static analysis</span>
+      <span class="pill">surface, don't decide</span>
+      <span class="pill">self-audit proof</span>
+      <span class="pill">59 passing tests (mcp-security-scanner)</span>
+
+      <div class="honest">
+        <p>
+          <strong>Up front:</strong> every outreach message I send makes the same claim — "a catalog
+          of known destructive-scope and dead-but-green hazards, the scanner surfaces, the expert
+          decides." This page is that claim made checkable: the actual detector families, the actual
+          split between what the tool does and what I do, and one worked example of the tool catching
+          a real problem — including its own.
+        </p>
+      </div>
+
+      <h2>The premise</h2>
+      <p>
+        Agent fleets fail in a specific, recurring shape: a job reports "done" without checking what
+        it touched, or a credential/permission is scoped wider than the task that uses it, and nobody
+        notices until the wide scope meets a destructive call with no gate in front of it. That's the
+        Railway-token class of incident, the terraform-destroy-from-stale-state class, the
+        confirmation-step-that-echoes-an-unverified-number class. None of these need a novel exploit —
+        they need someone to actually read every scheduled job, wrapper, and IaC/CI file a fleet runs,
+        which is exactly the part nobody has time to do by hand across a real fleet.
+      </p>
+      <p>
+        The audit is built around a division of labor: <strong>static tooling sweeps for candidates,
+        a human reads every candidate and decides.</strong> The tool is tuned to over-flag on purpose
+        — a missed finding is worse than a false positive — and the triage that prunes noise down to
+        the handful of findings that matter is the actual deliverable, not the scan itself.
+      </p>
+
+      <h2>The 7 detector families</h2>
+      <p>
+        This is <code>mcp-security-scanner</code>'s actual detector list, reading the source of the
+        MCP servers and job files a fleet runs — not a marketing summary of it:
+      </p>
+      <table style="width:100%; border-collapse:collapse; margin:20px 0; font-size:0.95em">
+        <thead>
+          <tr style="text-align:left; border-bottom:1px solid var(--border, #333)">
+            <th style="padding:8px 12px 8px 0">#</th>
+            <th style="padding:8px 12px 8px 0">Family</th>
+            <th style="padding:8px 0">What it flags</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border, #222)">
+            <td style="padding:8px 12px 8px 0">1</td>
+            <td style="padding:8px 12px 8px 0">Codegen / template injection</td>
+            <td style="padding:8px 0">Autoescape off in a tool that renders untrusted fields into generated source; hand-rolled string escaping instead of a real serializer.</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border, #222)">
+            <td style="padding:8px 12px 8px 0">2</td>
+            <td style="padding:8px 12px 8px 0">Tool-param injection</td>
+            <td style="padding:8px 0"><code>shell=True</code>, <code>eval</code>/<code>exec</code> on non-constants, unsafe deserialization, SSRF, path traversal.</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border, #222)">
+            <td style="padding:8px 12px 8px 0">3</td>
+            <td style="padding:8px 12px 8px 0">Auth / network posture</td>
+            <td style="padding:8px 0">Bind-all with debug on, mutating routes with no auth dependency, no rate limiter on a networked server.</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border, #222)">
+            <td style="padding:8px 12px 8px 0">4</td>
+            <td style="padding:8px 12px 8px 0">Secret handling</td>
+            <td style="padding:8px 0">Tracked credential files, hardcoded secret literals, secrets passed to log/print.</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border, #222)">
+            <td style="padding:8px 12px 8px 0">5</td>
+            <td style="padding:8px 12px 8px 0">Tool-scope creep</td>
+            <td style="padding:8px 0">A mutating tool registered with no visible gate — no decorator, no env-flag opt-in, no permission check.</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border, #222)">
+            <td style="padding:8px 12px 8px 0">6</td>
+            <td style="padding:8px 12px 8px 0">Secret-leak-via-response</td>
+            <td style="padding:8px 0">A tool that hands back a whole env/config object or a secret-shaped value to the calling LLM.</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 12px 8px 0">7</td>
+            <td style="padding:8px 12px 8px 0">Job hazards</td>
+            <td style="padding:8px 0">Cron/systemd/CI/deploy scripts: over-broad ACL scope, a destructive call with no confirm-before-destroy gate, success reported without verification (<code>|| true</code>, empty <code>catch{}</code>).</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        Every finding a detector produces carries the same four fields: <strong>severity</strong>
+        (P0 critical → P3 hardening nit), <strong>confidence</strong> (high / medium / low), the
+        offending <code>file:line</code>, and a concrete fix. Nothing ships as a bare "this looks bad."
+      </p>
+
+      <h2>Where the tool stops and the human starts</h2>
+      <p>
+        This is the part every DM I send names explicitly, because it's the actual differentiator:
+        <em>the scanner surfaces, the expert decides.</em> Concretely —
+      </p>
+      <ul>
+        <li>The tool flags a credential or permission grant that looks <strong>wider than the
+        detector's heuristic expects for that call site.</strong> It cannot know what the job
+        genuinely needs; it only knows the shape looks broad.</li>
+        <li>I read the actual grant against the actual job — what the automation does, what it would
+        break if the scope were narrowed, what the blast radius is if that exact grant were misused —
+        before calling it a real finding. Most audits will find the tool over-flags by a wide margin;
+        that gap between raw flags and confirmed findings is the triage work, not overhead around it.</li>
+        <li>Every finding that reaches a client report as <strong>critical</strong> has been
+        hand-verified and, where practical, reproduced — not just pattern-matched.</li>
+      </ul>
+
+      <div class="evidence">
+        <h3>Worked example: the self-audit catching the tool's own blind spot</h3>
+        <p>
+          The strongest proof that this discipline is real rather than a slide is <code>--self-audit</code>
+          — pointing the scanner at the fleet of MCP servers it was built alongside:
+        </p>
+        <pre style="background:rgba(0,0,0,0.25); padding:14px 16px; border-radius:8px; overflow-x:auto; font-size:0.85em; line-height:1.5"><code>FINDINGS mcp-factory   P0=0 P1=1 P2=0 P3=0   &lt;- flags the known codegen-injection class
+CLEAN    github-mcp    P0=0 P1=0 P2=0 P3=0
+CLEAN    bus-mcp       P0=0 P1=0 P2=0 P3=0
+CLEAN    desktop-mcp   P0=0 P1=0 P2=1 P3=0   &lt;- one P2/low heuristic note, clean bill
+CLEAN    rag-mcp       P0=0 P1=0 P2=1 P3=0   &lt;- one P2/low heuristic note, clean bill
+CLEAN    discord-mcp   P0=0 P1=0 P2=0 P3=0</code></pre>
+        <p>
+          The acceptance test for this run has two parts, and both have to pass: it must
+          <strong>flag the mcp-factory codegen-injection class</strong> that an independent manual
+          audit found first, and it must <strong>give the audited-clean servers a clean bill</strong>
+          — no P0/P1 noise on servers that don't have the problem. It does both, and it's a real test
+          in the suite (<code>tests/test_self_audit.py</code>), not a one-off demo run.
+        </p>
+        <p>
+          The honest caveat, printed on every report the tool produces: this is <strong>static
+          analysis, not a prover.</strong> It reads code; it does not run the server and does not
+          prove a finding is remotely exploitable. A clean bill means "these detectors found no
+          critical/high pattern" — not a security guarantee. That boundary is the whole reason the
+          human-triage step exists at all.
+        </p>
+      </div>
+
+      <h2>What this means for a Week-1 engagement</h2>
+      <p>
+        A client hands over the scheduled jobs, wrappers, and IaC/CI files their fleet runs on. The
+        static sweep runs against all seven families first — fast, and it does not miss the pattern
+        by design. Then every candidate gets read by hand against what that job actually needs, every
+        critical gets reproduced, and what comes back is a ranked fix list where each line has a file,
+        a line number, and a reason — not a generic checklist. Whether the harness gets built after
+        (freshness asserts, honest exit codes, a status surface that knows "alive" from "actually
+        producing") is a separate decision; the audit stands alone.
+      </p>
+
+      <p style="margin-top:32px">
+        <a class="btn btn-primary" href="mailto:jaime@jaimenbell.dev?subject=Reliability%20audit%20scoping">Book a scoping call</a>
+        &nbsp;<a class="btn btn-ghost" href="../index.html#cases">← All case studies</a>
+      </p>
+    </article>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    <span>MCP Server Engineering · auth-scoped, fail-soft, tested.</span>
+    <span><a href="https://github.com/jaimenbell/MCP-Factory">GitHub</a> · <a href="mailto:jaime@jaimenbell.dev">jaime@jaimenbell.dev</a> <span id="discord-footer-link-wrap" style="display:none">· <a id="discord-footer-link" href="" target="_blank" rel="noopener">Discord</a></span></span>
+  </div>
+</footer>
+
+<script src="../js/discord-cta.js" defer></script>
+</body>
+</html>

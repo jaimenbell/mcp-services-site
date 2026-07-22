@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Case study: an invisible position, a same-day fix, and the hardening that follows it</title>
+  <meta name="description" content="A reconciler bug silently made a live position invisible to every exit path. Here's the incident, the file:line root cause, and the same-day hardening — with the tests that prove it, before/after.">
+  <link rel="canonical" href="https://jaimenbell.dev/case-studies/orphan-position-recovery.html">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="MCP Integration Sprint">
+  <meta property="og:title" content="Case study: an invisible position, a same-day fix, and the hardening that follows it">
+  <meta property="og:description" content="A reconciler bug silently made a live position invisible to every exit path. Here's the incident, the file:line root cause, and the same-day hardening — with the tests that prove it, before/after.">
+  <meta property="og:url" content="https://jaimenbell.dev/case-studies/orphan-position-recovery.html">
+  <meta property="og:image" content="https://jaimenbell.dev/img/og-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="jaimenbell.dev — Production MCP servers for AI agents">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Case study: an invisible position, a same-day fix, and the hardening that follows it">
+  <meta name="twitter:description" content="A reconciler bug silently made a live position invisible to every exit path. Root cause, same-day fix, and the hardening with tests to prove it.">
+  <meta name="twitter:image" content="https://jaimenbell.dev/img/og-card.png">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="../index.html" style="text-decoration:none">MCP<span class="dot">·</span>Engineering</a>
+    <nav class="top">
+      <a href="../index.html#proof">Proof</a>
+      <a href="../index.html#offer">Offer</a>
+      <a href="../index.html#faq">FAQ</a>
+      <a href="mailto:jaime@jaimenbell.dev">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<section style="border-bottom:0">
+  <div class="wrap">
+    <article class="cs">
+      <a class="back" href="../index.html#cases">← All case studies</a>
+      <h1>An invisible position, a same-day fix, and the hardening that follows it</h1>
+      <div class="meta">// reliability incident · root cause + fix · own fleet, paper-only</div>
+
+      <span class="pill">reconciler bug</span>
+      <span class="pill">silent-failure class</span>
+      <span class="pill">same-day hardening</span>
+      <span class="pill">17 new tests, own fleet's own suite</span>
+
+      <div class="honest">
+        <p>
+          <strong>Up front, because honesty is the whole point of this page:</strong> this is my own
+          paper-trading fleet, not a client engagement — no client name, no P&amp;L figure, nothing
+          here is a live-money claim. What it shows is exactly the failure class the audit exists to
+          catch, on infrastructure I built and had to debug myself, with the actual commits as proof.
+        </p>
+      </div>
+
+      <h2>The incident</h2>
+      <p>
+        A reconciler in a paper-trading day-trader bot compares broker-held positions against the
+        bot's own local position records every cycle, and flags anything that doesn't match as
+        <code>status="orphan"</code> for manual review. A symbol-matching bug (already fixed in an
+        earlier commit, but the live process was still running the pre-fix build) made the reconciler
+        fail to match a genuinely-held options position against the broker's record — so it flagged a
+        real, live position as orphaned.
+      </p>
+      <p>
+        That flag turned out to be worse than a false alarm: <code>get_open_positions()</code> filters
+        strictly on <code>status == "open"</code>, and every exit path in the system —
+        <code>day_trader.check_exits</code> and the end-of-day sweep — reads from that same filtered
+        list. An orphaned position isn't flagged loudly and left alone; it becomes <strong>invisible to
+        every mechanism that would ever close it.</strong> No alert fired. No exit path caught it. The
+        only thing that actually recovered the position that night was a manual file edit.
+      </p>
+
+      <h2>The fix — same day, then hardened past "fixed"</h2>
+      <p>
+        The immediate fix (a prior commit) corrected the symbol-matching bug so new reconciles stop
+        producing false orphans. But a point fix doesn't answer the harder question: <em>what happens
+        the next time something — this bug's cousin, a broker API hiccup, anything — flags a real
+        position wrongly?</em> The hardening pass that followed the same evening answered that
+        directly, with four concrete specs against <code>broker/reconciler.py</code>,
+        <code>day_trader.py</code>, <code>position_manager.py</code>, and <code>eod_sweep.py</code>:
+      </p>
+      <ul>
+        <li><strong>Orphan self-heal.</strong> Every reconcile cycle now re-verifies each
+        <em>pre-existing</em> orphan-flagged position against the broker. If the broker still holds
+        the lot, the position self-heals back to <code>status="open"</code> (adopting the broker's
+        quantity as ground truth) and writes an <code>orphan_recovered</code> journal event. A wrong
+        orphan flag is no longer a dead end — it's a quarantine state with a way back out.</li>
+        <li><strong>Aging + escalation.</strong> If the broker genuinely doesn't hold the position, the
+        quarantine ages (<code>orphan_cycles</code>) and escalates to a loud <code>ERROR</code> after a
+        fixed number of cycles — a real orphan can no longer sit silent indefinitely either.</li>
+        <li><strong>Loud visibility.</strong> The daily stats log and the end-of-day sweep now count
+        and <code>WARNING</code>/<code>ERROR</code>-log any non-open, non-closed position —
+        <em>before</em> the sweep's own "nothing to do" early return, which is exactly the code path
+        that let the original incident stay silent.</li>
+        <li><strong>A standing invariant.</strong> Every broker-held lot must now map to exactly one
+        live-exit-eligible record: zero matches raises an <code>UNTRACKED</code> warning, more than one
+        raises a loud <code>ERROR</code>. Recovered orphans count as tracked, so the fix doesn't trade
+        one false alarm for another.</li>
+      </ul>
+
+      <div class="evidence">
+        <h3>Evidence: proof this isn't just a description</h3>
+        <ul>
+          <li>17 new tests shipped with the hardening — <code>tests/test_orphan_lifecycle.py</code>
+          and <code>tests/test_exit_visibility.py</code> — covering the self-heal path, the escalation
+          path, the invariant check, and the sweep's visibility change.</li>
+          <li>Merged via a 2-vote review tagged <code>MERGE-SAFE</code>, not a solo self-approval.</li>
+          <li>The bot's full suite is <strong>1,002 tests</strong>, live-run in its own environment as
+          part of verifying this write-up — not a number carried over from an old note.</li>
+        </ul>
+      </div>
+
+      <h2>Why this is the actual pitch</h2>
+      <p>
+        The failure class here — an automation quietly loses the ability to act on the thing it's
+        supposed to be watching, with no alert — is precisely detector family #7 (job hazards:
+        success-reported-without-verification) in the audit's methodology, and it's the same shape as
+        "a job reports done without checking what it touched." I didn't just write the detector for
+        this pattern in the abstract; I lived it on my own infrastructure, root-caused it, and shipped
+        the same-day hardening with tests to prove it holds. That's the standard the audit is built to
+        bring to someone else's fleet — a ranked, file:line finding, not a vague warning, and a fix
+        that's actually verified rather than assumed.
+      </p>
+
+      <p style="margin-top:32px">
+        <a class="btn btn-primary" href="mailto:jaime@jaimenbell.dev?subject=Reliability%20audit%20scoping">Book a scoping call</a>
+        &nbsp;<a class="btn btn-ghost" href="../index.html#cases">← All case studies</a>
+      </p>
+    </article>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    <span>MCP Server Engineering · auth-scoped, fail-soft, tested.</span>
+    <span><a href="https://github.com/jaimenbell/MCP-Factory">GitHub</a> · <a href="mailto:jaime@jaimenbell.dev">jaime@jaimenbell.dev</a> <span id="discord-footer-link-wrap" style="display:none">· <a id="discord-footer-link" href="" target="_blank" rel="noopener">Discord</a></span></span>
+  </div>
+</footer>
+
+<script src="../js/discord-cta.js" defer></script>
+</body>
+</html>
