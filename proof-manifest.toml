@@ -15,13 +15,13 @@
 # Key = the repo keyword as it is expected to appear in site text (e.g. "mcp-factory").
 
 ["mcp-factory"]
-value = 216
+value = 224
 source_repo = "C:\\Users\\jaime\\projects\\mcp-factory"
-source_cmd = ".venv/Scripts/python.exe -m pytest -q"
-tail_line = "216 passed, 8 skipped in 12.16s"
-verified_utc = "2026-07-22T05:23:30+00:00"
+source_cmd = "python -m pytest -q"
+tail_line = "224 passed, 8 skipped in 9.94s"
+verified_utc = "2026-07-22T17:15:00+00:00"
 status = "verified"
-note = "DRIFT 2026-07-20/21: 213->215 (2 tests added since 07-13, untraced, unrelated). Re-verified stable across 10+ independent runs after root-causing an unrelated apparent-flakiness report (213/215/195 across different invocations) down to a real bug in THIS checker's own live-check subprocess call -- see check_proof_numbers.py's live_verify_manifest() fix, 2026-07-21: it inherited GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE from git's own hook-invocation environment and leaked them into mcp-factory's test subprocess, corrupting its git-aware tests (test_workflow_runner.py) and producing a phantom 195. Fixed by stripping GIT_* env vars before spawning a different repo's test command. Prior: DRIFT 2026-07-13, 187->213."
+note = "DRIFT 2026-07-22 (evening-ceremony preflight, ahead of the paired site refresh + factory push): 216->224 at commit 2491528 (ci: add GitHub Actions CI with README count-verification gate; repo local main ahead of origin by 1 commit at time of this check). Re-verified live in this pass. Prior: DRIFT 2026-07-20/21: 213->215 (2 tests added since 07-13, untraced, unrelated). Re-verified stable across 10+ independent runs after root-causing an unrelated apparent-flakiness report (213/215/195 across different invocations) down to a real bug in THIS checker's own live-check subprocess call -- see check_proof_numbers.py's live_verify_manifest() fix, 2026-07-21: it inherited GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE from git's own hook-invocation environment and leaked them into mcp-factory's test subprocess, corrupting its git-aware tests (test_workflow_runner.py) and producing a phantom 195. Fixed by stripping GIT_* env vars before spawning a different repo's test command. Prior: DRIFT 2026-07-13, 187->213."
 
 ["github-mcp"]
 value = 86
@@ -60,7 +60,7 @@ status = "verified"
 note = "bus-mcp is not currently cited as a proof number anywhere in site content (grep-confirmed 2026-07-08); value updated 54->62 (suite grew since 07-06). Tool count live-verified at 6 (server.py has 6 @mcp.tool() defs: post_message, read_messages, claim_lane, release_lane, heartbeat_lane, get_bus_status) -- NOT 8 as a stale memory note claimed; no tool-count field is tracked by this manifest/gate today."
 
 ["options-bot"]
-value = 353
+value = 371
 source_repo = "C:\\Users\\jaime\\projects\\options-bot"
 source_cmd = ".venv/Scripts/python.exe -m pytest -q"
 tail_line = "353 passed, 1 skipped in 26.44s"
@@ -87,28 +87,28 @@ status = "verified"
 note = "Seeded 2026-07-13 for the new (unlinked, staged) case-studies/reliability-retainer.html page, which cites the repo's full-suite count. Live-verified at commit a4733c3 on branch slice5-runbook-sow-reconcile (unmerged slice1-5 work; no .venv in this repo, ran with the global python per the github-mcp/desktop-mcp fallback convention). 239 covers the whole repo (tools/, tests/, fleet-health-mcp/) -- not the same as the README's 'tests/ -- 39 tests' figure, which is a narrower subdirectory count from an earlier slice and is NOT cited on the site."
 
 ["rails-mcp"]
-value = 95
+value = 106
 source_repo = "C:\\Users\\jaime\\projects\\rails-mcp"
 source_cmd = ".venv/Scripts/python.exe -m pytest -q"
-tail_line = "95 passed in 1.03s"
-verified_utc = "2026-07-19T17:02:11+00:00"
+tail_line = "106 tests (junitxml: tests=106 failures=0 errors=0 skipped=0)"
+verified_utc = "2026-07-22T18:10:35+00:00"
 status = "verified"
-note = "8th flagship (governance category), went public/private-GitHub 2026-07-19. Not currently cited anywhere in site content (grep-confirmed 2026-07-19) -- seeded for completeness/future-proofing per the bus-mcp/discord-mcp precedent. Repo's own README badge (95 passing) matches. Tool count live-verified at 6 (classify_action, is_action_registered, get_rails_hash, get_signoff_state, record_spend_intent, evaluate_budget)."
+note = "8th flagship (governance category), went public/private-GitHub 2026-07-19. DRIFT 2026-07-22 (flagship-coverage lane, first time cited on site): 95 -> 106 (suite grew +11 since 07-19 seed; config/routes/server suites expanded). Live-verified stable across 2/2 junitxml runs in the repo's own .venv; repo's own README Tests badge already reads '106 passing', so this is the manifest catching up to a repo that self-corrected. Tool count live-verified at 6 (classify_action, is_action_registered, get_rails_hash, get_signoff_state, record_spend_intent, evaluate_budget). Now cited on case-studies/rails-mcp.html + index.html #cases card."
 
 ["vllm-ops-mcp"]
-value = 76
+value = 95
 source_repo = "C:\\Users\\jaime\\projects\\vllm-ops-mcp"
 source_cmd = ".venv/Scripts/python.exe -m pytest -q"
-tail_line = "76 passed, 7 skipped in 0.85s"
-verified_utc = "2026-07-19T17:02:11+00:00"
+tail_line = "95 passed, 7 skipped (junitxml: tests=102 failures=0 errors=0 skipped=7)"
+verified_utc = "2026-07-22T18:10:35+00:00"
 status = "verified"
-note = "7th flagship, went public/private-GitHub 2026-07-19. Not currently cited anywhere in site content (grep-confirmed 2026-07-19) -- seeded for completeness/future-proofing. DRIFT FOUND + FIXED 2026-07-19: repo's own README badge said '78 (71 passing, 7 live-skipped)' -- stale, corrected in-repo to '83 (76 passing, 7 live-skipped)' (76+7=83, matches this live run exactly). Per this manifest's own convention the citable headline number is passed-only (76), not the 83 combined total. Tool count live-verified at 6 (check_health, get_gpu_status, get_serve_config, get_service_status, list_models, test_completion)."
+note = "7th flagship, went public/private-GitHub 2026-07-19. DRIFT 2026-07-22 (flagship-coverage lane, first time cited on site): 76 -> 95 (unit suite grew +19 since 07-19 seed; the 7 live-infra smokes still skip without VLLM_OPS_MCP_LIVE=1). Live-verified stable across 2/2 junitxml runs in the repo's own .venv; repo's own README Tests badge already reads '102 (95 passing, 7 live-skipped)', so this is the manifest catching up to a repo that self-corrected. Per this manifest's convention the citable headline number is passed-only (95), not the 102 combined total. Tool count live-verified at 6 (check_health, get_gpu_status, get_serve_config, get_service_status, list_models, test_completion). Now cited on case-studies/vllm-ops-mcp.html + index.html #cases card."
 
 ["mcp-security-scanner"]
-value = 101
+value = 195
 source_repo = "C:\\Users\\jaime\\projects\\mcp-security-scanner"
 source_cmd = "python -m pytest -q --tb=no"
-tail_line = "101 passed, 7 skipped in 1.34s"
-verified_utc = "2026-07-22T05:57:29+00:00"
+tail_line = "195 passed, 7 skipped (junitxml: tests=202 failures=0 errors=0 skipped=7)"
+verified_utc = "2026-07-22T18:10:35+00:00"
 status = "verified"
-note = "Not currently cited anywhere in site content (grep-confirmed 2026-07-19, re-confirmed 2026-07-21) -- seeded for completeness/future-proofing; no .venv in this repo, ran with global python per the github-mcp/desktop-mcp fallback convention. DRIFT FOUND + FIXED 2026-07-19: see prior note (44->48). SECOND DRIFT FOUND + FIXED 2026-07-21 (site/starter-kit lane, unrelated task, pre-commit hook caught it live-checking the whole manifest): 48->59, re-verified 3/3 stable runs same session. Pre-commit hook transiently reported 58 on one run just before this fix -- 3 direct reruns all landed 59 passed/7 skipped, so treating 58 as a one-off flake, not the true count; flag for a re-check next session if it recurs."
+note = "no .venv in this repo, ran with global python per the github-mcp/desktop-mcp fallback convention. Prior drifts: 44->48 (07-19), 48->59 (07-21), 82->101 (07-22 05:57). DRIFT AGAIN 2026-07-22 18:10 (flagship-coverage lane, first time cited on site): 101 -> 195 (JS/TS parity across .js/.mjs/.cjs/.ts/.mts/.cts/.jsx/.tsx + reachability-grading matrix + tool-parameter taint-tracking matrix all merged today; the 7 skips are the self-audit tests that need MCP_SCANNER_FLEET_ROOT). Live-verified stable across 2/2 junitxml runs. Repo's own README already reads '202 tests (195 passing, 7 self-audit skip)', so this is the manifest catching up to a repo that self-corrected. Now cited on case-studies/mcp-security-scanner.html + index.html #cases card. NOTE this repo is the fastest-drifting number on the site (5 rots since 07-19) -- live-re-verify before any public copy."

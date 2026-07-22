@@ -45,7 +45,7 @@
       <span class="pill">static analysis</span>
       <span class="pill">surface, don't decide</span>
       <span class="pill">self-audit proof</span>
-      <span class="pill">101 passing tests (mcp-security-scanner)</span>
+      <span class="pill">195 passing tests (mcp-security-scanner)</span>
 
       <div class="honest">
         <p>
@@ -129,6 +129,16 @@
         Every finding a detector produces carries the same four fields: <strong>severity</strong>
         (P0 critical → P3 hardening nit), <strong>confidence</strong> (high / medium / low), the
         offending <code>file:line</code>, and a concrete fix. Nothing ships as a bare "this looks bad."
+      </p>
+      <p>
+        <strong>Language coverage, honestly:</strong> detection is deep for Python (AST-based).
+        JS/TS has no AST path in this scanner — it's line-based, string-aware regex instead. Four of
+        the seven families carry JS/TS parity on this basis today (param-injection, tool-scope-creep,
+        secret-leak-via-tool-response, and secret-handling's secret-in-log check); codegen-injection
+        and auth-posture stay Python-only by deliberate scope decision, not an oversight. Documented
+        gaps on the JS/TS side — optional-chaining <code>eval</code>, spread-of-secret returns,
+        <code>.jsx</code>/<code>.tsx</code>/<code>.cjs</code> not yet collected — are stated, not
+        silently missed.
       </p>
 
       <h2>Where the tool stops and the human starts</h2>

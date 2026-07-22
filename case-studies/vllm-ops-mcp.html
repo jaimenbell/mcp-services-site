@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Case study: vllm-ops-mcp — a read-only ops/health MCP server for local vLLM (95 tests)</title>
+  <meta name="description" content="vllm-ops-mcp: a read-only ops/health MCP server for a local WSL2/systemd-managed vLLM instance. Two-tier health (liveness vs real generation), GPU/VRAM, systemd status, live serve-flag introspection with secret redaction. 95 passing tests, public repo.">
+  <link rel="canonical" href="https://jaimenbell.dev/case-studies/vllm-ops-mcp.html">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="MCP Integration Sprint">
+  <meta property="og:title" content="Case study: vllm-ops-mcp — a read-only ops/health MCP server for local vLLM (95 tests)">
+  <meta property="og:description" content="vllm-ops-mcp: a read-only ops/health MCP server for a local WSL2/systemd-managed vLLM instance. Two-tier health, GPU/VRAM, systemd status, live serve-flag introspection with secret redaction. 95 passing tests, public repo.">
+  <meta property="og:url" content="https://jaimenbell.dev/case-studies/vllm-ops-mcp.html">
+  <meta property="og:image" content="https://jaimenbell.dev/img/og-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="jaimenbell.dev — Production MCP servers for AI agents">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Case study: vllm-ops-mcp — a read-only ops/health MCP server for local vLLM (95 tests)">
+  <meta name="twitter:description" content="vllm-ops-mcp: a read-only ops/health MCP server for a local WSL2/systemd-managed vLLM instance. Two-tier health, GPU/VRAM, live serve-flag introspection with secret redaction. 95 passing tests.">
+  <meta name="twitter:image" content="https://jaimenbell.dev/img/og-card.png">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="../index.html" style="text-decoration:none">MCP<span class="dot">·</span>Engineering</a>
+    <nav class="top">
+      <a href="../index.html#proof">Proof</a>
+      <a href="../index.html#offer">Offer</a>
+      <a href="../index.html#faq">FAQ</a>
+      <a href="mailto:jaime@jaimenbell.dev">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<section style="border-bottom:0">
+  <div class="wrap">
+    <article class="cs">
+      <a class="back" href="../index.html#cases">← All case studies</a>
+      <h1>vllm-ops-mcp — read-only ops truth for a local LLM server</h1>
+      <div class="meta">// ops/health category · 95 passing tests · read-only, no lifecycle control · public repo</div>
+
+      <span class="pill">Python</span>
+      <span class="pill">95 passing tests</span>
+      <span class="pill">read-only</span>
+      <span class="pill">secret redaction</span>
+      <span class="pill">public repo</span>
+
+      <h2>The problem</h2>
+      <p>
+        "Is the model server healthy?" is a deceptively hard question. A naive check confirms a port is
+        listening — but a WSL2-mirrored-networking-relayed port can be invisible to a listener probe run
+        from the Windows host, so a genuinely healthy server looks dead. And "a model is loaded" is not
+        the same as "it actually generates." A health tool that answers the easy version of the question
+        gives you false confidence exactly when you need the truth.
+      </p>
+
+      <h2>What I built</h2>
+      <p>
+        <strong>vllm-ops-mcp</strong> is a read-only ops/health MCP server for a local, WSL2/systemd-managed
+        vLLM instance. Six tools, all read-only, each with an explicit "what it can't do":
+      </p>
+      <ul>
+        <li><strong>Two health tiers, both over real HTTP</strong> — every signal comes from an actual request to the OpenAI-compatible API, never a socket check. <code>check_health(deep=False)</code> is liveness; <code>deep=True</code> fires one minimal real completion to confirm the server <em>generates</em>, not just reports a model loaded.</li>
+        <li><strong>Live serve-flag introspection</strong> — <code>get_serve_config</code> prefers the live process's actual argv (<code>/proc/&lt;pid&gt;/cmdline</code> of the systemd unit's MainPID) — ground truth of what's running now — falling back to the exec script only when the process is down. It live-recovered flags that weren't even in the repo's own grounding spec.</li>
+        <li><strong>Secret redaction, defense-in-depth</strong> — any argv value whose flag name matches a sensitive pattern (<code>token</code>/<code>key</code>/<code>secret</code>/<code>password</code>/<code>credential</code>) is redacted to <code>[REDACTED]</code> before return, across all three config sources. The flag name stays visible so the shape is still diagnosable.</li>
+        <li><strong>Shared-infra protection</strong> — the two tools that fire a real inference call are rate-limited (default 20/min) precisely because this vLLM instance is shared infra other bots depend on; one caller hammering it can't starve the others.</li>
+      </ul>
+
+      <div class="evidence">
+        <h3>Evidence you can check yourself</h3>
+        <p>
+          Public on purpose — every claim maps to a file you can open before you reply:
+        </p>
+        <ul>
+          <li>Repo: <a href="https://github.com/jaimenbell/vllm-ops-mcp">github.com/jaimenbell/vllm-ops-mcp</a> (MIT)</li>
+          <li>Tests: <code>.venv/Scripts/python.exe -m pytest -q</code> → <code>95 passed, 7 skipped</code> (the 7 skips are real-infra live smokes, gated behind <code>VLLM_OPS_MCP_LIVE=1</code>; they pass against the actual running <code>qwen3-14b</code> instance).</li>
+          <li>An honest-capabilities table in the README maps every claim to its implementation function and the exact test — unit and live — that verifies it.</li>
+        </ul>
+      </div>
+
+      <div class="honest">
+        <p>
+          The README leads with the limitations, not the features. <strong>Per-process VRAM attribution
+          does not work</strong> on this operator's actual WSL2 GPU-passthrough setup — the live smoke
+          returns an empty <code>processes</code> list even while the vLLM process holds 13.7GB — so the
+          tool reports the empty result honestly rather than fabricating attribution. There is <strong>no
+          lifecycle control</strong> in this release: no start/stop/restart, and no env var that turns one
+          on. A restart tool needs its own gating design before it ships onto a read-only MVP — that's a
+          deliberate scope line, not an oversight.
+        </p>
+      </div>
+
+      <h2>What it shows about how I work</h2>
+      <p>
+        The differentiator here isn't a feature — it's a discipline: probe the thing you actually depend
+        on (real HTTP, real generation, the live process's real argv), never a proxy for it. That, plus a
+        README that tells you where the tool is blind before you rely on it, is how I build ops tooling
+        you can trust in the exact moment something's on fire.
+      </p>
+
+      <p style="margin-top:32px">
+        <a class="btn btn-primary" href="mailto:jaime@jaimenbell.dev?subject=MCP%20scoping%20call">Book a scoping call</a>
+        &nbsp;<a class="btn btn-ghost" href="honest-harness.html">Next case study →</a>
+      </p>
+    </article>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    <span>MCP Server Engineering · auth-scoped, fail-soft, tested.</span>
+    <span><a href="https://github.com/jaimenbell/vllm-ops-mcp">GitHub</a> · <a href="mailto:jaime@jaimenbell.dev">jaime@jaimenbell.dev</a> <span id="discord-footer-link-wrap" style="display:none">· <a id="discord-footer-link" href="" target="_blank" rel="noopener">Discord</a></span></span>
+  </div>
+</footer>
+
+<script src="../js/discord-cta.js" defer></script>
+</body>
+</html>

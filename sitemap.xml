@@ -49,6 +49,24 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://jaimenbell.dev/case-studies/mcp-security-scanner.html</loc>
+    <lastmod>2026-07-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://jaimenbell.dev/case-studies/rails-mcp.html</loc>
+    <lastmod>2026-07-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://jaimenbell.dev/case-studies/vllm-ops-mcp.html</loc>
+    <lastmod>2026-07-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://jaimenbell.dev/scoreboard.html</loc>
     <lastmod>2026-07-04</lastmod>
     <changefreq>weekly</changefreq>
