@@ -90,7 +90,7 @@ git push origin main
 
 ## 8. Verify live
 
-- Load `https://jaimenbell.github.io/mcp-services-site/` — hero, proof stats (215 / 53), offer
+- Load `https://jaimenbell.github.io/mcp-services-site/` — hero, proof stats (216 / 53), offer
   tiers, case studies, FAQ all render.
 - Load a non-existent path (e.g. `.../nope`) — confirm the custom `404.html` shows, not GitHub's
   default 404.
@@ -99,17 +99,17 @@ git push origin main
   either the mail client with the right address + subject, or the Calendly page if that path was
   used.
 - Click the footer "Contact" link and the footer email text link — same check.
-- Confirm the "215 passing tests" / "mcp-factory" and "53 tests" / "rag-mcp" links resolve to the
+- Confirm the "216 passing tests" / "mcp-factory" and "53 tests" / "rag-mcp" links resolve to the
   public repos.
 
 ## Notes for future updates
 
-- Test counts (215 mcp-factory, 53 rag-mcp, 353 options-bot) were live-verified 2026-07-21
+- Test counts (216 mcp-factory, 53 rag-mcp, 353 options-bot) were live-verified 2026-07-21
   by running each suite in its own repo's venv — not copied from an old claim. options-bot was
   186 as of the 2026-07-06 check below, grew to 281 by 2026-07-09, 292 by
   2026-07-11 (sched_guard / order-rate
   breaker / portfolio-starting-capital work), 299 by 2026-07-12, 321 by 2026-07-19, and 353 by
-  2026-07-21 (tastytrade price_effect sign-fix + test-log-isolation); mcp-factory grew 213->215
+  2026-07-21 (tastytrade price_effect sign-fix + test-log-isolation); mcp-factory grew 213->215->216
   in the same window (untraced, unrelated to this site's own changes). This is the recurring
   drift pattern the proof-manifest.toml gate exists to catch — if any upstream repo's suite
   grows/shrinks, re-run and re-grep this site for the stale number before it goes stale again.

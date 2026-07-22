@@ -15,11 +15,11 @@
 # Key = the repo keyword as it is expected to appear in site text (e.g. "mcp-factory").
 
 ["mcp-factory"]
-value = 215
+value = 216
 source_repo = "C:\\Users\\jaime\\projects\\mcp-factory"
 source_cmd = ".venv/Scripts/python.exe -m pytest -q"
-tail_line = "215 passed, 8 skipped in 9.12s"
-verified_utc = "2026-07-21T13:00:00+00:00"
+tail_line = "216 passed, 8 skipped in 12.16s"
+verified_utc = "2026-07-22T05:23:30+00:00"
 status = "verified"
 note = "DRIFT 2026-07-20/21: 213->215 (2 tests added since 07-13, untraced, unrelated). Re-verified stable across 10+ independent runs after root-causing an unrelated apparent-flakiness report (213/215/195 across different invocations) down to a real bug in THIS checker's own live-check subprocess call -- see check_proof_numbers.py's live_verify_manifest() fix, 2026-07-21: it inherited GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE from git's own hook-invocation environment and leaked them into mcp-factory's test subprocess, corrupting its git-aware tests (test_workflow_runner.py) and producing a phantom 195. Fixed by stripping GIT_* env vars before spawning a different repo's test command. Prior: DRIFT 2026-07-13, 187->213."
 
@@ -78,11 +78,11 @@ status = "verified"
 note = "DRIFT 2026-07-20/21: 77->144 (gated write-tools added tonight: create_channel/edit_channel/create_role/edit_role/edit_guild/delete_channel behind DISCORD_MCP_ENABLE_WRITE, mirroring bus-mcp's pattern). Still not cited as a proof number anywhere in site content (not re-checked this pass, prior grep from 07-08 assumed still valid). Live tool count now 11 (5 read + 6 gated write), not 5. Found + fixed during the site/port-sprint-landing merge reconciliation, blocking an unrelated pre-commit hook check."
 
 ["reliability-retainer"]
-value = 239
+value = 265
 source_repo = "C:\\Users\\jaime\\projects\\reliability-retainer"
 source_cmd = "python -m pytest -q --tb=no"
-tail_line = "239 passed in 4.23s"
-verified_utc = "2026-07-14T03:17:20+00:00"
+tail_line = "265 passed in 4.84s"
+verified_utc = "2026-07-22T05:28:49+00:00"
 status = "verified"
 note = "Seeded 2026-07-13 for the new (unlinked, staged) case-studies/reliability-retainer.html page, which cites the repo's full-suite count. Live-verified at commit a4733c3 on branch slice5-runbook-sow-reconcile (unmerged slice1-5 work; no .venv in this repo, ran with the global python per the github-mcp/desktop-mcp fallback convention). 239 covers the whole repo (tools/, tests/, fleet-health-mcp/) -- not the same as the README's 'tests/ -- 39 tests' figure, which is a narrower subdirectory count from an earlier slice and is NOT cited on the site."
 
@@ -105,10 +105,10 @@ status = "verified"
 note = "7th flagship, went public/private-GitHub 2026-07-19. Not currently cited anywhere in site content (grep-confirmed 2026-07-19) -- seeded for completeness/future-proofing. DRIFT FOUND + FIXED 2026-07-19: repo's own README badge said '78 (71 passing, 7 live-skipped)' -- stale, corrected in-repo to '83 (76 passing, 7 live-skipped)' (76+7=83, matches this live run exactly). Per this manifest's own convention the citable headline number is passed-only (76), not the 83 combined total. Tool count live-verified at 6 (check_health, get_gpu_status, get_serve_config, get_service_status, list_models, test_completion)."
 
 ["mcp-security-scanner"]
-value = 68
+value = 82
 source_repo = "C:\\Users\\jaime\\projects\\mcp-security-scanner"
 source_cmd = "python -m pytest -q --tb=no"
-tail_line = "68 passed, 7 skipped in 0.79s"
-verified_utc = "2026-07-22T02:45:00+00:00"
+tail_line = "82 passed, 7 skipped in 1.02s"
+verified_utc = "2026-07-22T05:23:30+00:00"
 status = "verified"
 note = "Not currently cited anywhere in site content (grep-confirmed 2026-07-19, re-confirmed 2026-07-21) -- seeded for completeness/future-proofing; no .venv in this repo, ran with global python per the github-mcp/desktop-mcp fallback convention. DRIFT FOUND + FIXED 2026-07-19: see prior note (44->48). SECOND DRIFT FOUND + FIXED 2026-07-21 (site/starter-kit lane, unrelated task, pre-commit hook caught it live-checking the whole manifest): 48->59, re-verified 3/3 stable runs same session. Pre-commit hook transiently reported 58 on one run just before this fix -- 3 direct reruns all landed 59 passed/7 skipped, so treating 58 as a one-off flake, not the true count; flag for a re-check next session if it recurs."
