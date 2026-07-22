@@ -60,7 +60,7 @@ status = "verified"
 note = "bus-mcp is not currently cited as a proof number anywhere in site content (grep-confirmed 2026-07-08); value updated 54->62 (suite grew since 07-06). Tool count live-verified at 6 (server.py has 6 @mcp.tool() defs: post_message, read_messages, claim_lane, release_lane, heartbeat_lane, get_bus_status) -- NOT 8 as a stale memory note claimed; no tool-count field is tracked by this manifest/gate today."
 
 ["options-bot"]
-value = 353
+value = 371
 source_repo = "C:\\Users\\jaime\\projects\\options-bot"
 source_cmd = ".venv/Scripts/python.exe -m pytest -q"
 tail_line = "353 passed, 1 skipped in 26.44s"

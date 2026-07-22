@@ -104,7 +104,7 @@ git push origin main
 
 ## Notes for future updates
 
-- Test counts (224 mcp-factory, 53 rag-mcp, 353 options-bot, 195 mcp-security-scanner) were
+- Test counts (224 mcp-factory, 53 rag-mcp, 371 options-bot, 195 mcp-security-scanner) were
   live-verified 2026-07-22 (evening-ceremony preflight) by running each suite in its own repo's
   venv/interpreter — not copied from an old claim. options-bot was 186 as of the 2026-07-06 check
   below, grew to 281 by 2026-07-09, 292 by 2026-07-11 (sched_guard / order-rate breaker /
