@@ -15,13 +15,13 @@
 # Key = the repo keyword as it is expected to appear in site text (e.g. "mcp-factory").
 
 ["mcp-factory"]
-value = 216
+value = 224
 source_repo = "C:\\Users\\jaime\\projects\\mcp-factory"
-source_cmd = ".venv/Scripts/python.exe -m pytest -q"
-tail_line = "216 passed, 8 skipped in 12.16s"
-verified_utc = "2026-07-22T05:23:30+00:00"
+source_cmd = "python -m pytest -q"
+tail_line = "224 passed, 8 skipped in 9.94s"
+verified_utc = "2026-07-22T17:15:00+00:00"
 status = "verified"
-note = "DRIFT 2026-07-20/21: 213->215 (2 tests added since 07-13, untraced, unrelated). Re-verified stable across 10+ independent runs after root-causing an unrelated apparent-flakiness report (213/215/195 across different invocations) down to a real bug in THIS checker's own live-check subprocess call -- see check_proof_numbers.py's live_verify_manifest() fix, 2026-07-21: it inherited GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE from git's own hook-invocation environment and leaked them into mcp-factory's test subprocess, corrupting its git-aware tests (test_workflow_runner.py) and producing a phantom 195. Fixed by stripping GIT_* env vars before spawning a different repo's test command. Prior: DRIFT 2026-07-13, 187->213."
+note = "DRIFT 2026-07-22 (evening-ceremony preflight, ahead of the paired site refresh + factory push): 216->224 at commit 2491528 (ci: add GitHub Actions CI with README count-verification gate; repo local main ahead of origin by 1 commit at time of this check). Re-verified live in this pass. Prior: DRIFT 2026-07-20/21: 213->215 (2 tests added since 07-13, untraced, unrelated). Re-verified stable across 10+ independent runs after root-causing an unrelated apparent-flakiness report (213/215/195 across different invocations) down to a real bug in THIS checker's own live-check subprocess call -- see check_proof_numbers.py's live_verify_manifest() fix, 2026-07-21: it inherited GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE from git's own hook-invocation environment and leaked them into mcp-factory's test subprocess, corrupting its git-aware tests (test_workflow_runner.py) and producing a phantom 195. Fixed by stripping GIT_* env vars before spawning a different repo's test command. Prior: DRIFT 2026-07-13, 187->213."
 
 ["github-mcp"]
 value = 86
@@ -105,10 +105,10 @@ status = "verified"
 note = "7th flagship, went public/private-GitHub 2026-07-19. Not currently cited anywhere in site content (grep-confirmed 2026-07-19) -- seeded for completeness/future-proofing. DRIFT FOUND + FIXED 2026-07-19: repo's own README badge said '78 (71 passing, 7 live-skipped)' -- stale, corrected in-repo to '83 (76 passing, 7 live-skipped)' (76+7=83, matches this live run exactly). Per this manifest's own convention the citable headline number is passed-only (76), not the 83 combined total. Tool count live-verified at 6 (check_health, get_gpu_status, get_serve_config, get_service_status, list_models, test_completion)."
 
 ["mcp-security-scanner"]
-value = 137
+value = 195
 source_repo = "C:\\Users\\jaime\\projects\\mcp-security-scanner"
 source_cmd = "python -m pytest -q --tb=no"
-tail_line = "137 passed, 7 skipped in 2.47s"
-verified_utc = "2026-07-22T14:40:49+00:00"
+tail_line = "195 passed, 7 skipped in 2.40s"
+verified_utc = "2026-07-22T17:15:00+00:00"
 status = "verified"
-note = "THIRD DRIFT FOUND + FIXED 2026-07-22 (scanner-137-sync pairing lane, ahead of a scanner public push): 101->137 (144 total, 7 self-audit skip requiring MCP_SCANNER_FLEET_ROOT -- passed-only is this manifest's own citable-headline convention, matches the vllm-ops-mcp precedent above). Driver: reachability + taint-tracking suites (82->101, same night per scanner's own commit 60c5d5c) plus JS/TS parity added across 4 detector families since. Re-verified at scanner master @ 60c5d5c. NOW cited in site content: articles/fleet-audit-methodology.html's pill span (was stale at 101, fixed same lane) -- prior note's 'not currently cited anywhere' is superseded by that fix, not accurate as of this entry. Prior: DRIFT FOUND + FIXED 2026-07-19 (44->48). SECOND DRIFT FOUND + FIXED 2026-07-21 (48->59, re-verified 3/3 stable runs). Pre-commit hook transiently reported 58 on one run just before that fix -- 3 direct reruns all landed 59, treated as a one-off flake at the time."
+note = "FOURTH DRIFT FOUND + FIXED 2026-07-22 (evening-ceremony preflight, ahead of the paired scanner public push): 137->195 (202 total, 7 skipped requiring MCP_SCANNER_FLEET_ROOT -- passed-only is this manifest's own citable-headline convention) at commit 14fee01 (fix: egress-review LOW follow-ups + README count 202; lane/ci merged same commit range). Driver: JS/TS parity landed for 4 of 7 detector families since the 137 mark, same night. Re-verified live in this pass. Prior: THIRD DRIFT FOUND + FIXED 2026-07-22 (scanner-137-sync pairing lane, ahead of a scanner public push): 101->137 (144 total, 7 self-audit skip requiring MCP_SCANNER_FLEET_ROOT). Driver: reachability + taint-tracking suites (82->101, same night per scanner's own commit 60c5d5c) plus JS/TS parity added across 4 detector families since. NOW cited in site content: articles/fleet-audit-methodology.html's pill span (was stale at 101, fixed same lane) -- prior note's 'not currently cited anywhere' is superseded by that fix, not accurate as of this entry. Prior: DRIFT FOUND + FIXED 2026-07-19 (44->48). SECOND DRIFT FOUND + FIXED 2026-07-21 (48->59, re-verified 3/3 stable runs). Pre-commit hook transiently reported 58 on one run just before that fix -- 3 direct reruns all landed 59, treated as a one-off flake at the time."
