@@ -700,6 +700,7 @@
       <a href="#pricing">Pricing</a>
       <a href="#retainer">Retainer</a>
       <a href="#products">Kit</a>
+      <a href="#community">Community</a>
       <a href="#faq">FAQ</a>
       <a href="scoreboard.html">Scoreboard</a>
       <a href="mailto:jaime@jaimenbell.dev?subject=MCP%20scoping%20call" class="nav-cta">Scope a sprint</a>
@@ -1345,6 +1346,38 @@
   </div>
 </section>
 
+<!-- COMMUNITY / MEMBER PORTAL
+     CTA text + link are flipped by js/member-cta.js off ONE constant
+     (PORTAL_SIGNUP_URL) — see that file's header. Until go-live day this
+     section is fully honest about NOT being purchasable yet. -->
+<section id="community" class="band band--dark">
+  <div class="wrap">
+    <div class="reveal sec-head">
+      <div class="sec-tag">Build in public</div>
+      <h2>Follow the fleet, not the highlight reel.</h2>
+      <p class="sec-lede">A build-in-public engineering membership: the same harness discipline behind this whole site, written up as it happens — including the parts that don't work. No trading advice, ever; this is a record of engineering process, not a signals feed.</p>
+    </div>
+    <div class="pricing-grid" style="grid-template-columns: minmax(0, 440px); justify-content: center;">
+      <div class="tier feature reveal">
+        <span class="badge">Member</span>
+        <div class="tn">The Build Community</div>
+        <div class="price"><span class="from">monthly</span>$9<span style="font-size:17px; font-weight:600; color:var(--faint)">/mo</span></div>
+        <div class="scope">Every hypothesis that doesn't survive gets a public kill-verdict, not a quiet delete. That's the differentiator: you see the failures, not just the wins.</div>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg> Daily build-log — real commits, real losses, honest kill-verdicts</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg> Weekly fleet report card across every live system</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg> Member digest — the week's decisions distilled</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg> Member-only channels in the community Discord</li>
+        </ul>
+        <a href="" id="member-cta-link" target="_blank" rel="noopener" class="tcta">Get notified at launch</a>
+      </div>
+    </div>
+    <div class="price-note reveal" id="member-cta-note">
+      <span class="lock">⬡</span> Portal is in test mode — not yet publicly purchasable. Get notified the day it opens.
+    </div>
+  </div>
+</section>
+
 <!-- FAQ -->
 <section id="faq" class="band band--dark">
   <div class="wrap">
@@ -1414,6 +1447,7 @@
 </footer>
 
 <script src="js/discord-cta.js" defer></script>
+<script src="js/member-cta.js" defer></script>
 <script>
   // nav border on scroll
   const nav = document.getElementById('nav');
