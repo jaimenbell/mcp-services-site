@@ -3,21 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Case study: mcp-security-scanner — a static security scanner for MCP servers (257 tests)</title>
-  <meta name="description" content="mcp-security-scanner: a static security scanner for MCP servers. Seven detector families, Python + JS/TS parity, reachability + tool-parameter taint grading, an honest confidence on every finding, and a dogfood self-audit against six real servers. 257 passing tests, public repo.">
+  <title>Case study: mcp-security-scanner — a static security scanner for MCP servers (264 tests)</title>
+  <meta name="description" content="mcp-security-scanner: a static security scanner for MCP servers. Seven detector families, Python + JS/TS parity, reachability + tool-parameter taint grading, an honest confidence on every finding, and a dogfood self-audit against six real servers. 264 passing tests, public repo.">
   <link rel="canonical" href="https://jaimenbell.dev/case-studies/mcp-security-scanner.html">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="MCP Integration Sprint">
-  <meta property="og:title" content="Case study: mcp-security-scanner — a static security scanner for MCP servers (257 tests)">
-  <meta property="og:description" content="mcp-security-scanner: a static security scanner for MCP servers. Seven detector families, Python + JS/TS parity, reachability + taint grading, honest confidence on every finding, dogfood self-audit against six real servers. 257 passing tests, public repo.">
+  <meta property="og:title" content="Case study: mcp-security-scanner — a static security scanner for MCP servers (264 tests)">
+  <meta property="og:description" content="mcp-security-scanner: a static security scanner for MCP servers. Seven detector families, Python + JS/TS parity, reachability + taint grading, honest confidence on every finding, dogfood self-audit against six real servers. 264 passing tests, public repo.">
   <meta property="og:url" content="https://jaimenbell.dev/case-studies/mcp-security-scanner.html">
   <meta property="og:image" content="https://jaimenbell.dev/img/og-card.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="jaimenbell.dev — Production MCP servers for AI agents">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Case study: mcp-security-scanner — a static security scanner for MCP servers (257 tests)">
-  <meta name="twitter:description" content="mcp-security-scanner: a static security scanner for MCP servers. Seven detector families, Python + JS/TS parity, reachability + taint grading, honest confidence on every finding. 257 passing tests.">
+  <meta name="twitter:title" content="Case study: mcp-security-scanner — a static security scanner for MCP servers (264 tests)">
+  <meta name="twitter:description" content="mcp-security-scanner: a static security scanner for MCP servers. Seven detector families, Python + JS/TS parity, reachability + taint grading, honest confidence on every finding. 264 passing tests.">
   <meta name="twitter:image" content="https://jaimenbell.dev/img/og-card.png">
   <link rel="stylesheet" href="../css/style.css">
 </head>
@@ -40,10 +40,10 @@
     <article class="cs">
       <a class="back" href="../index.html#cases">← All case studies</a>
       <h1>mcp-security-scanner — a static security scanner for MCP servers</h1>
-      <div class="meta">// security category · 257 passing tests · Python + JS/TS parity · dogfooded on six real servers · public repo</div>
+      <div class="meta">// security category · 264 passing tests · Python + JS/TS parity · dogfooded on six real servers · public repo</div>
 
       <span class="pill">Python</span>
-      <span class="pill">257 passing tests</span>
+      <span class="pill">264 passing tests</span>
       <span class="pill">7 detector families</span>
       <span class="pill">JS/TS parity</span>
       <span class="pill">reachability + taint grading</span>
@@ -80,7 +80,7 @@
         </p>
         <ul>
           <li>Repo: <a href="https://github.com/jaimenbell/mcp-security-scanner">github.com/jaimenbell/mcp-security-scanner</a></li>
-          <li>Tests: <code>python -m pytest -q</code> → <code>257 passed, 7 skipped</code> (264 total; the 7 skips are the dogfood self-audit tests, which need <code>MCP_SCANNER_FLEET_ROOT</code> pointed at real repos and skip cleanly in a fresh clone).</li>
+          <li>Tests: <code>python -m pytest -q</code> → <code>264 passed, 7 skipped</code> (271 total; the 7 skips are the dogfood self-audit tests, which need <code>MCP_SCANNER_FLEET_ROOT</code> pointed at real repos and skip cleanly in a fresh clone).</li>
           <li>Every detector ships a matched pair of fixtures — a vulnerable one it must catch, a clean one it must not flag — so the false-positive floor is a tested invariant, not a hope.</li>
           <li>The dogfood proof (<code>--self-audit</code>, <code>tests/test_self_audit.py</code>): the scanner runs against six of my own in-production MCP servers, must flag the one known codegen-injection class an independent manual audit found, and must give the other five a clean bill. It does both.</li>
         </ul>

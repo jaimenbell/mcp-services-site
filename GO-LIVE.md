@@ -104,10 +104,10 @@ git push origin main
 
 ## Notes for future updates
 
-- Test counts (222 mcp-factory, 60 rag-mcp, 371 options-bot, 257 mcp-security-scanner) were
+- Test counts (222 mcp-factory, 60 rag-mcp, 371 options-bot, 264 mcp-security-scanner) were
   live-verified 2026-07-22 (evening-ceremony preflight) by running each suite in its own repo's
   venv/interpreter — not copied from an old claim. mcp-security-scanner re-verified 2026-07-23:
-  195 -> 257 passing / 264 total (tool-discovery low-level SDK + detector-5/6 low-level coverage,
+  195 -> 257 -> 264 passing / 271 total (tool-discovery low-level SDK + detector-5/6 low-level coverage,
   both N-vote + Opus review-gated). options-bot was 186 as of the 2026-07-06 check
   below, grew to 281 by 2026-07-09, 292 by 2026-07-11 (sched_guard / order-rate breaker /
   portfolio-starting-capital work), 299 by 2026-07-12, 321 by 2026-07-19, and 353 by 2026-07-21
