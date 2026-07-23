@@ -45,11 +45,11 @@ status = "verified"
 note = "DRIFT FOUND 2026-07-11 (proof-numbers pre-publish audit): suite grew 121->128 since 07-09. no .venv in this repo; ran with the global python per fallback rule. Re-verified 2026-07-11 -- value now 128, drift fixed on site + case study + README badge (badge text also updated from stale '123 total' to '130 total')."
 
 ["rag-mcp"]
-value = 53
+value = 60
 source_repo = "C:\\Users\\jaime\\projects\\rag-mcp"
 source_cmd = ".venv/Scripts/python.exe -m pytest -q --tb=no"
-tail_line = "53 passed (dot count; query-cap fix 000f23b added 2 tests since 07-09)"
-verified_utc = "2026-07-11T22:21:22+00:00"
+tail_line = "60 passed (dot count; repo suppresses the pytest summary line, so live-check parses dots; matches the repo's own junit-counted 60/60 CI gate, public since 2026-07-22)"
+verified_utc = "2026-07-23T14:30:00+00:00"
 status = "verified"
 note = "DRIFT FOUND 2026-07-11 (proof-numbers pre-publish audit): query-cap fix (000f23b) added 2 tests, 51->53. Re-verified 2026-07-11 -- value now 53, drift fixed on site + case study + README."
 
@@ -108,10 +108,10 @@ status = "verified"
 note = "7th flagship, went public/private-GitHub 2026-07-19. DRIFT 2026-07-22 (flagship-coverage lane, first time cited on site): 76 -> 95 (unit suite grew +19 since 07-19 seed; the 7 live-infra smokes still skip without VLLM_OPS_MCP_LIVE=1). Live-verified stable across 2/2 junitxml runs in the repo's own .venv; repo's own README Tests badge already reads '102 (95 passing, 7 live-skipped)', so this is the manifest catching up to a repo that self-corrected. Per this manifest's convention the citable headline number is passed-only (95), not the 102 combined total. Tool count live-verified at 6 (check_health, get_gpu_status, get_serve_config, get_service_status, list_models, test_completion). Now cited on case-studies/vllm-ops-mcp.html + index.html #cases card."
 
 ["mcp-security-scanner"]
-value = 195
+value = 257
 source_repo = "C:\\Users\\jaime\\projects\\mcp-security-scanner"
 source_cmd = "python -m pytest -q --tb=no"
-tail_line = "195 passed, 7 skipped (junitxml: tests=202 failures=0 errors=0 skipped=7)"
-verified_utc = "2026-07-22T18:10:35+00:00"
+tail_line = "257 passed, 7 skipped (junitxml: tests=264 failures=0 errors=0 skipped=7)"
+verified_utc = "2026-07-23T14:20:00+00:00"
 status = "verified"
-note = "no .venv in this repo, ran with global python per the github-mcp/desktop-mcp fallback convention. Prior drifts: 44->48 (07-19), 48->59 (07-21), 82->101 (07-22 05:57). DRIFT AGAIN 2026-07-22 18:10 (flagship-coverage lane, first time cited on site): 101 -> 195 (JS/TS parity across .js/.mjs/.cjs/.ts/.mts/.cts/.jsx/.tsx + reachability-grading matrix + tool-parameter taint-tracking matrix all merged today; the 7 skips are the self-audit tests that need MCP_SCANNER_FLEET_ROOT). Live-verified stable across 2/2 junitxml runs. Repo's own README already reads '202 tests (195 passing, 7 self-audit skip)', so this is the manifest catching up to a repo that self-corrected. Now cited on case-studies/mcp-security-scanner.html + index.html #cases card. NOTE this repo is the fastest-drifting number on the site (5 rots since 07-19) -- live-re-verify before any public copy."
+note = "no .venv in this repo, ran with global python per the github-mcp/desktop-mcp fallback convention. Prior drifts: 44->48 (07-19), 48->59 (07-21), 82->101 (07-22 05:57). DRIFT AGAIN 2026-07-22 18:10 (flagship-coverage lane, first time cited on site): 101 -> 195 (JS/TS parity across .js/.mjs/.cjs/.ts/.mts/.cts/.jsx/.tsx + reachability-grading matrix + tool-parameter taint-tracking matrix all merged today; the 7 skips are the self-audit tests that need MCP_SCANNER_FLEET_ROOT). Live-verified stable across 2/2 junitxml runs. Repo's own README already reads '202 tests (195 passing, 7 self-audit skip)', so this is the manifest catching up to a repo that self-corrected. Now cited on case-studies/mcp-security-scanner.html + index.html #cases card. NOTE this repo is the fastest-drifting number on the site (5 rots since 07-19) -- live-re-verify before any public copy. DRIFT AGAIN 2026-07-23 (6th): 195 -> 257 passing / 264 total (tool-discovery low-level SDK support @ fe36864 + detector-5/6 low-level coverage @ 4a63544, both triple-review-gated [2x refuter N-vote + Opus final verify each], merged+pushed same morning). Live-verified via repo count-gate (scripts/check_readme_counts.py green at 264/257/7)."

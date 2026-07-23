@@ -90,7 +90,7 @@ git push origin main
 
 ## 8. Verify live
 
-- Load `https://jaimenbell.github.io/mcp-services-site/` — hero, proof stats (222 / 53), offer
+- Load `https://jaimenbell.github.io/mcp-services-site/` — hero, proof stats (222 / 60), offer
   tiers, case studies, FAQ all render.
 - Load a non-existent path (e.g. `.../nope`) — confirm the custom `404.html` shows, not GitHub's
   default 404.
@@ -99,14 +99,16 @@ git push origin main
   either the mail client with the right address + subject, or the Calendly page if that path was
   used.
 - Click the footer "Contact" link and the footer email text link — same check.
-- Confirm the "222 passing tests" / "mcp-factory" and "53 tests" / "rag-mcp" links resolve to the
+- Confirm the "222 passing tests" / "mcp-factory" and "60 tests" / "rag-mcp" links resolve to the
   public repos.
 
 ## Notes for future updates
 
-- Test counts (222 mcp-factory, 53 rag-mcp, 371 options-bot, 195 mcp-security-scanner) were
+- Test counts (222 mcp-factory, 60 rag-mcp, 371 options-bot, 257 mcp-security-scanner) were
   live-verified 2026-07-22 (evening-ceremony preflight) by running each suite in its own repo's
-  venv/interpreter — not copied from an old claim. options-bot was 186 as of the 2026-07-06 check
+  venv/interpreter — not copied from an old claim. mcp-security-scanner re-verified 2026-07-23:
+  195 -> 257 passing / 264 total (tool-discovery low-level SDK + detector-5/6 low-level coverage,
+  both N-vote + Opus review-gated). options-bot was 186 as of the 2026-07-06 check
   below, grew to 281 by 2026-07-09, 292 by 2026-07-11 (sched_guard / order-rate breaker /
   portfolio-starting-capital work), 299 by 2026-07-12, 321 by 2026-07-19, and 353 by 2026-07-21
   (tastytrade price_effect sign-fix + test-log-isolation); mcp-factory grew 213->215->216->224->222
