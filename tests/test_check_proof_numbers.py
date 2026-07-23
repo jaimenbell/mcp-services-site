@@ -404,6 +404,54 @@ def _fake_entry(repo_dir: Path, value: int) -> "cpn.ManifestEntry":
     )
 
 
+def _write_junit_capable_fake_runner(
+    repo_dir: Path, *, tests: int, failures: int = 0, errors: int = 0,
+    skipped: int = 0, fake_summary_passed: int | None = None,
+) -> None:
+    """Write a fake runner that mimics the class of repo verified live
+    2026-07-23 (github-mcp/desktop-mcp/rag-mcp/bus-mcp/discord-mcp/
+    rails-mcp/vllm-ops-mcp): its plain -q summary line is fully suppressed
+    under piped/non-tty capture (dots + "[100%]" only, zero "passed" text
+    anywhere in stdout/stderr) -- but it DOES honor an appended
+    --junitxml=<path> arg, same as real pytest. If fake_summary_passed is
+    given, it ALSO prints a plain "N passed" line with that (possibly
+    deliberately wrong) count, to prove which source wins when both are
+    present."""
+    repo_dir.mkdir(parents=True, exist_ok=True)
+    passed = tests - failures - errors - skipped
+    summary_print = ""
+    if fake_summary_passed is not None:
+        summary_print = f'print("{fake_summary_passed} passed in 0.01s")\n'
+    script = f'''
+import sys
+junit_path = None
+for a in sys.argv[1:]:
+    if a.startswith("--junitxml="):
+        junit_path = a[len("--junitxml="):]
+if junit_path:
+    with open(junit_path, "w", encoding="utf-8") as fh:
+        fh.write(
+            "<?xml version='1.0' encoding='utf-8'?>"
+            "<testsuites name='pytest tests'>"
+            "<testsuite name='pytest' errors='{errors}' failures='{failures}' "
+            "skipped='{skipped}' tests='{tests}' time='0.01'>"
+            "</testsuite></testsuites>"
+        )
+print("." * {passed} + "             [100%]")
+{summary_print}'''
+    (repo_dir / "fake_runner.py").write_text(script, encoding="utf-8")
+
+
+def _write_dots_only_fake_runner(repo_dir: Path, passed_count: int) -> None:
+    """Fake runner that neither honors --junitxml nor prints a parseable
+    summary line at all -- exercises the last-resort dot-count fallback."""
+    repo_dir.mkdir(parents=True, exist_ok=True)
+    (repo_dir / "fake_runner.py").write_text(
+        f'print("." * {passed_count} + "             [100%]")\n',
+        encoding="utf-8",
+    )
+
+
 def test_live_check_mismatch_fails_with_clear_message(tmp_path):
     """Core fix: a manifest value that disagrees with the LIVE repo's actual
     test count must FAIL with a message naming both numbers and telling the
@@ -750,3 +798,192 @@ def test_manifest_source_env_loads_and_validates(tmp_path):
         raise AssertionError("expected ManifestValidationError")
     except cpn.ManifestValidationError as exc:
         assert "source_env" in str(exc)
+
+
+# --- junitxml live-check parsing (2026-07-23 lane: 7 recurring LIVE-CHECK
+# WARNs from repos whose pytest config suppresses the plain "-q" summary
+# line under piped/non-tty capture -- github-mcp, desktop-mcp, rag-mcp,
+# bus-mcp, discord-mcp, rails-mcp, vllm-ops-mcp, live-verified 2026-07-23:
+# dots + "[100%]" only, zero "passed" text anywhere in stdout/stderr) ---
+
+def test_parse_junit_counts_testsuites_wrapper(tmp_path):
+    """Current pytest wraps a single <testsuite> in a <testsuites> root
+    (verified live against rag-mcp 2026-07-23)."""
+    xml_path = tmp_path / "junit.xml"
+    xml_path.write_text(
+        '<?xml version="1.0" encoding="utf-8"?>'
+        '<testsuites name="pytest tests">'
+        '<testsuite name="pytest" errors="0" failures="0" skipped="2" tests="62">'
+        '</testsuite></testsuites>',
+        encoding="utf-8",
+    )
+    assert cpn._parse_junit_counts(xml_path) == 60
+
+
+def test_parse_junit_counts_bare_testsuite_root(tmp_path):
+    """Older pytest / other runners may emit a bare <testsuite> root with no
+    wrapping <testsuites> -- must be handled too."""
+    xml_path = tmp_path / "junit.xml"
+    xml_path.write_text(
+        '<testsuite name="pytest" errors="1" failures="1" skipped="0" tests="10">'
+        '</testsuite>',
+        encoding="utf-8",
+    )
+    assert cpn._parse_junit_counts(xml_path) == 8
+
+
+def test_parse_junit_counts_missing_file_returns_none(tmp_path):
+    assert cpn._parse_junit_counts(tmp_path / "does-not-exist.xml") is None
+
+
+def test_parse_junit_counts_malformed_xml_returns_none(tmp_path):
+    xml_path = tmp_path / "junit.xml"
+    xml_path.write_text("not xml at all <<<", encoding="utf-8")
+    assert cpn._parse_junit_counts(xml_path) is None
+
+
+def test_parse_dot_count_single_line():
+    output = "." * 60 + "             [100%]\n"
+    assert cpn._parse_dot_count(output) == 60
+
+
+def test_parse_dot_count_multi_line_wrap():
+    """github-mcp's real captured shape (verified live 2026-07-23): a
+    percentage-wrapped line followed by a final [100%] line."""
+    output = (
+        "." * 40 + "s" + "." * 33 + " [ 73%]\n"
+        + "." * 26 + "                                                          [100%]\n"
+    )
+    assert cpn._parse_dot_count(output) == 40 + 33 + 26
+
+
+def test_parse_dot_count_ignores_warnings_summary_prose():
+    """Prose in a warnings-summary section (which also contains periods)
+    must never be mistaken for progress dots -- only lines that are
+    entirely outcome characters followed by a "[ NN%]" marker count."""
+    output = (
+        "." * 10 + "          [100%]\n"
+        "=== warnings summary ===\n"
+        "test_foo.py::test_bar uses a deprecated thing. Please migrate.\n"
+    )
+    assert cpn._parse_dot_count(output) == 10
+
+
+def test_parse_dot_count_no_progress_lines_returns_none():
+    output = "collected 0 items\n\nno tests ran in 0.00s\n"
+    assert cpn._parse_dot_count(output) is None
+
+
+def test_prepare_junit_argv_appends_when_absent(tmp_path):
+    """No existing --junitxml convention -- one is appended pointing into
+    the given scratch dir."""
+    argv = ["python", "-m", "pytest", "-q"]
+    new_argv, junit_path = cpn._prepare_junit_argv(argv, tmp_path)
+    assert new_argv[:4] == argv
+    assert new_argv[4].startswith("--junitxml=")
+    assert junit_path.parent == tmp_path
+
+
+def test_prepare_junit_argv_substitutes_scratch_placeholder(tmp_path):
+    """The bus-mcp manifest convention already embeds
+    --junitxml=<scratch>/bus.xml -- <scratch> must be substituted with a
+    real temp path, not passed through literally."""
+    argv = ["python", "-m", "pytest", "-q", "--junitxml=<scratch>/bus.xml"]
+    new_argv, junit_path = cpn._prepare_junit_argv(argv, tmp_path)
+    assert "<scratch>" not in new_argv[-1]
+    assert junit_path == tmp_path / "bus.xml"
+
+
+def test_prepare_junit_argv_respects_existing_concrete_path(tmp_path):
+    """A source_cmd that already names a concrete (non-placeholder)
+    --junitxml path is left untouched."""
+    concrete = tmp_path / "already-set.xml"
+    argv = ["python", "-m", "pytest", "-q", f"--junitxml={concrete}"]
+    new_argv, junit_path = cpn._prepare_junit_argv(argv, tmp_path)
+    assert new_argv == argv
+    assert junit_path == concrete
+
+
+def test_live_check_uses_junitxml_when_summary_suppressed(tmp_path):
+    """Core fix: a fake runner that suppresses its summary line entirely
+    (dots + [100%] only, no 'passed' text anywhere) but DOES honor an
+    appended --junitxml flag must still be live-verified correctly via the
+    junit report -- this is the github-mcp/desktop-mcp/rag-mcp/bus-mcp/
+    discord-mcp/rails-mcp/vllm-ops-mcp class of repo that previously fell
+    straight to an unresolved WARN and silently skipped live verification."""
+    repo_dir = tmp_path / "github-mcp"
+    _write_junit_capable_fake_runner(repo_dir, tests=88, skipped=2)
+    entry = cpn.ManifestEntry(
+        key="github-mcp", value=86,
+        source_cmd=f"{sys.executable} fake_runner.py -q",
+        source_repo=str(repo_dir),
+    )
+    results = cpn.live_verify_manifest({"github-mcp": entry})
+    assert len(results) == 1
+    assert results[0].status == "OK"
+    assert results[0].live_value == 86  # 88 tests - 2 skipped = 86 passed
+
+
+def test_live_check_junitxml_mismatch_fails(tmp_path):
+    repo_dir = tmp_path / "github-mcp"
+    _write_junit_capable_fake_runner(repo_dir, tests=90, skipped=2)
+    entry = cpn.ManifestEntry(
+        key="github-mcp", value=86,
+        source_cmd=f"{sys.executable} fake_runner.py -q",
+        source_repo=str(repo_dir),
+    )
+    results = cpn.live_verify_manifest({"github-mcp": entry})
+    assert results[0].status == "FAIL"
+    assert results[0].live_value == 88
+    assert results[0].expected == 86
+
+
+def test_live_check_respects_scratch_placeholder_convention(tmp_path):
+    """The bus-mcp manifest entry's source_cmd already embeds a
+    --junitxml=<scratch>/bus.xml convention; the live-check must substitute
+    <scratch> with a real temp path rather than trying to write literally
+    into a directory named '<scratch>'."""
+    repo_dir = tmp_path / "bus-mcp"
+    _write_junit_capable_fake_runner(repo_dir, tests=63, skipped=1)
+    entry = cpn.ManifestEntry(
+        key="bus-mcp", value=62,
+        source_cmd=f"{sys.executable} fake_runner.py -q --junitxml=<scratch>/bus.xml",
+        source_repo=str(repo_dir),
+    )
+    results = cpn.live_verify_manifest({"bus-mcp": entry})
+    assert results[0].status == "OK"
+    assert results[0].live_value == 62
+
+
+def test_live_check_falls_back_to_dot_count_when_no_junit_and_no_summary(tmp_path):
+    """A source_cmd/tool that neither honors --junitxml nor prints a
+    parseable summary line falls back to counting progress-dot characters
+    -- the least-precise but still-better-than-nothing last resort."""
+    repo_dir = tmp_path / "some-tool"
+    _write_dots_only_fake_runner(repo_dir, passed_count=45)
+    entry = cpn.ManifestEntry(
+        key="mcp-factory", value=45,
+        source_cmd=f"{sys.executable} fake_runner.py",
+        source_repo=str(repo_dir),
+    )
+    results = cpn.live_verify_manifest({"mcp-factory": entry})
+    assert results[0].status == "OK"
+    assert results[0].live_value == 45
+
+
+def test_live_check_junitxml_preferred_over_summary_line_when_both_present(tmp_path):
+    """If a runner emits BOTH a junitxml report and a plain summary line,
+    junitxml wins (it's the structurally reliable source) -- the fake
+    summary line here deliberately lies (999) to prove precedence."""
+    repo_dir = tmp_path / "github-mcp"
+    _write_junit_capable_fake_runner(
+        repo_dir, tests=88, skipped=2, fake_summary_passed=999,
+    )
+    entry = cpn.ManifestEntry(
+        key="github-mcp", value=86,
+        source_cmd=f"{sys.executable} fake_runner.py",
+        source_repo=str(repo_dir),
+    )
+    results = cpn.live_verify_manifest({"github-mcp": entry})
+    assert results[0].status == "OK"
+    assert results[0].live_value == 86

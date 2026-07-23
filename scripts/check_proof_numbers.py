@@ -81,7 +81,9 @@ import re
 import shlex
 import subprocess
 import sys
+import tempfile
 import tomllib
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -242,6 +244,110 @@ class Finding:
 
 PASSED_RE = re.compile(r"(\d+)\s+passed")
 
+# Junitxml live-check support (2026-07-23 fix): 7 repos (github-mcp,
+# desktop-mcp, rag-mcp, bus-mcp, discord-mcp, rails-mcp, vllm-ops-mcp)
+# suppress pytest's plain "-q" summary line entirely under piped/non-tty
+# capture -- verified live 2026-07-23: output is dots + "[100%]" only, zero
+# "passed" text anywhere in stdout/stderr. Those entries previously fell
+# straight through PASSED_RE to an unresolved "could not parse" WARN and
+# silently skipped live verification -- the exact class this checker exists
+# to prevent. The fix: request a junitxml report from the live-checked
+# command and parse tests/failures/errors/skipped from it, falling back to
+# the summary-line parse, then a dot-count parse, in that order of
+# reliability.
+JUNITXML_TOKEN_RE = re.compile(r"^--junitxml=(.+)$")
+SCRATCH_TOKEN = "<scratch>"
+
+# Last-resort fallback when neither junitxml nor a "N passed" summary line
+# is available: count '.' (passed) outcome characters from pytest -q's
+# per-test progress-dot lines. Only lines that are ENTIRELY outcome
+# characters ('.', 'F', 'E', 's', 'x', 'X') followed by a "[ NN%]" progress
+# marker are counted -- this keeps unrelated prose (e.g. a warnings-summary
+# section, which also contains periods) from ever being mistaken for
+# progress dots.
+DOT_LINE_RE = re.compile(r"^([.FEsxX]+)\s*\[\s*\d+%\]\s*$")
+
+
+def _prepare_junit_argv(argv: list[str], scratch_dir: Path) -> tuple[list[str], Path]:
+    """Ensure `argv` will produce a junitxml report, returning the
+    (possibly modified) argv and the path the report will be written to.
+
+    Three cases, in priority order:
+      1. argv already names a --junitxml=<scratch>/... path (the bus-mcp
+         manifest convention) -- substitute the <scratch> placeholder with
+         `scratch_dir` and use that as the report path.
+      2. argv already names a concrete (non-placeholder) --junitxml path --
+         leave it untouched and use that path as-is.
+      3. No --junitxml token at all -- append one pointing into
+         `scratch_dir`, so every live-checked command gets a junit report
+         regardless of whether the manifest entry asked for one.
+    """
+    new_argv = list(argv)
+    for i, tok in enumerate(new_argv):
+        m = JUNITXML_TOKEN_RE.match(tok)
+        if not m:
+            continue
+        raw_path = m.group(1)
+        if SCRATCH_TOKEN in raw_path:
+            raw_path = raw_path.replace(SCRATCH_TOKEN, str(scratch_dir))
+            new_argv[i] = f"--junitxml={raw_path}"
+        return new_argv, Path(raw_path)
+    junit_path = scratch_dir / "live_check_junit.xml"
+    new_argv.append(f"--junitxml={junit_path}")
+    return new_argv, junit_path
+
+
+def _parse_junit_counts(junit_path: Path) -> int | None:
+    """Parse a pytest junitxml report and return the passed-test count
+    (tests - failures - errors - skipped), or None if the file doesn't
+    exist, isn't well-formed XML, or is missing the expected attributes.
+    Handles both a bare <testsuite> root and a <testsuites> root wrapping
+    one or more <testsuite> children (current pytest's shape, verified
+    live against rag-mcp 2026-07-23)."""
+    if not junit_path.exists():
+        return None
+    try:
+        root = ET.parse(junit_path).getroot()
+    except ET.ParseError:
+        return None
+    suites = [root] if root.tag == "testsuite" else list(root.findall("testsuite"))
+    if not suites:
+        return None
+    total_tests = total_failures = total_errors = total_skipped = 0
+    for suite in suites:
+        try:
+            total_tests += int(suite.get("tests", 0))
+            total_failures += int(suite.get("failures", 0))
+            total_errors += int(suite.get("errors", 0))
+            total_skipped += int(suite.get("skipped", 0))
+        except (TypeError, ValueError):
+            return None
+    return total_tests - total_failures - total_errors - total_skipped
+
+
+def _parse_dot_count(output: str) -> int | None:
+    """Last-resort fallback: count '.' (passed) outcome characters from
+    pytest -q's per-test progress-dot lines, when neither a junitxml report
+    nor a parseable "N passed" summary line is available. Windows can
+    mangle -q's progress output with bare \\r (carriage-return) overwrites
+    when a real console is attached (a known trap -- see the
+    proof-numbers-drift-log memory) -- strip stray \\r characters outright
+    (never translate them into fabricated newlines, which would double- or
+    under-count a cumulative-overwrite frame) before line-splitting on the
+    real \\n boundaries actually used by piped/non-tty capture (verified
+    live 2026-07-23: no \\r appears at all when captured via
+    subprocess.run(..., capture_output=True), only plain \\n)."""
+    cleaned = output.replace("\r", "")
+    total = None
+    for line in cleaned.splitlines():
+        m = DOT_LINE_RE.match(line.strip())
+        if not m:
+            continue
+        if total is None:
+            total = 0
+        total += m.group(1).count(".")
+    return total
+
 
 class LiveCheckResult:
     """Outcome of live-verifying one manifest entry against its source_repo.
@@ -340,75 +446,103 @@ def live_verify_manifest(
             ))
             continue
 
-        try:
-            # Strip inherited GIT_* env vars before invoking a DIFFERENT
-            # repo's test suite. When this script runs as a real git hook,
-            # git sets GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE (and friends) for
-            # ITS OWN hook subprocess -- those leak into any child process
-            # spawned here via plain inheritance. If the target repo's own
-            # tests do git operations (e.g. mcp-factory's
-            # test_workflow_runner.py calling `git ls-files`), those
-            # operations get pointed at THIS repo's git internals instead of
-            # the target's, and fail. Real incident 2026-07-21: 20 tests in
-            # mcp-factory failed this way (215 -> 195 passed) only when
-            # invoked through an actual `git commit`, never when run
-            # standalone -- silent and hard to reproduce outside a real hook.
-            clean_env = {k: v for k, v in os.environ.items()
-                         if not k.startswith("GIT_")}
-            # Per-entry env overrides (manifest "source_env" table). Real
-            # use: mcp-factory's clean-checkout count (what public CI gates
-            # on) differs from a bare run on the fleet machine, where
-            # test_smoke_hub auto-discovers the live bot fleet -- pointing
-            # MCP_FACTORY_SMOKE_ROOTS at an empty fixture dir makes the
-            # live-check reproduce the clean-checkout number.
-            if entry.source_env:
-                clean_env.update(entry.source_env)
-            proc = subprocess.run(
-                argv, cwd=source_repo, capture_output=True, text=True,
-                timeout=timeout, env=clean_env,
-            )
-        except subprocess.TimeoutExpired:
-            results.append(LiveCheckResult(
-                key, "WARN",
-                f"source_cmd timed out after {timeout}s in {source_repo} -- "
-                f"skipping live check ({entry.source_cmd!r})",
-            ))
-            continue
-        except OSError as exc:
-            results.append(LiveCheckResult(
-                key, "WARN",
-                f"could not run source_cmd in {source_repo}: {exc} -- "
-                f"skipping live check",
-            ))
-            continue
+        # Every live-checked command is asked for a junitxml report (see
+        # _prepare_junit_argv) -- this is what lets a repo whose plain "-q"
+        # summary line is suppressed under piped/non-tty capture still be
+        # live-verified reliably, instead of silently WARNing forever. The
+        # scratch dir is per-entry and cleaned up as soon as this entry's
+        # result is computed.
+        with tempfile.TemporaryDirectory(prefix="proof_numbers_junit_") as scratch_dir_str:
+            scratch_dir = Path(scratch_dir_str)
+            junit_argv, junit_path = _prepare_junit_argv(argv, scratch_dir)
 
-        output = f"{proc.stdout}\n{proc.stderr}"
-        tail_line = None
-        for line in output.splitlines():
-            if PASSED_RE.search(line):
-                tail_line = line  # keep the LAST matching line (pytest summary)
-        if tail_line is None:
-            results.append(LiveCheckResult(
-                key, "WARN",
-                f"could not parse a 'N passed' summary from source_cmd output "
-                f"in {source_repo} -- skipping live check",
-            ))
-            continue
+            try:
+                # Strip inherited GIT_* env vars before invoking a DIFFERENT
+                # repo's test suite. When this script runs as a real git hook,
+                # git sets GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE (and friends) for
+                # ITS OWN hook subprocess -- those leak into any child process
+                # spawned here via plain inheritance. If the target repo's own
+                # tests do git operations (e.g. mcp-factory's
+                # test_workflow_runner.py calling `git ls-files`), those
+                # operations get pointed at THIS repo's git internals instead of
+                # the target's, and fail. Real incident 2026-07-21: 20 tests in
+                # mcp-factory failed this way (215 -> 195 passed) only when
+                # invoked through an actual `git commit`, never when run
+                # standalone -- silent and hard to reproduce outside a real hook.
+                clean_env = {k: v for k, v in os.environ.items()
+                             if not k.startswith("GIT_")}
+                # Per-entry env overrides (manifest "source_env" table). Real
+                # use: mcp-factory's clean-checkout count (what public CI gates
+                # on) differs from a bare run on the fleet machine, where
+                # test_smoke_hub auto-discovers the live bot fleet -- pointing
+                # MCP_FACTORY_SMOKE_ROOTS at an empty fixture dir makes the
+                # live-check reproduce the clean-checkout number.
+                if entry.source_env:
+                    clean_env.update(entry.source_env)
+                proc = subprocess.run(
+                    junit_argv, cwd=source_repo, capture_output=True, text=True,
+                    timeout=timeout, env=clean_env,
+                )
+            except subprocess.TimeoutExpired:
+                results.append(LiveCheckResult(
+                    key, "WARN",
+                    f"source_cmd timed out after {timeout}s in {source_repo} -- "
+                    f"skipping live check ({entry.source_cmd!r})",
+                ))
+                continue
+            except OSError as exc:
+                results.append(LiveCheckResult(
+                    key, "WARN",
+                    f"could not run source_cmd in {source_repo}: {exc} -- "
+                    f"skipping live check",
+                ))
+                continue
 
-        live_value = int(PASSED_RE.search(tail_line).group(1))
-        if live_value != entry.value:
-            results.append(LiveCheckResult(
-                key, "FAIL",
-                f"manifest is stale: {key} manifest says {entry.value}, live "
-                f"repo says {live_value} -- refresh the manifest AND the site "
-                f"citations",
-                live_value=live_value, expected=entry.value,
-            ))
-        else:
-            results.append(LiveCheckResult(
-                key, "OK", f"live count {live_value} matches manifest",
-                live_value=live_value, expected=entry.value,
-            ))
+            # Parsing cascade, most-to-least reliable: junitxml report, then
+            # the classic "N passed" summary-line regex, then a last-resort
+            # progress-dot count. See each helper's docstring for why this
+            # order and why a suite whose config suppresses the summary line
+            # (github-mcp/desktop-mcp/rag-mcp/bus-mcp/discord-mcp/rails-mcp/
+            # vllm-ops-mcp, live-verified 2026-07-23) no longer silently
+            # skips live verification.
+            live_value = _parse_junit_counts(junit_path)
+            parse_method = "junitxml"
+            if live_value is None:
+                output = f"{proc.stdout}\n{proc.stderr}"
+                tail_line = None
+                for line in output.splitlines():
+                    if PASSED_RE.search(line):
+                        tail_line = line  # keep the LAST matching line (pytest summary)
+                if tail_line is not None:
+                    live_value = int(PASSED_RE.search(tail_line).group(1))
+                    parse_method = "summary-line"
+                else:
+                    live_value = _parse_dot_count(output)
+                    parse_method = "dot-count"
+
+            if live_value is None:
+                results.append(LiveCheckResult(
+                    key, "WARN",
+                    f"could not parse a test count from source_cmd output in "
+                    f"{source_repo} via junitxml, summary-line, or dot-count -- "
+                    f"skipping live check",
+                ))
+                continue
+
+            if live_value != entry.value:
+                results.append(LiveCheckResult(
+                    key, "FAIL",
+                    f"manifest is stale: {key} manifest says {entry.value}, live "
+                    f"repo says {live_value} (parsed via {parse_method}) -- "
+                    f"refresh the manifest AND the site citations",
+                    live_value=live_value, expected=entry.value,
+                ))
+            else:
+                results.append(LiveCheckResult(
+                    key, "OK",
+                    f"live count {live_value} matches manifest (via {parse_method})",
+                    live_value=live_value, expected=entry.value,
+                ))
     return results
 
 
