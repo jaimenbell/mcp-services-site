@@ -3,21 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Case study: desktop-mcp — Windows desktop-control MCP (128 tests)</title>
-  <meta name="description" content="desktop-mcp: a public Windows desktop-control MCP server — screenshot, window management, input, ffmpeg screen-recording. Config-gated tool groups, input off by default, 128 passing tests.">
+  <title>Case study: desktop-mcp — Windows desktop-control MCP (139 tests)</title>
+  <meta name="description" content="desktop-mcp: a public Windows desktop-control MCP server — screenshot, window management, input, ffmpeg screen-recording. Config-gated tool groups, input off by default, 139 passing tests.">
   <link rel="canonical" href="https://jaimenbell.dev/case-studies/desktop-mcp.html">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="MCP Integration Sprint">
-  <meta property="og:title" content="Case study: desktop-mcp — Windows desktop-control MCP (128 tests)">
-  <meta property="og:description" content="desktop-mcp: a public Windows desktop-control MCP server — screenshot, window management, input, ffmpeg screen-recording. Config-gated tool groups, input off by default, 128 passing tests.">
+  <meta property="og:title" content="Case study: desktop-mcp — Windows desktop-control MCP (139 tests)">
+  <meta property="og:description" content="desktop-mcp: a public Windows desktop-control MCP server — screenshot, window management, input, ffmpeg screen-recording. Config-gated tool groups, input off by default, 139 passing tests.">
   <meta property="og:url" content="https://jaimenbell.dev/case-studies/desktop-mcp.html">
   <meta property="og:image" content="https://jaimenbell.dev/img/og-card.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="jaimenbell.dev — Production MCP servers for AI agents">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Case study: desktop-mcp — Windows desktop-control MCP (128 tests)">
-  <meta name="twitter:description" content="desktop-mcp: a public Windows desktop-control MCP server — screenshot, window management, input, ffmpeg screen-recording. Config-gated tool groups, input off by default, 128 passing tests.">
+  <meta name="twitter:title" content="Case study: desktop-mcp — Windows desktop-control MCP (139 tests)">
+  <meta name="twitter:description" content="desktop-mcp: a public Windows desktop-control MCP server — screenshot, window management, input, ffmpeg screen-recording. Config-gated tool groups, input off by default, 139 passing tests.">
   <meta name="twitter:image" content="https://jaimenbell.dev/img/og-card.png">
   <link rel="stylesheet" href="../css/style.css">
 </head>
@@ -40,10 +40,10 @@
     <article class="cs">
       <a class="back" href="../index.html#cases">← All case studies</a>
       <h1>desktop-mcp — the same discipline, past the API layer</h1>
-      <div class="meta">// public repo · 18 tools · 128 passing tests · input off by default</div>
+      <div class="meta">// public repo · 18 tools · 139 passing tests · input off by default</div>
 
       <span class="pill">Python</span>
-      <span class="pill">128 passing tests</span>
+      <span class="pill">139 passing tests</span>
       <span class="pill">4 tool groups</span>
       <span class="pill">input off by default</span>
       <span class="pill">rate-capped</span>
@@ -73,7 +73,7 @@
         <h3>Evidence you can check yourself</h3>
         <ul>
           <li>Repo: <a href="https://github.com/jaimenbell/desktop-mcp">github.com/jaimenbell/desktop-mcp</a></li>
-          <li>Tests: <code>python -m pytest</code> → <code>128 passed, 2 skipped, 0 failed</code> (the two skips are live smokes that produce a real screenshot PNG and a real screen-recording mp4, gated behind an env flag)</li>
+          <li>Tests: <code>python -m pytest</code> → <code>139 passed, 2 skipped, 0 failed</code> (the two skips are live smokes that produce a real screenshot PNG and a real screen-recording mp4, gated behind an env flag)</li>
           <li>Safety: every disabled group returns a structured <code>policy_refusal</code> — never a silent no-op, never a crash. Input actions are additionally capped at 60/min by default.</li>
         </ul>
       </div>

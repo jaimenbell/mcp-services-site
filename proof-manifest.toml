@@ -27,22 +27,22 @@ status = "verified"
 note = "DRIFT 2026-07-22 (evening-ceremony preflight, ahead of the paired site refresh + factory push): 216->224->222 at commit 2491528 (ci: add GitHub Actions CI with README count-verification gate; repo local main ahead of origin by 1 commit at time of this check). Re-verified live in this pass. Prior: DRIFT 2026-07-20/21: 213->215 (2 tests added since 07-13, untraced, unrelated). Re-verified stable across 10+ independent runs after root-causing an unrelated apparent-flakiness report (213/215/195 across different invocations) down to a real bug in THIS checker's own live-check subprocess call -- see check_proof_numbers.py's live_verify_manifest() fix, 2026-07-21: it inherited GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE from git's own hook-invocation environment and leaked them into mcp-factory's test subprocess, corrupting its git-aware tests (test_workflow_runner.py) and producing a phantom 195. Fixed by stripping GIT_* env vars before spawning a different repo's test command. Prior: DRIFT 2026-07-13, 187->213."
 
 ["github-mcp"]
-value = 86
+value = 97
 source_repo = "C:\\Users\\jaime\\projects\\github-mcp"
 source_cmd = "python -m pytest -q --tb=no"
-tail_line = "86 passed, 1 skipped (dot/char count, -q summary line still suppressed under this shell/pytest combo)"
-verified_utc = "2026-07-11T22:21:22+00:00"
+tail_line = "97 passed, 1 skipped (junitxml: tests=98 failures=0 errors=0 skipped=1)"
+verified_utc = "2026-07-23T14:55:11+00:00"
 status = "verified"
-note = "DRIFT FOUND 2026-07-11 (proof-numbers pre-publish audit): rate limiter (fd0664c, 07-10) added 12 tests, 74->86. no .venv in this repo; ran with the global python per fallback rule. Re-verified 2026-07-11 -- value now 86, drift fixed on site + case study + README badge."
+note = "DRIFT FOUND 2026-07-23 (checker-parse-fix lane: the manifest's plain -q live-check had been silently WARN-skipping this entry since the summary line is suppressed under piped/non-tty capture -- fixed by teaching the live-check to parse junitxml instead, which then correctly caught this real drift that had been invisible behind the broken WARN). 86->97 since the 07-11 seed: 'ci: add GitHub Actions CI with README count-verification gate' (ec67472) added tests/test_check_readme_counts.py (+11 tests), 'harden(ci): SHA-pin third-party GitHub Actions' (5c3daf1) is a workflow-only change with no test delta. Cross-checked against the repo's own README Tests badge, which already reads '97 passing / 1 skipped' -- this is the manifest catching up to a repo that self-corrected. no .venv in this repo; ran with the global python per fallback rule. Prior: DRIFT FOUND 2026-07-11 (rate limiter fd0664c, 07-10, added 12 tests, 74->86)."
 
 ["desktop-mcp"]
-value = 128
+value = 139
 source_repo = "C:\\Users\\jaime\\projects\\desktop-mcp"
 source_cmd = "python -m pytest -q --tb=no"
-tail_line = "128 passed, 2 skipped (dot/char count, -q summary line still suppressed under this shell/pytest combo)"
-verified_utc = "2026-07-11T22:21:22+00:00"
+tail_line = "139 passed, 2 skipped (junitxml: tests=141 failures=0 errors=0 skipped=2)"
+verified_utc = "2026-07-23T14:55:11+00:00"
 status = "verified"
-note = "DRIFT FOUND 2026-07-11 (proof-numbers pre-publish audit): suite grew 121->128 since 07-09. no .venv in this repo; ran with the global python per fallback rule. Re-verified 2026-07-11 -- value now 128, drift fixed on site + case study + README badge (badge text also updated from stale '123 total' to '130 total')."
+note = "DRIFT FOUND 2026-07-23 (checker-parse-fix lane, same class as github-mcp above: junitxml live-check fix caught real drift previously hidden behind a silent WARN). 128->139 since the 07-11 seed: 'ci: add GitHub Actions CI with README count-verification gate' (2607b94) added tests/test_check_readme_counts.py (+11 tests), matching the github-mcp pattern exactly; 'harden(ci): SHA-pin third-party GitHub Actions' (d3faac7) and the intervening docs/security commits are test-count-neutral. Cross-checked against the repo's own README Tests badge, which already reads '141 (139 passing, 2 skipped)' -- manifest catching up to a repo that self-corrected. no .venv in this repo; ran with the global python per fallback rule. Prior: DRIFT FOUND 2026-07-11 (121->128 since 07-09)."
 
 ["rag-mcp"]
 value = 60
@@ -54,13 +54,13 @@ status = "verified"
 note = "DRIFT FOUND 2026-07-11 (proof-numbers pre-publish audit): query-cap fix (000f23b) added 2 tests, 51->53. Re-verified 2026-07-11 -- value now 53, drift fixed on site + case study + README."
 
 ["bus-mcp"]
-value = 62
+value = 99
 source_repo = "C:\\Users\\jaime\\projects\\bus-mcp"
 source_cmd = ".venv/Scripts/python.exe -m pytest -q --junitxml=<scratch>/bus.xml"
-tail_line = "errors=0 failures=0 skipped=1 tests=63 (62 passed, 1 skipped)"
-verified_utc = "2026-07-09T03:38:55+00:00"
+tail_line = "99 passed, 1 skipped (junitxml: tests=100 failures=0 errors=0 skipped=1)"
+verified_utc = "2026-07-23T14:55:11+00:00"
 status = "verified"
-note = "bus-mcp is not currently cited as a proof number anywhere in site content (grep-confirmed 2026-07-08); value updated 54->62 (suite grew since 07-06). Tool count live-verified at 6 (server.py has 6 @mcp.tool() defs: post_message, read_messages, claim_lane, release_lane, heartbeat_lane, get_bus_status) -- NOT 8 as a stale memory note claimed; no tool-count field is tracked by this manifest/gate today."
+note = "DRIFT FOUND 2026-07-23 (checker-parse-fix lane: junitxml live-check fix caught real drift previously hidden behind a silent WARN -- this entry's own source_cmd already carried the <scratch> junitxml convention, which the fix now actually substitutes and parses instead of leaving unused). 62->99 since the 07-09 seed: 'ci: add GitHub Actions workflow + README count-verification gate' (acd5e5f) added tests/test_check_readme_counts.py (+11, same pattern as github-mcp/desktop-mcp), plus 'fix(security): validate lane param against path injection' (45a4f1a) and 'fix(security): gate 4 mutating tools behind default-OFF write flag' (186fc1f) each added their own dedicated test coverage for the remaining +26. Cross-checked against the repo's own README Tests badge, which already reads '100 (99 passing, 1 skipped)' -- manifest catching up to a repo that self-corrected. Still not cited as a proof number anywhere in site content (re-verified 2026-07-23: grepped index.html/README.md/GO-LIVE.md/case-studies/*/articles/*/scoreboard.html -- only bare repo-name mentions in fleet-reliability-day.html and fleet-audit-methodology.html, no numeric test-count citation either place). Tool count not re-checked this pass."
 
 ["options-bot"]
 value = 371
@@ -72,13 +72,13 @@ status = "verified"
 note = "DRIFT AGAIN 2026-07-20/21 (sixth rot since 07-06: 186->281->292->299->321->353): tastytrade price_effect sign-fix (+21 tests) and test-log-isolation fix (+2 tests) merged to master. Re-verified in options-bot's own .venv. Prior: DRIFT AGAIN 2026-07-19 (299->321)."
 
 ["discord-mcp"]
-value = 144
+value = 160
 source_repo = "C:\\Users\\jaime\\projects\\discord-mcp"
 source_cmd = ".venv/Scripts/python.exe -m pytest -q"
-tail_line = "144 passed, 1 skipped in 1.34s"
-verified_utc = "2026-07-21T04:48:00+00:00"
+tail_line = "160 passed, 1 skipped (junitxml: tests=161 failures=0 errors=0 skipped=1)"
+verified_utc = "2026-07-23T14:55:11+00:00"
 status = "verified"
-note = "DRIFT 2026-07-20/21: 77->144 (gated write-tools added tonight: create_channel/edit_channel/create_role/edit_role/edit_guild/delete_channel behind DISCORD_MCP_ENABLE_WRITE, mirroring bus-mcp's pattern). Still not cited as a proof number anywhere in site content (not re-checked this pass, prior grep from 07-08 assumed still valid). Live tool count now 11 (5 read + 6 gated write), not 5. Found + fixed during the site/port-sprint-landing merge reconciliation, blocking an unrelated pre-commit hook check."
+note = "DRIFT FOUND 2026-07-23 (checker-parse-fix lane: junitxml live-check fix caught real drift previously hidden behind a silent WARN -- this entry's plain '-q' output is dots-only under piped capture, same suppressed-summary class as github-mcp/desktop-mcp/bus-mcp). 144->160 since the 07-21 04:48 UTC seed: 'Add create_message write tool (7th write tool, gated)' (6769e5c, 2026-07-21 09:00 local, i.e. AFTER that verification timestamp) added the 7th gated write tool plus its dedicated test coverage (+16). Cross-checked against the repo's own README Tests badge, which already reads '161 (160 passing, 1 skipped)' -- manifest catching up to a repo that self-corrected. Still not cited as a proof number anywhere in site content (re-verified 2026-07-23: grepped index.html/README.md/GO-LIVE.md/case-studies/*/articles/*/scoreboard.html -- only bare repo-name mentions in fleet-reliability-day.html and fleet-audit-methodology.html, no numeric test-count citation either place). Tool count not re-verified this pass -- no manifest field tracks it and this lane's scope is test counts only."
 
 ["reliability-retainer"]
 value = 265
