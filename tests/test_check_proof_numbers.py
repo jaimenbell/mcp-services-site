@@ -60,6 +60,44 @@ def test_stale_number_fails_with_file_line_and_expected_found(tmp_path):
     assert f"{f}:2" in rendered or ":2:" in rendered
 
 
+def test_commit_pinned_historical_citation_warns_not_fails(tmp_path):
+    """A test-count citation that explicitly names the specific historical
+    commit it describes (e.g. 'suite at 49f556e') is a point-in-time fact,
+    not a live claim -- it must WARN (visible, non-blocking) rather than
+    FAIL even when it disagrees with the CURRENT manifest value. Real case:
+    case-studies/sample-report-rag-mcp.html pins 410/419 to commit 49f556e
+    forever, even after the live scanner suite grows past it."""
+    manifest = {"mcp-security-scanner": 430}
+    f = write(
+        tmp_path,
+        "sample-report.html",
+        "<tr><td>Scanner test suite at that version</td><td>410 passing "
+        "(mcp-security-scanner suite at 49f556e; 419 total, 9 environment-gated "
+        "skips)</td></tr>\n",
+    )
+    findings = cpn.scan_file(f, manifest)
+    fails = [x for x in findings if x.verdict == "FAIL"]
+    warns = [x for x in findings if x.verdict == "WARN" and x.pinned]
+    assert fails == [], f"pinned historical citation must not FAIL: {[x.format() for x in findings]}"
+    assert any(w.number == 410 and w.expected == 430 for w in warns)
+
+
+def test_unpinned_stale_citation_in_same_style_still_fails(tmp_path):
+    """Guardrail against over-broadening: dropping the commit-hash pin from
+    the same sentence shape must go back to FAIL -- only an explicit
+    named-commit citation is exempted, not any prose mentioning the repo."""
+    manifest = {"mcp-security-scanner": 430}
+    f = write(
+        tmp_path,
+        "case-study.html",
+        "<span class=\"pill\">410 passing tests (mcp-security-scanner)</span>\n",
+    )
+    findings = cpn.scan_file(f, manifest)
+    fails = [x for x in findings if x.verdict == "FAIL"]
+    assert len(fails) == 1
+    assert fails[0].number == 410
+
+
 def test_unknown_number_warns_not_fails(tmp_path):
     """A test-count citation with no corresponding manifest entry WARNs, never fails."""
     manifest = {"mcp-factory": 187}

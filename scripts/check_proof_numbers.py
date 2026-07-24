@@ -157,6 +157,22 @@ LABEL_PATTERNS = [PATTERN_LABELLED, PATTERN_LABELLED_GAP, PATTERN_HYPHENATED, PA
 ROSTER_LINE_RE = re.compile(r"test\s+counts?", re.IGNORECASE)
 ROSTER_PAIR_RE = re.compile(rf"{NUM}\s+([a-zA-Z][a-zA-Z0-9_-]{{1,40}})")
 
+# Commit-pinned historical citation guard (added 2026-07-24, sample-report
+# truth-sync). Some site content deliberately freezes a proof-number to a
+# SPECIFIC past commit -- e.g. case-studies/sample-report-rag-mcp.html's
+# "Scanner test suite at that version: 410 passing ... suite at 49f556e" --
+# describing what was true when that artifact was generated, not a live
+# claim about the current suite. That number is CORRECT forever (it was
+# true at 49f556e) even after the live manifest value moves on, so it must
+# never be treated as drifted. A line is considered pinned when it names a
+# specific commit-ish token (7-12 hex chars) via "at <hash>" / "at commit
+# <hash>" / "as of commit <hash>" -- deliberately narrow so it only exempts
+# citations that actually spell out which historical commit they describe,
+# not every mention of a hash anywhere on the page.
+PIN_MARKER_RE = re.compile(
+    r"\b(?:at|as\s+of)\s+(?:commit\s+)?[0-9a-f]{7,12}\b", re.IGNORECASE
+)
+
 WINDOW = 10  # lines to search above/below for association fallback (d)
 
 # Rule 4f (by-value fallback): when a labelled proof-number has no nearby
@@ -209,7 +225,8 @@ KNOWN_NONCANONICAL_NUMBERS = {186, 2806, 283, 1002, 17}
 
 class Finding:
     def __init__(self, file: Path, line_no: int, line_text: str, number: int,
-                 repo_key: str | None, verdict: str, expected: int | None = None):
+                 repo_key: str | None, verdict: str, expected: int | None = None,
+                 pinned: bool = False):
         self.file = file
         self.line_no = line_no
         self.line_text = line_text
@@ -217,6 +234,11 @@ class Finding:
         self.repo_key = repo_key
         self.verdict = verdict  # "FAIL" | "WARN"
         self.expected = expected
+        # True when this citation was downgraded from FAIL to WARN because
+        # the line explicitly pins the number to a specific historical
+        # commit (see PIN_MARKER_RE) -- a legitimate "this was true at that
+        # version" citation, not a drifted live claim.
+        self.pinned = pinned
 
     def format(self) -> str:
         rel = self.file
@@ -237,6 +259,13 @@ class Finding:
                 f"FAIL {rel}:{self.line_no}: found {self.number}"
                 f" (repo={self.repo_key}), expected {self.expected}"
                 f" per proof-manifest.toml -- {snippet}"
+            )
+        if self.pinned:
+            return (
+                f"WARN {rel}:{self.line_no}: found {self.number}"
+                f" (repo={self.repo_key}), current manifest value"
+                f" {self.expected} -- PINNED to a named historical commit on"
+                f" this line, not a live claim, left as-is -- {snippet}"
             )
         repo_part = f" (repo={self.repo_key})" if self.repo_key else " (no repo association)"
         return f"WARN {rel}:{self.line_no}: found {self.number}{repo_part} -- not in manifest -- {snippet}"
@@ -762,7 +791,11 @@ def scan_file(path: Path, manifest: dict[str, int]) -> list[Finding]:
                 if repo_key is not None and repo_key in manifest:
                     expected = manifest[repo_key]
                     if number != expected:
-                        findings.append(Finding(path, line_no, line, number, repo_key, "FAIL", expected))
+                        if PIN_MARKER_RE.search(line):
+                            findings.append(Finding(path, line_no, line, number, repo_key,
+                                                     "WARN", expected, pinned=True))
+                        else:
+                            findings.append(Finding(path, line_no, line, number, repo_key, "FAIL", expected))
                     # else: matches -- silent pass
                 elif repo_key is None and number not in KNOWN_NONCANONICAL_NUMBERS:
                     # Orphaned: no label, no value match, not a documented
