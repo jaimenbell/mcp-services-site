@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Managed MCP Watch — continuous security scanning for your MCP fleet</title>
+  <meta name="description" content="A recurring service wrapped around the open-source mcp-security-scanner: your CI runs the scan, a human triages every net-new finding against your baseline, and the ruleset stays current as MCP threats evolve. Your source never leaves your CI runner.">
+  <link rel="canonical" href="https://jaimenbell.dev/managed-watch.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="MCP Integration Sprint">
+  <meta property="og:title" content="Managed MCP Watch — continuous security scanning for your MCP fleet">
+  <meta property="og:description" content="Your CI runs the open-source scan. A human triages every net-new finding against your baseline, monthly. Your source never leaves your CI runner — no code custody, ever.">
+  <meta property="og:url" content="https://jaimenbell.dev/managed-watch.html">
+  <meta property="og:image" content="https://jaimenbell.dev/img/og-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="jaimenbell.dev — Production MCP servers for AI agents">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Managed MCP Watch — continuous security scanning for your MCP fleet">
+  <meta name="twitter:description" content="Your CI runs the open-source scan. A human triages every net-new finding against your baseline, monthly. Your source never leaves your CI runner.">
+  <meta name="twitter:image" content="https://jaimenbell.dev/img/og-card.png">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* Managed-Watch-page-specific styling, scoped to this page — reuses the
+       shared --bg/--card/--border/--accent tokens from css/style.css plus
+       the site's already-defined-but-unused .tiers/.proposed/.faq/.steps
+       rules (built for exactly this "recurring offer" shape). No new
+       global rules; a few narrow additions only. */
+    .qual-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 720px) { .qual-list { grid-template-columns: 1fr; } }
+    .qual-list li { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; color: var(--muted); font-size: 0.94rem; }
+    .qual-list b { display: block; color: var(--text); margin-bottom: 4px; }
+    .not-for { border-left: 3px solid var(--warn); background: rgba(251,191,36,0.06); padding: 14px 18px; border-radius: 0 10px 10px 0; margin: 22px 0; color: var(--muted); font-size: 0.94rem; }
+    .not-for b { color: #fcd34d; }
+    .cadence-table { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 0.92rem; }
+    .cadence-table th { text-align: left; background: var(--bg-soft); color: var(--muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    .cadence-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
+    .cadence-table tr:last-child td { border-bottom: none; }
+  </style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="index.html" style="text-decoration:none">MCP<span class="dot">·</span>Engineering</a>
+    <nav class="top">
+      <a href="index.html#proof">Proof</a>
+      <a href="index.html#offer">Offer</a>
+      <a href="case-studies/mcp-security-scanner.html">Scanner</a>
+      <a href="managed-watch.html"><strong>Managed Watch</strong></a>
+      <a href="index.html#faq">FAQ</a>
+      <a href="mailto:jaime@jaimenbell.dev">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero" style="border-bottom:1px solid var(--border)">
+  <div class="wrap">
+    <div class="eyebrow">Recurring · CI-gate · human-triaged</div>
+    <h1>Managed <span class="hl">MCP Watch</span></h1>
+    <p class="lead">
+      Continuous security scanning for teams running MCP servers in production — wired into
+      your CI, kept current as the MCP threat landscape moves, and triaged monthly by a
+      human so your team never chases a false alarm.
+    </p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="mailto:jaime@jaimenbell.dev?subject=Managed%20MCP%20Watch%20-%20scoping%20call">Book a scoping call</a>
+      <a class="btn btn-ghost" href="case-studies/mcp-security-scanner.html">See the underlying scanner →</a>
+    </div>
+  </div>
+</section>
+
+<section style="border-bottom:0">
+  <div class="wrap">
+    <article class="cs" style="max-width:840px">
+
+      <div class="honest">
+        <p>
+          <strong>The honest premise, up front:</strong> the scanner underneath this service is
+          MIT-licensed and public. You can clone <code>mcp-security-scanner</code>, wire
+          <code>--fail-on P1</code> into your own CI, and gate your builds with it for
+          <strong>$0, forever</strong> — I say this in every sales conversation, not just here. Managed
+          Watch does not sell you the binary. It sells the human work a public repo cannot do for
+          itself: triaging every net-new finding against your baseline, keeping the ruleset current,
+          and being someone you can ask.
+        </p>
+      </div>
+
+      <h2>What Managed Watch actually is</h2>
+      <p>
+        The open-source <a href="case-studies/mcp-security-scanner.html">mcp-security-scanner</a>
+        runs as a GitHub Action inside <strong>your</strong> CI — on push, plus a weekly scheduled
+        run — checking your MCP server against seven detector families: codegen/template
+        injection, tool-parameter injection into a shell or eval, auth/network posture gaps,
+        secret handling, write-tools-on-by-default / tool-scope-creep, secret-leak-via-tool-response,
+        and job hazards in cron/CI/deploy files. A P0/P1 finding fails the build instead of merging
+        silently. On top of the raw scan, every finding is graded for reachability (does a
+        registered MCP tool actually reach this code path) and tool-parameter taint — never
+        dropping a finding, only raising or lowering its confidence.
+      </p>
+      <p>
+        That part is the free, self-serve CI gate. <strong>Managed Watch is the recurring layer
+        wrapped around it</strong>: once a month I pull your latest scan, diff it against your
+        per-client baseline, give every net-new finding a plain human verdict — real, false
+        positive, or accepted risk — and send a short written digest. False positives get
+        suppressed in your baseline so they never nag your team again. If a P0 turns up real at
+        any point, you hear about it the same day, not at the next digest.
+      </p>
+
+      <h2>Who this is for</h2>
+      <p class="sub" style="margin-bottom:16px">
+        The recurring value only holds if all four of these are true — otherwise a one-time scan
+        is the honest answer, not a subscription.
+      </p>
+      <ul class="qual-list">
+        <li><b>A fleet, not a hobby project</b>Two or more MCP servers in production. One static server is a one-shot scan, not a watch.</li>
+        <li><b>The servers actually change</b>Weekly-plus commits. Continuous scanning earns its keep against regression — a frozen repo gets nothing a single scan didn't already give it.</li>
+        <li><b>Real capability exposure</b>Write tools, shell/DB access, or endpoints reachable by untrusted agent input — something where a net-new P0/P1 is a genuine "glad we caught that."</li>
+        <li><b>Security-conscious, no dedicated appsec hire</b>A small eng team that cares but has nobody whose job is to re-run SAST and separate real hits from heuristic noise. The triage is the thing you can't staff yet.</li>
+      </ul>
+
+      <div class="not-for">
+        <p>
+          <b>Said plainly, who this is not for:</b> a solo dev with one unchanging MCP server (the
+          free CI gate is enough — don't pay for a watch on a picture that doesn't move), and large
+          enterprises already running their own SAST/appsec function. Selling a watch to a static
+          repo is a churn risk and an honesty problem, not a sale worth making.
+        </p>
+      </div>
+
+      <h2>What you get</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>CI security gate</h3>
+          <p>The scanner runs on every push plus a weekly scheduled scan, via a ten-line GitHub Action addition. A P0/P1 finding fails the build.</p>
+        </div>
+        <div class="card">
+          <h3>Monthly human-triaged digest</h3>
+          <p>Every net-new finding gets a real verdict — REAL / FALSE POSITIVE / ACCEPTED RISK — against your baseline, not a bot re-running the same rules at you.</p>
+        </div>
+        <div class="card">
+          <h3>Rule freshness</h3>
+          <p>The ruleset ships as versioned releases as the MCP threat landscape moves. Your digest tells you when a pin bump is worth it — nothing auto-updates underneath you.</p>
+        </div>
+        <div class="card">
+          <h3>A human to ask</h3>
+          <p>A confusing finding gets a plain-language email answer from the person who wrote the detection rule — not a ticket queue.</p>
+        </div>
+      </div>
+
+      <h2>Cadence and report format</h2>
+      <table class="cadence-table">
+        <tr><th>Cadence</th><th>What happens</th></tr>
+        <tr><td>Every push + weekly</td><td>CI Action runs the scan; a P0/P1 finding fails your build (<code>--fail-on P1</code>).</td></tr>
+        <tr><td>Monthly</td><td>Net-new findings triaged against your baseline; a written digest covers: TL;DR, net-new findings (triaged), what resolved since last month, baseline changes, rule updates worth a pin bump, a trend table, and an honest coverage note stating exactly what the digest is and isn't based on this month.</td></tr>
+        <tr><td>Any time</td><td>A P0 verdict of REAL triggers a same-day short email — the only pager-shaped obligation, and it's triggered by triage, not by your CI failing (that's your build gate doing its job).</td></tr>
+      </table>
+
+      <h2>Remediation guidance</h2>
+      <p>
+        Every finding in the underlying report already carries a severity, an honest confidence
+        (high / medium / low), a <code>file:line</code>, and a concrete fix — that's the free
+        report format. The Watch's added value is the monthly human layer on top: telling you
+        which of those findings are real for <em>your</em> repo versus heuristic noise, and being
+        reachable when a fix isn't obvious. Turning a finding into a shipped, re-verified fix is
+        the separate Fix-It add-on below, priced per finding once the audit scopes the work.
+      </p>
+
+      <div class="honest">
+        <p>
+          <strong>The privacy model, stated once, in full:</strong> the scan runs on <em>your</em>
+          CI runner. Your source code never reaches me — full stop. The findings report lands in
+          <em>your</em> artifact store. An optional counts-only webhook (off by default, no code,
+          no paths, no finding text) is the only thing that can leave your environment, and only if
+          you turn it on. I hold no credentials, ever. Funded competitors who take code custody — a
+          dashboard you upload your repo to — cannot say this structurally; a solo operator with no
+          hosted infrastructure can.
+        </p>
+      </div>
+
+      <h2>Pricing</h2>
+      <div class="proposed">
+        <strong>Pricing shown below is PROPOSED, not final.</strong> Confirm the number on a
+        scoping call before treating it as a quote — same convention as every other price on this
+        site.
+      </div>
+      <div class="tiers">
+        <div class="tier">
+          <div class="name">One-Shot Audit</div>
+          <div class="price">$250–750<small>/ fixed scope</small></div>
+          <div class="when">Point-in-time · opens every engagement</div>
+          <ul>
+            <li>Full scan across all seven detector families</li>
+            <li>Reachability + taint grading on every finding</li>
+            <li>8-section human-reviewed client report</li>
+            <li>No recurring commitment</li>
+          </ul>
+          <a class="btn btn-ghost" href="mailto:jaime@jaimenbell.dev?subject=One-shot%20MCP%20audit">Scope this</a>
+        </div>
+        <div class="tier featured">
+          <div class="name">Managed MCP Watch</div>
+          <div class="price">$99–149<small>/ mo — TBD-operator</small></div>
+          <div class="when">The recurring wedge · this page</div>
+          <ul>
+            <li>Everything in the free CI gate, wired in for you</li>
+            <li>Monthly human-triaged digest against your baseline</li>
+            <li>Rule freshness on a stated release cadence</li>
+            <li>A human to ask, plain-language answers</li>
+          </ul>
+          <a class="btn btn-primary" href="mailto:jaime@jaimenbell.dev?subject=Managed%20MCP%20Watch%20-%20scoping%20call">Start the watch</a>
+        </div>
+        <div class="tier">
+          <div class="name">Fix-It Add-On</div>
+          <div class="price">Scoped<small>/ per finding</small></div>
+          <div class="when">Optional · closes the gaps found</div>
+          <ul>
+            <li>Each finding fixed and re-verified</li>
+            <li>Follow-up scan confirms it's cleared</li>
+            <li>Natural bolt-on to an audit or the watch</li>
+          </ul>
+          <a class="btn btn-ghost" href="mailto:jaime@jaimenbell.dev?subject=Fix-it%20add-on">Ask about this</a>
+        </div>
+      </div>
+
+      <h2>FAQ</h2>
+      <div class="faq">
+        <details>
+          <summary>The scanner is free and MIT-licensed. Why pay monthly?</summary>
+          <p>
+            Because a clone gives you the scan, not the triage. The subscription buys three
+            things a public repo structurally can't: a human verdict on every net-new finding
+            against your baseline (so you never chase a false alarm), a ruleset kept current as
+            MCP threats evolve, and a person to ask when a finding is confusing. The automation is
+            the hook; the human work is what's actually being paid for.
+          </p>
+        </details>
+        <details>
+          <summary>Will this touch or break our production systems?</summary>
+          <p>
+            No. The scan is static-only: it reads git-tracked source and never runs, deploys, or
+            executes anything in your repo. It runs inside your own CI runner — nothing of yours
+            is executed, modified, or deleted by me at any point.
+          </p>
+        </details>
+        <details>
+          <summary>What if the scan finds nothing?</summary>
+          <p>
+            Then the digest says so, plainly — it does not manufacture a finding to justify the
+            fee. A clean bill isn't a guarantee of security; static analysis has a stated scope,
+            and every report says what it can and can't prove.
+          </p>
+        </details>
+        <details>
+          <summary>Do you hold our code or credentials?</summary>
+          <p>
+            Never. The scan runs on your CI runner; the full report lands in your artifact store.
+            The only thing that can leave your environment is an optional counts-only webhook
+            (off by default), and even that carries no code, no file paths, and no finding text.
+          </p>
+        </details>
+        <details>
+          <summary>We only have one MCP server. Should we still sign up?</summary>
+          <p>
+            Probably not yet — the free CI gate covers a single, slowly-changing server just
+            fine. The recurring watch earns its keep against a multi-server fleet that changes
+            regularly. Ask on a scoping call and I'll say honestly if the watch is overkill for
+            your shape.
+          </p>
+        </details>
+      </div>
+
+      <p style="margin-top:32px">
+        <a class="btn btn-primary" href="mailto:jaime@jaimenbell.dev?subject=Managed%20MCP%20Watch%20-%20scoping%20call">Book a scoping call</a>
+        &nbsp;<a class="btn btn-ghost" href="case-studies/mcp-security-scanner.html">Read the scanner case study →</a>
+      </p>
+    </article>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    <span>MCP Server Engineering · auth-scoped, fail-soft, tested.</span>
+    <span><a href="https://github.com/jaimenbell/mcp-security-scanner">GitHub</a> · <a href="mailto:jaime@jaimenbell.dev">jaime@jaimenbell.dev</a> <span id="discord-footer-link-wrap" style="display:none">· <a id="discord-footer-link" href="" target="_blank" rel="noopener">Discord</a></span></span>
+  </div>
+</footer>
+
+<script src="js/discord-cta.js" defer></script>
+</body>
+</html>
