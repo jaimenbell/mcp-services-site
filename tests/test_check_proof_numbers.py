@@ -1271,3 +1271,51 @@ def test_live_check_junitxml_preferred_over_summary_line_when_both_present(tmp_p
     results = cpn.live_verify_manifest({"github-mcp": entry})
     assert results[0].status == "OK"
     assert results[0].live_value == 86
+
+
+# --- e2e gap closed 2026-07-24 (P3 from the manifest-path-hardening review):
+# every local-override integration test above either (a) proves the override
+# is *wired* (test_run_auto_discovers_sibling_local_override_file, live value
+# AGREES) or (b) proves a *direct* source_repo drift fails
+# (test_run_end_to_end_live_check_fails_even_when_citations_agree, no local
+# override involved at all). Nothing chained the two together: local
+# override present + the live repo it points at has actually drifted from
+# the manifest -- through the real run() entrypoint, gate-mode. ---
+
+def test_run_with_local_override_present_and_live_drift_still_fails(tmp_path):
+    """The gap: a tracked manifest carrying only source_repo_public (the
+    publicly-served, no-filesystem-path shape from the hardening lane) plus
+    a sibling proof-manifest.local.toml supplying the real source_repo --
+    exactly test_run_auto_discovers_sibling_local_override_file's setup --
+    but this time the live repo's actual count has drifted from the
+    manifest's stale value. Site citations still agree with the (stale)
+    manifest, so the old citation-only gate would pass; run() must still
+    exit 2 because the live-via-local-override check disagrees."""
+    repo_dir = tmp_path / "mcp-factory"
+    _write_fake_runner(repo_dir, passed_count=230)  # live has moved past 222
+
+    manifest_toml = tmp_path / "proof-manifest.toml"
+    manifest_toml.write_text(
+        '["mcp-factory"]\n'
+        "value = 222\n"
+        f'source_cmd = "{Path(sys.executable).as_posix()} fake_runner.py"\n'
+        'source_repo_public = "jaimenbell/mcp-factory"\n',
+        encoding="utf-8",
+    )
+    local_toml = tmp_path / "proof-manifest.local.toml"
+    local_toml.write_text(
+        f'["mcp-factory"]\nsource_repo = "{repo_dir.as_posix()}"\n',
+        encoding="utf-8",
+    )
+    site_dir = tmp_path / "site"
+    site_dir.mkdir()
+    # Citation matches the (now-stale) manifest value -- citation-vs-manifest
+    # alone would pass this commit.
+    write(site_dir, "index.html", "<p>mcp-factory: 222 passing tests</p>\n")
+
+    exit_code = cpn.run(root=site_dir, manifest_path=manifest_toml, target_patterns=["*.html"])
+
+    assert exit_code == 2, (
+        "a local override pointing at a repo whose live count has drifted "
+        "from the manifest must still fail the gate, even though the site "
+        "citation agrees with the stale manifest value")
