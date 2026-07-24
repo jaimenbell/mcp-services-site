@@ -99,12 +99,12 @@ git push origin main
   either the mail client with the right address + subject, or the Calendly page if that path was
   used.
 - Click the footer "Contact" link and the footer email text link — same check.
-- Confirm the "222 passing tests" / "mcp-factory" and "60 tests" / "rag-mcp" links resolve to the
+- Confirm the "222 passing tests" / "mcp-factory" and "68 tests" / "rag-mcp" links resolve to the
   public repos.
 
 ## Notes for future updates
 
-- Test counts (222 mcp-factory, 60 rag-mcp, 371 options-bot, 430 mcp-security-scanner) were
+- Test counts (222 mcp-factory, 68 rag-mcp, 371 options-bot, 430 mcp-security-scanner) were
   live-verified 2026-07-22 (evening-ceremony preflight) by running each suite in its own repo's
   venv/interpreter — not copied from an old claim. mcp-security-scanner re-verified 2026-07-23:
   195 -> 257 -> 264 -> 337 -> 410 -> 430 passing / 439 total (tool-discovery low-level SDK + detector-5/6 low-level

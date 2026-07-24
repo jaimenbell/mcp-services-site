@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Case study: video-digest — $0 local video-to-keyframes+transcript+digest pipeline (68 tests)</title>
+  <meta name="description" content="video-digest: turn a video (URL or local file) into keyframes + a timestamped transcript + a structured markdown digest, fully local, $0 cloud cost. yt-dlp + ffmpeg + faster-whisper, every subprocess/model/HTTP call dependency-injected and mocked in tests. 68 passing tests, public repo.">
+  <link rel="canonical" href="https://jaimenbell.dev/case-studies/video-digest.html">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="MCP Integration Sprint">
+  <meta property="og:title" content="Case study: video-digest — $0 local video-to-keyframes+transcript+digest pipeline (68 tests)">
+  <meta property="og:description" content="video-digest: turn a video into keyframes + a timestamped transcript + a structured markdown digest, fully local, $0 cloud cost. yt-dlp + ffmpeg + faster-whisper. 68 passing tests, public repo.">
+  <meta property="og:url" content="https://jaimenbell.dev/case-studies/video-digest.html">
+  <meta property="og:image" content="https://jaimenbell.dev/img/og-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="jaimenbell.dev — Production MCP servers for AI agents">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Case study: video-digest — $0 local video-to-keyframes+transcript+digest pipeline (68 tests)">
+  <meta name="twitter:description" content="video-digest: turn a video into keyframes + a timestamped transcript + a structured markdown digest, fully local, $0 cloud cost. 68 passing tests.">
+  <meta name="twitter:image" content="https://jaimenbell.dev/img/og-card.png">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="../index.html" style="text-decoration:none">MCP<span class="dot">·</span>Engineering</a>
+    <nav class="top">
+      <a href="../index.html#proof">Proof</a>
+      <a href="../index.html#offer">Offer</a>
+      <a href="../index.html#faq">FAQ</a>
+      <a href="mailto:jaime@jaimenbell.dev">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<section style="border-bottom:0">
+  <div class="wrap">
+    <article class="cs">
+      <a class="back" href="../index.html#cases">← All case studies</a>
+      <h1>video-digest — video in, working material out, $0</h1>
+      <div class="meta">// data-pipeline category · 68 passing tests · fully local, $0 cloud cost · public repo</div>
+
+      <span class="pill">Python CLI pipeline</span>
+      <span class="pill">68 passing tests</span>
+      <span class="pill">$0 / local</span>
+      <span class="pill">dependency-injected I/O</span>
+      <span class="pill">public repo</span>
+
+      <h2>The problem</h2>
+      <p>
+        Claude can read images and text but not watch a video or listen to audio. Every "let Claude
+        review this clip" workflow starts with a manual, repetitive extraction step — screenshot the
+        interesting frames, transcribe or re-watch for the quotable lines — before the model can
+        actually engage with the content. That extraction step is exactly the kind of mechanical work
+        that should be a pipeline, not a person.
+      </p>
+
+      <h2>What I built</h2>
+      <p>
+        <strong>video-digest</strong> takes a video URL or a local mp4 path and produces keyframes, a
+        timestamped transcript, and a structured markdown digest — fully local, no cloud API calls
+        except <code>yt-dlp</code> fetching the URL you gave it.
+      </p>
+      <ul>
+        <li><strong>Five-stage pipeline</strong> — <code>acquire</code> (yt-dlp download, or passthrough
+        for a local path) → <code>keyframes</code> (ffmpeg scene-change detection, <code>select='gt(scene,0.3)'</code>,
+        plus a floor of 1 frame/N seconds, capped at ~20-40 frames) → <code>audio</code> (ffmpeg mono
+        16kHz wav) → <code>transcript</code> (faster-whisper, local, $0, timestamped) →
+        <code>digest</code> (assembles the markdown template).</li>
+        <li><strong>Honest about where synthesis stops</strong> — the digest-assembly step does not
+        perform visual synthesis itself. It assembles a template with a TODO placeholder per keyframe;
+        actually looking at the frames and writing the visual notes / ideas / action items is a human
+        or Claude-in-the-loop step done after the pipeline runs, because that's the part of the
+        workflow that can actually see the images.</li>
+        <li><strong>Optional local-vLLM first pass</strong> — if a local vLLM server is reachable at
+        <code>localhost:8000</code>, its model is asked for a mechanical, text-only first-pass summary
+        of the transcript (the vLLM call never sees the keyframe images — that stays Claude/human-only).
+        If the server isn't reachable, the pipeline falls back to the placeholder automatically; this
+        is never a hard dependency.</li>
+      </ul>
+
+      <div class="evidence">
+        <h3>Evidence you can check yourself</h3>
+        <p>
+          Public on purpose — every claim maps to a file you can open before you reply:
+        </p>
+        <ul>
+          <li>Repo: <a href="https://github.com/jaimenbell/video-digest">github.com/jaimenbell/video-digest</a> (MIT)</li>
+          <li>Tests: global <code>python -m pytest -q</code> (no repo-local venv) → <code>68 passed</code>
+          (junitxml: 68 total, 0 failed, 0 errors, 0 skipped). Every subprocess call (<code>yt-dlp</code>,
+          <code>ffmpeg</code>, <code>ffprobe</code>) and every model/HTTP call (faster-whisper's
+          <code>WhisperModel</code>, the local vLLM request) is dependency-injected behind a
+          <code>runner=subprocess.run</code> / <code>model_factory=</code> / <code>http_post=</code>
+          default argument — the suite never invokes a real binary, loads a real Whisper model, or
+          makes a real network request.</li>
+          <li>One test file per module in <code>tests/</code>, matching the <code>video_digest/</code>
+          module layout 1:1 (<code>acquire.py</code>, <code>keyframes.py</code>, <code>audio.py</code>,
+          <code>transcript.py</code>, <code>vllm_summary.py</code>, <code>digest.py</code>, <code>cli.py</code>).</li>
+        </ul>
+      </div>
+
+      <div class="honest">
+        <p>
+          The README leads with limitations, not features. Developed and tested on Windows —
+          <code>ffmpeg</code>/<code>ffprobe</code> invocation should be POSIX-compatible but is not
+          verified on macOS/Linux. Scene-change keyframe detection is a heuristic (ffmpeg's
+          <code>scene</code> filter plus a floor interval); it won't perfectly match every video's
+          actual cut points, especially on long or slow-paced source material. The optional vLLM
+          summary step requires you to already have a server running — this repo doesn't stand one
+          up for you. And there's no PyPI package yet — install from source.
+        </p>
+      </div>
+
+      <h2>What it shows about how I work</h2>
+      <p>
+        This is the same discipline as the MCP servers in this portfolio, applied to a plain CLI
+        pipeline instead of an MCP surface: every external dependency (subprocess, model, HTTP) goes
+        through an injectable seam so the test suite can prove the pipeline's logic without ever
+        touching a real binary or a real network call, and the README says exactly where the tool's
+        synthesis stops and a human's begins — no tool claims to do more than it does.
+      </p>
+
+      <p style="margin-top:32px">
+        <a class="btn btn-primary" href="mailto:jaime@jaimenbell.dev?subject=MCP%20scoping%20call">Book a scoping call</a>
+        &nbsp;<a class="btn btn-ghost" href="honest-harness.html">Next case study →</a>
+      </p>
+    </article>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    <span>MCP Server Engineering · auth-scoped, fail-soft, tested.</span>
+    <span><a href="https://github.com/jaimenbell/video-digest">GitHub</a> · <a href="mailto:jaime@jaimenbell.dev">jaime@jaimenbell.dev</a> <span id="discord-footer-link-wrap" style="display:none">· <a id="discord-footer-link" href="" target="_blank" rel="noopener">Discord</a></span></span>
+  </div>
+</footer>
+
+<script src="../js/discord-cta.js" defer></script>
+</body>
+</html>

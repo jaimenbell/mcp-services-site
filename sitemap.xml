@@ -67,6 +67,18 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://jaimenbell.dev/case-studies/discord-mcp.html</loc>
+    <lastmod>2026-07-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://jaimenbell.dev/case-studies/video-digest.html</loc>
+    <lastmod>2026-07-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://jaimenbell.dev/scoreboard.html</loc>
     <lastmod>2026-07-04</lastmod>
     <changefreq>weekly</changefreq>

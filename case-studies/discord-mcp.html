@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Case study: discord-mcp — a read+gated-write MCP server over the Discord REST API (162 tests)</title>
+  <meta name="description" content="discord-mcp: 5 always-on read tools + 7 permission-gated write tools over the Discord REST API, exposed as MCP tools. Write group OFF by default, gated at the route layer not just the tool wrapper. 162 passing tests, public repo.">
+  <link rel="canonical" href="https://jaimenbell.dev/case-studies/discord-mcp.html">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="MCP Integration Sprint">
+  <meta property="og:title" content="Case study: discord-mcp — a read+gated-write MCP server over the Discord REST API (162 tests)">
+  <meta property="og:description" content="discord-mcp: 5 always-on read tools + 7 permission-gated write tools over the Discord REST API. Write group OFF by default, gated at the route layer, not just the tool wrapper. 162 passing tests, public repo.">
+  <meta property="og:url" content="https://jaimenbell.dev/case-studies/discord-mcp.html">
+  <meta property="og:image" content="https://jaimenbell.dev/img/og-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="jaimenbell.dev — Production MCP servers for AI agents">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Case study: discord-mcp — a read+gated-write MCP server over the Discord REST API (162 tests)">
+  <meta name="twitter:description" content="discord-mcp: 5 always-on read tools + 7 permission-gated write tools over the Discord REST API. Write group OFF by default, gated at the route layer. 162 passing tests.">
+  <meta name="twitter:image" content="https://jaimenbell.dev/img/og-card.png">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="../index.html" style="text-decoration:none">MCP<span class="dot">·</span>Engineering</a>
+    <nav class="top">
+      <a href="../index.html#proof">Proof</a>
+      <a href="../index.html#offer">Offer</a>
+      <a href="../index.html#faq">FAQ</a>
+      <a href="mailto:jaime@jaimenbell.dev">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<section style="border-bottom:0">
+  <div class="wrap">
+    <article class="cs">
+      <a class="back" href="../index.html#cases">← All case studies</a>
+      <h1>discord-mcp — read+write over the Discord REST API, write off by default</h1>
+      <div class="meta">// integration category · 162 passing tests · 5 read + 7 gated write · public repo</div>
+
+      <span class="pill">Python MCP SDK</span>
+      <span class="pill">162 passing tests</span>
+      <span class="pill">write off by default</span>
+      <span class="pill">route-layer gate</span>
+      <span class="pill">public repo</span>
+
+      <h2>The problem</h2>
+      <p>
+        A Discord bot that can read channel/role structure is low-risk. The same bot wired to also
+        <em>create</em> channels, edit roles, or delete a channel an agent misjudged is a different
+        risk class entirely — and the common failure mode isn't a missing permission check, it's a
+        gate that only lives in the MCP tool wrapper while the underlying function is still directly
+        callable and untested in isolation. If the gate isn't provably enforced at the source, an
+        agent with the right imports (or a future refactor) can route around it.
+      </p>
+
+      <h2>What I built</h2>
+      <p>
+        <strong>discord-mcp</strong> is an MCP server over the Discord REST API: 5 always-on
+        <strong>read</strong> tools and 7 <strong>write</strong> tools that are OFF by default and
+        refuse locally unless <code>DISCORD_MCP_ENABLE_WRITE</code> is set truthy in the server's
+        own environment.
+      </p>
+      <ul>
+        <li><strong>Read, unconditional</strong> — <code>list_channels</code>, <code>list_roles</code>,
+        <code>list_categories</code>, <code>get_channel_permission_overwrites</code>,
+        <code>get_member_roles</code>. Never gated, by design — unchanged from the server's original
+        5-tool, read-only scope.</li>
+        <li><strong>Write, gated at the route, not just the tool wrapper</strong> —
+        <code>create_channel</code>, <code>edit_channel</code>, <code>delete_channel</code>,
+        <code>create_role</code>, <code>edit_role</code>, <code>edit_guild</code>,
+        <code>create_message</code> each go through a <code>gated_write</code> decorator applied
+        directly to the route function in <code>routes.py</code>. A disabled call returns a
+        structured <code>policy_refusal</code> payload with <em>no Discord call ever attempted</em> —
+        not even a coroutine created for one.</li>
+        <li><strong>No lower bar for the destructive one</strong> — <code>delete_channel</code> gets
+        no separate, looser gate despite being the most dangerous write. It goes through the exact
+        same <code>GROUP_WRITE</code> check as the other six.</li>
+        <li><strong>Env read fresh every call</strong> — the gate reads <code>os.environ</code> on
+        every invocation, never cached at import time, so an operator can arm/disarm without
+        restarting the process and tests can monkeypatch it directly.</li>
+      </ul>
+
+      <div class="evidence">
+        <h3>Evidence you can check yourself</h3>
+        <p>
+          Public on purpose — every claim maps to a file you can open before you reply:
+        </p>
+        <ul>
+          <li>Repo: <a href="https://github.com/jaimenbell/discord-mcp">github.com/jaimenbell/discord-mcp</a> (MIT), squash-clean history on <code>master</code>.</li>
+          <li>Tests: <code>.venv/Scripts/python.exe -m pytest -q</code> → <code>162 passed, 1 skipped</code> (junitxml: 163 total, 0 failed, 0 errors; the 1 skip is a real-network live smoke gated behind <code>DISCORD_MCP_LIVE=1</code>).</li>
+          <li><code>discord_mcp/config.py</code>'s <code>gated_write</code> decorator and <code>_ENV_GATES</code> map are the whole enforcement surface — no separate allowlist to drift out of sync with the route file.</li>
+        </ul>
+      </div>
+
+      <div class="honest">
+        <p>
+          Stated plainly: this is a REST wrapper, not a Discord Gateway bot — no real-time event
+          listening (message-create webhooks, presence updates), just request/response tool calls
+          against Discord's HTTP API. The bot token is read fresh from the environment on every call
+          and never logged or included in an error payload, but its custody is still the operator's
+          responsibility — this server has no secret-storage layer of its own. And the write gate is
+          a local policy refusal, not a Discord-side permission restriction: an agent with
+          <code>DISCORD_MCP_ENABLE_WRITE=1</code> set can still only do what the underlying bot's
+          actual Discord role permissions allow — the gate controls whether this server will
+          <em>attempt</em> the call, not what Discord itself will accept.
+        </p>
+      </div>
+
+      <h2>What it shows about how I work</h2>
+      <p>
+        Same pattern as the rest of this portfolio's write-gated servers (bus-mcp, github-mcp,
+        desktop-mcp): copy the gate shape that's already been hardened elsewhere, enforce it at the
+        function that does the dangerous thing rather than at a layer an agent might not go through,
+        and give the destructive action zero special treatment that would make it easier to reach.
+      </p>
+
+      <p style="margin-top:32px">
+        <a class="btn btn-primary" href="mailto:jaime@jaimenbell.dev?subject=MCP%20scoping%20call">Book a scoping call</a>
+        &nbsp;<a class="btn btn-ghost" href="video-digest.html">Next case study →</a>
+      </p>
+    </article>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    <span>MCP Server Engineering · auth-scoped, fail-soft, tested.</span>
+    <span><a href="https://github.com/jaimenbell/discord-mcp">GitHub</a> · <a href="mailto:jaime@jaimenbell.dev">jaime@jaimenbell.dev</a> <span id="discord-footer-link-wrap" style="display:none">· <a id="discord-footer-link" href="" target="_blank" rel="noopener">Discord</a></span></span>
+  </div>
+</footer>
+
+<script src="../js/discord-cta.js" defer></script>
+</body>
+</html>

@@ -1028,8 +1028,8 @@
       </a>
       <a class="proof-card reveal" href="case-studies/rag-mcp.html">
         <div class="ph"><h3>// rag-mcp</h3></div>
-        <p>Retrieval-augmented search exposed as an MCP tool. Local ONNX embeddings, fail-soft, 60 tests, $0 inference cost.</p>
-        <div class="proof-meta"><span class="chip green">✓ 60 tests</span><span class="chip">$0 inference</span></div>
+        <p>Retrieval-augmented search exposed as an MCP tool. Local ONNX embeddings, fail-soft, 68 tests, $0 inference cost.</p>
+        <div class="proof-meta"><span class="chip green">✓ 68 tests</span><span class="chip">$0 inference</span></div>
         <span class="proof-link">Read the case study
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
         </span>
@@ -1054,6 +1054,22 @@
         <div class="ph"><h3>// vllm-ops-mcp</h3></div>
         <p>Read-only ops/health for a local vLLM server: two-tier health (liveness vs real generation), GPU/VRAM, systemd status, live serve-flag introspection with secret redaction. Read-only, no lifecycle control, 95 passing tests, public repo.</p>
         <div class="proof-meta"><span class="chip green">✓ 95 tests</span><span class="chip">read-only ops</span><span class="chip">public repo</span></div>
+        <span class="proof-link">Read the case study
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+        </span>
+      </a>
+      <a class="proof-card reveal" href="case-studies/discord-mcp.html">
+        <div class="ph"><h3>// discord-mcp</h3></div>
+        <p>Read+write over the Discord REST API: 5 always-on read tools, 7 write tools gated at the route layer (not just the tool wrapper) and OFF by default. The destructive one (delete_channel) gets no separate, looser bar. 162 passing tests, public repo.</p>
+        <div class="proof-meta"><span class="chip green">✓ 162 tests</span><span class="chip">write off by default</span><span class="chip">public repo</span></div>
+        <span class="proof-link">Read the case study
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+        </span>
+      </a>
+      <a class="proof-card reveal" href="case-studies/video-digest.html">
+        <div class="ph"><h3>// video-digest</h3></div>
+        <p>Video in, working material out: keyframes + timestamped transcript + structured markdown digest, fully local, $0 cloud cost. Every subprocess/model/HTTP call dependency-injected and mocked in tests. 68 passing tests, public repo.</p>
+        <div class="proof-meta"><span class="chip green">✓ 68 tests</span><span class="chip">$0 / local</span><span class="chip">public repo</span></div>
         <span class="proof-link">Read the case study
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
         </span>

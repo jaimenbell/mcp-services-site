@@ -3,20 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Case study: rag-mcp — a citation-backed RAG retrieval MCP server (60 tests)</title>
-  <meta name="description" content="rag-mcp: a single-tool MCP server for retrieval-augmented search. Local ONNX bge-large embeddings, Chroma vector store, scoped to a corpus root, fail-soft, citation-carrying. 60 tests, $0 inference.">
+  <title>Case study: rag-mcp — a citation-backed RAG retrieval MCP server (68 tests)</title>
+  <meta name="description" content="rag-mcp: a single-tool MCP server for retrieval-augmented search. Local ONNX bge-large embeddings, Chroma vector store, scoped to a corpus root, fail-soft, citation-carrying. 68 tests, $0 inference.">
   <link rel="canonical" href="https://jaimenbell.dev/case-studies/rag-mcp.html">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="MCP Integration Sprint">
-  <meta property="og:title" content="Case study: rag-mcp — a citation-backed RAG retrieval MCP server (60 tests)">
-  <meta property="og:description" content="rag-mcp: a single-tool MCP server for retrieval-augmented search. Local ONNX bge-large embeddings, Chroma vector store, scoped to a corpus root, fail-soft, citation-carrying. 60 tests, $0 inference.">
+  <meta property="og:title" content="Case study: rag-mcp — a citation-backed RAG retrieval MCP server (68 tests)">
+  <meta property="og:description" content="rag-mcp: a single-tool MCP server for retrieval-augmented search. Local ONNX bge-large embeddings, Chroma vector store, scoped to a corpus root, fail-soft, citation-carrying. 68 tests, $0 inference.">
   <meta property="og:url" content="https://jaimenbell.dev/case-studies/rag-mcp.html">
   <meta property="og:image" content="https://jaimenbell.dev/img/og-card.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="jaimenbell.dev — Production MCP servers for AI agents">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Case study: rag-mcp — a citation-backed RAG retrieval MCP server (60 tests)">
+  <meta name="twitter:title" content="Case study: rag-mcp — a citation-backed RAG retrieval MCP server (68 tests)">
   <meta name="twitter:description" content="rag-mcp: a single-tool MCP server for retrieval-augmented search. Local ONNX bge-large embeddings, Chroma vector store, fail-soft, citation-carrying.">
   <meta name="twitter:image" content="https://jaimenbell.dev/img/og-card.png">
   <link rel="stylesheet" href="../css/style.css">
@@ -40,10 +40,10 @@
     <article class="cs">
       <a class="back" href="../index.html#cases">← All case studies</a>
       <h1>rag-mcp — a real, citation-backed MCP server</h1>
-      <div class="meta">// second MCP proof · 60 tests · local embeddings · $0 inference</div>
+      <div class="meta">// second MCP proof · 68 tests · local embeddings · $0 inference</div>
 
       <span class="pill">Python MCP SDK</span>
-      <span class="pill">60 tests</span>
+      <span class="pill">68 tests</span>
       <span class="pill">local ONNX</span>
       <span class="pill">ChromaDB</span>
       <span class="pill">corpus-scoped</span>
@@ -74,7 +74,7 @@
       <div class="evidence">
         <h3>Evidence you can check</h3>
         <ul>
-          <li>Tests: <code>60 passed</code> across <code>test_chunking.py</code>, <code>test_cli.py</code>, <code>test_ingest.py</code>, <code>test_lock.py</code>, <code>test_search.py</code>, <code>test_server.py</code>, <code>test_store.py</code></li>
+          <li>Tests: <code>68 passed</code> across <code>test_chunking.py</code>, <code>test_cli.py</code>, <code>test_entrypoint.py</code>, <code>test_ingest.py</code>, <code>test_lock.py</code>, <code>test_search.py</code>, <code>test_server.py</code>, <code>test_server_stdio.py</code>, <code>test_store.py</code>, <code>test_check_readme_counts.py</code></li>
           <li>Coverage spans the full path: chunking → ingestion → search → the MCP server surface.</li>
           <li>Runs as a registered MCP server; the <code>search_knowledge</code> tool is callable from an agent session.</li>
         </ul>
@@ -83,7 +83,7 @@
       <div class="honest">
         <p>
           The same four edges that matter in a client build — local/cost-controlled, auth-scoped,
-          fail-soft, and traceable — are exactly what this 60-test suite exercises. Small tool, full rails.
+          fail-soft, and traceable — are exactly what this 68-test suite exercises. Small tool, full rails.
         </p>
       </div>
 
