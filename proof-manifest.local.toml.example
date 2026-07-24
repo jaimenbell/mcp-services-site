@@ -1,0 +1,68 @@
+# proof-manifest.local.toml.example
+#
+# Template for the untracked local overlay that scripts/check_proof_numbers.py
+# merges onto proof-manifest.toml at live-check time ONLY. Copy this file to
+# proof-manifest.local.toml (gitignored -- see .gitignore) and fill in your
+# own absolute local paths to each sibling repo's checkout.
+#
+# WHY THIS EXISTS: proof-manifest.toml is publicly served (this site has no
+# build step -- every tracked file at the repo root is deployed as-is, so
+# jaimenbell.dev/proof-manifest.toml is a real, fetchable URL). It must never
+# carry local filesystem paths (an absolute path leaks directory structure +
+# the operator's username/account). The tracked manifest instead carries only
+# a public-safe "source_repo_public" identity (a github slug) per entry; the
+# real local path lives here instead.
+#
+# Each top-level table below may carry:
+#   source_repo = "<absolute path to the sibling repo checkout>"
+#   source_env  = { VAR_NAME = "<value, itself often a local path>" }
+# Both are optional per-entry -- omit an entry entirely (or the whole file)
+# and that repo's live-check degrades to an honest WARN, never a FAIL (see
+# proof-manifest.toml's own header comment, and
+# scripts/check_proof_numbers.py's live_verify_manifest()).
+#
+# TOML strings escape backslashes: on Windows, write your absolute path as
+# "C:\\path\\to\\projects\\mcp-factory" (double backslash); on Linux/macOS,
+# plain forward slashes work as-is. This template uses a generic forward-
+# slash placeholder below -- swap it for your own real path.
+#
+# Keys must match proof-manifest.toml's keys exactly to take effect.
+
+["mcp-factory"]
+source_repo = "/ABSOLUTE/PATH/TO/YOUR/PROJECTS/mcp-factory"
+# Neutralizes test_smoke_hub's live-bot auto-discovery on the fleet machine
+# so the live-check reproduces the clean-checkout count public CI gates on.
+source_env = { MCP_FACTORY_SMOKE_ROOTS = "/ABSOLUTE/PATH/TO/YOUR/PROJECTS/mcp-factory/tests/fixtures/empty_smoke_root" }
+
+["github-mcp"]
+source_repo = "/ABSOLUTE/PATH/TO/YOUR/PROJECTS/github-mcp"
+
+["desktop-mcp"]
+source_repo = "/ABSOLUTE/PATH/TO/YOUR/PROJECTS/desktop-mcp"
+
+["rag-mcp"]
+source_repo = "/ABSOLUTE/PATH/TO/YOUR/PROJECTS/rag-mcp"
+
+["bus-mcp"]
+source_repo = "/ABSOLUTE/PATH/TO/YOUR/PROJECTS/bus-mcp"
+
+["options-bot"]
+source_repo = "/ABSOLUTE/PATH/TO/YOUR/PROJECTS/options-bot"
+
+["discord-mcp"]
+source_repo = "/ABSOLUTE/PATH/TO/YOUR/PROJECTS/discord-mcp"
+
+["reliability-retainer"]
+source_repo = "/ABSOLUTE/PATH/TO/YOUR/PROJECTS/reliability-retainer"
+
+["rails-mcp"]
+source_repo = "/ABSOLUTE/PATH/TO/YOUR/PROJECTS/rails-mcp"
+
+["vllm-ops-mcp"]
+source_repo = "/ABSOLUTE/PATH/TO/YOUR/PROJECTS/vllm-ops-mcp"
+
+["mcp-security-scanner"]
+source_repo = "/ABSOLUTE/PATH/TO/YOUR/PROJECTS/mcp-security-scanner"
+
+["video-digest"]
+source_repo = "/ABSOLUTE/PATH/TO/YOUR/PROJECTS/video-digest"

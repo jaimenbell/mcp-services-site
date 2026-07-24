@@ -89,6 +89,19 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MANIFEST_PATH = REPO_ROOT / "proof-manifest.toml"
 
+# Local-only overlay (2026-07-24, path-hardening lane): the TRACKED manifest
+# above is publicly served as static site content (no-build-step deploy --
+# jaimenbell.dev/proof-manifest.toml is a real, fetchable URL) and must never
+# carry local filesystem paths (Windows absolute paths leak directory
+# structure + the operator's username). Anything path-shaped that only makes
+# sense on THIS machine -- source_repo, and any source_env value that is
+# itself a local path (e.g. mcp-factory's MCP_FACTORY_SMOKE_ROOTS) -- lives
+# instead in this untracked overlay file (gitignored; see
+# proof-manifest.local.toml.example for the checked-in template). See
+# load_local_overrides() / _merge_local_overrides() below for how it's
+# folded onto the tracked entries at load time, live-check-only.
+LOCAL_MANIFEST_PATH = REPO_ROOT / "proof-manifest.local.toml"
+
 # Live-check knobs (see LiveCheckResult / live_verify_manifest below).
 LIVE_CHECK_TIMEOUT_SECONDS = 90
 SKIP_LIVE_CHECK_ENV_VAR = "PROOF_NUMBERS_SKIP_LIVE_CHECK"
@@ -455,8 +468,24 @@ def live_verify_manifest(
     """
     results: list[LiveCheckResult] = []
     for key, entry in entries.items():
-        if not entry.source_repo or not entry.source_cmd:
+        if not entry.source_cmd:
             continue  # nothing to live-check for this entry -- not an error
+        if not entry.source_repo:
+            if entry.source_repo_public:
+                # This entry IS meant to be live-checked (it carries a public
+                # identity) but no local override supplied the actual path on
+                # this machine -- honest, visible WARN (never FAIL: CI and a
+                # public clone will never have proof-manifest.local.toml).
+                results.append(LiveCheckResult(
+                    key, "WARN",
+                    f"no local override for source_repo (see "
+                    f"proof-manifest.local.toml.example) -- skipping live "
+                    f"check (expected on CI / public clone); public identity: "
+                    f"{entry.source_repo_public}",
+                ))
+            # else: this entry was never intended to be live-checked at all
+            # (no source_repo_public either) -- silently skip, not an error.
+            continue
         source_repo = Path(entry.source_repo)
         if not source_repo.is_dir():
             results.append(LiveCheckResult(
@@ -592,22 +621,78 @@ class ManifestEntry:
 
     `value`/`source_cmd` are required by the schema (see load_manifest_entries).
     `source_repo` is optional in the schema -- entries built ad hoc in tests
-    (or a future manually-seeded entry) may omit it -- but is required for the
-    live-repo-verification pass in live_verify_manifest(): an entry with no
-    source_repo simply can't be live-checked and is skipped (WARN), not FAIL.
+    (or a future manually-seeded entry) may omit it, and on the real tracked
+    manifest it is now ALWAYS absent (see LOCAL_MANIFEST_PATH header comment)
+    -- but is required for the live-repo-verification pass in
+    live_verify_manifest(): an entry with no source_repo simply can't be
+    live-checked.
+    `source_repo_public` is the public-safe identity (e.g. a github slug,
+    "jaimenbell/mcp-factory") that IS safe to ship on the tracked manifest --
+    purely documentation, never used to drive execution. Its presence is what
+    tells live_verify_manifest() an entry is *meant* to be live-checked (so a
+    missing local override WARNs instead of silently doing nothing).
     """
 
     def __init__(self, key: str, value: int, source_cmd: str | None = None,
                  source_repo: str | None = None,
-                 source_env: dict[str, str] | None = None):
+                 source_env: dict[str, str] | None = None,
+                 source_repo_public: str | None = None):
         self.key = key
         self.value = value
         self.source_cmd = source_cmd
         self.source_repo = source_repo
         self.source_env = source_env
+        self.source_repo_public = source_repo_public
 
 
-def load_manifest_entries(path: Path = MANIFEST_PATH) -> dict[str, ManifestEntry]:
+def load_local_overrides(path: Path = LOCAL_MANIFEST_PATH) -> dict[str, dict]:
+    """Load the untracked proof-manifest.local.toml overlay (see
+    LOCAL_MANIFEST_PATH header comment). Returns {} if the file doesn't exist
+    at all -- that is the normal/expected shape on CI or a fresh public
+    clone, not an error. Each present top-level key must be a table that may
+    carry "source_repo" (str) and/or "source_env" (table of str -> str); a
+    malformed shape fails closed (same philosophy as load_manifest_entries)
+    rather than silently producing an unusable override.
+    """
+    if not path.is_file():
+        return {}
+    with open(path, "rb") as fh:
+        data = tomllib.load(fh)
+    overrides: dict[str, dict] = {}
+    for key, entry in data.items():
+        if not isinstance(entry, dict):
+            raise ManifestValidationError(
+                f'{path.name}: entry "{key}" is not a table '
+                f"(expected [\"{key}\"] with a source_repo field)"
+            )
+        override: dict = {}
+        if "source_repo" in entry:
+            if not isinstance(entry["source_repo"], str):
+                raise ManifestValidationError(
+                    f'{path.name}: entry ["{key}"]\'s "source_repo" must be '
+                    f"a string; got: {entry['source_repo']!r}"
+                )
+            override["source_repo"] = entry["source_repo"]
+        if "source_env" in entry:
+            source_env = entry["source_env"]
+            if not isinstance(source_env, dict) or not all(
+                isinstance(k, str) and isinstance(v, str)
+                for k, v in source_env.items()
+            ):
+                raise ManifestValidationError(
+                    f'{path.name}: entry ["{key}"]\'s "source_env" must be a '
+                    f"table of string values (env var name -> value); got: "
+                    f"{source_env!r}"
+                )
+            override["source_env"] = source_env
+        overrides[key] = override
+    return overrides
+
+
+def load_manifest_entries(
+    path: Path = MANIFEST_PATH,
+    local_overrides: dict[str, dict] | None = None,
+) -> dict[str, ManifestEntry]:
     with open(path, "rb") as fh:
         data = tomllib.load(fh)
     manifest: dict[str, ManifestEntry] = {}
@@ -654,12 +739,26 @@ def load_manifest_entries(path: Path = MANIFEST_PATH) -> dict[str, ManifestEntry
                     f"must be a table of string values (env var name -> "
                     f"value); got: {source_env!r}"
                 )
+        source_repo = entry.get("source_repo")
+        # Local overlay (untracked proof-manifest.local.toml) wins over
+        # whatever the tracked manifest carries -- on the real repo the
+        # tracked manifest never carries source_repo/a path-valued
+        # source_env at all (see LOCAL_MANIFEST_PATH header comment), but
+        # tests exercising the live-check machinery directly are still free
+        # to inline source_repo/source_env in an ad hoc manifest TOML with no
+        # override file present at all.
+        override = (local_overrides or {}).get(key, {})
+        if "source_repo" in override:
+            source_repo = override["source_repo"]
+        if "source_env" in override:
+            source_env = override["source_env"]
         manifest[key] = ManifestEntry(
             key=key,
             value=value,
             source_cmd=entry.get("source_cmd"),
-            source_repo=entry.get("source_repo"),
+            source_repo=source_repo,
             source_env=source_env,
+            source_repo_public=entry.get("source_repo_public"),
         )
     return manifest
 
@@ -838,9 +937,17 @@ def _live_check_findings(entries: dict[str, ManifestEntry]) -> tuple[list[LiveCh
 
 
 def run(root: Path = REPO_ROOT, manifest_path: Path = MANIFEST_PATH,
-        target_patterns: list[str] | None = None) -> int:
+        target_patterns: list[str] | None = None,
+        local_manifest_path: Path | None = None) -> int:
+    # Default local overlay lives alongside the manifest it overlays -- this
+    # makes tests that build their own manifest_path in a tmp dir pick up a
+    # sibling proof-manifest.local.toml automatically if they write one, with
+    # zero-override behavior (file simply absent) unchanged otherwise.
+    if local_manifest_path is None:
+        local_manifest_path = manifest_path.parent / "proof-manifest.local.toml"
     try:
-        entries = load_manifest_entries(manifest_path)
+        local_overrides = load_local_overrides(local_manifest_path)
+        entries = load_manifest_entries(manifest_path, local_overrides=local_overrides)
     except ManifestValidationError as exc:
         print(f"check_proof_numbers: FATAL -- {exc}")
         print("check_proof_numbers: manifest is malformed; failing closed (exit 2).")
@@ -884,7 +991,8 @@ def main(argv: list[str]) -> int:
         # Explicit file args (used by tests): scan exactly those files, manifest
         # still loaded from the real repo root unless overridden by env/caller.
         try:
-            entries = load_manifest_entries(MANIFEST_PATH)
+            local_overrides = load_local_overrides(LOCAL_MANIFEST_PATH)
+            entries = load_manifest_entries(MANIFEST_PATH, local_overrides=local_overrides)
         except ManifestValidationError as exc:
             print(f"check_proof_numbers: FATAL -- {exc}")
             print("check_proof_numbers: manifest is malformed; failing closed (exit 2).")

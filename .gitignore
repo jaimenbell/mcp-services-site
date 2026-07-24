@@ -3,3 +3,10 @@ Thumbs.db
 *.log
 .venv/
 __pycache__/
+
+# Local-only overlay for proof-manifest.toml (2026-07-24 path-hardening):
+# carries operator-machine-specific absolute paths (source_repo, path-valued
+# source_env) that must never be committed -- proof-manifest.toml is publicly
+# served (no-build-step deploy). See proof-manifest.local.toml.example for
+# the checked-in template.
+proof-manifest.local.toml

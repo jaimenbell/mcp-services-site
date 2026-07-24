@@ -5,6 +5,7 @@ Uses only temp fixtures (tmp_path) -- never touches the real site content files
 tests must not mutate real site files.
 """
 
+import re
 import shutil
 import subprocess
 import sys
@@ -1007,6 +1008,251 @@ def test_live_check_falls_back_to_dot_count_when_no_junit_and_no_summary(tmp_pat
     results = cpn.live_verify_manifest({"mcp-factory": entry})
     assert results[0].status == "OK"
     assert results[0].live_value == 45
+
+
+# --- local overlay for local filesystem paths (2026-07-24 manifest-path-
+# hardening lane): proof-manifest.toml is publicly served (no-build-step
+# deploy), so it must carry only public identity (source_repo_public); the
+# real local absolute path lives in the untracked proof-manifest.local.toml
+# overlay instead, merged in by load_manifest_entries()/run() at load time. ---
+
+def test_load_local_overrides_missing_file_returns_empty(tmp_path):
+    """No override file at all (the normal shape on CI / a public clone) is
+    not an error -- just an empty overlay."""
+    assert cpn.load_local_overrides(tmp_path / "does-not-exist.toml") == {}
+
+
+def test_load_local_overrides_reads_source_repo_and_source_env(tmp_path):
+    local_toml = tmp_path / "proof-manifest.local.toml"
+    local_toml.write_text(
+        '["mcp-factory"]\n'
+        'source_repo = "C:\\\\fake\\\\mcp-factory"\n'
+        'source_env = { FAKE_VAR = "C:\\\\fake\\\\path" }\n'
+        '["github-mcp"]\n'
+        'source_repo = "C:\\\\fake\\\\github-mcp"\n',
+        encoding="utf-8",
+    )
+    overrides = cpn.load_local_overrides(local_toml)
+    assert overrides["mcp-factory"]["source_repo"] == "C:\\fake\\mcp-factory"
+    assert overrides["mcp-factory"]["source_env"] == {"FAKE_VAR": "C:\\fake\\path"}
+    assert overrides["github-mcp"]["source_repo"] == "C:\\fake\\github-mcp"
+
+
+def test_load_local_overrides_non_table_entry_raises(tmp_path):
+    local_toml = tmp_path / "proof-manifest.local.toml"
+    local_toml.write_text('"mcp-factory" = "not a table"\n', encoding="utf-8")
+    with pytest.raises(cpn.ManifestValidationError):
+        cpn.load_local_overrides(local_toml)
+
+
+def test_load_local_overrides_non_string_source_repo_raises(tmp_path):
+    local_toml = tmp_path / "proof-manifest.local.toml"
+    local_toml.write_text('["mcp-factory"]\nsource_repo = 7\n', encoding="utf-8")
+    with pytest.raises(cpn.ManifestValidationError):
+        cpn.load_local_overrides(local_toml)
+
+
+def test_load_local_overrides_non_string_source_env_value_raises(tmp_path):
+    local_toml = tmp_path / "proof-manifest.local.toml"
+    local_toml.write_text(
+        '["mcp-factory"]\nsource_env = { FAKE_VAR = 7 }\n', encoding="utf-8"
+    )
+    with pytest.raises(cpn.ManifestValidationError):
+        cpn.load_local_overrides(local_toml)
+
+
+def test_manifest_entries_merge_local_override_source_repo_and_env(tmp_path):
+    """The tracked manifest carries only source_repo_public; the local
+    overlay's source_repo/source_env are merged onto the loaded entry."""
+    manifest_toml = tmp_path / "proof-manifest.toml"
+    manifest_toml.write_text(
+        '["mcp-factory"]\n'
+        "value = 222\n"
+        'source_cmd = "python -m pytest -q"\n'
+        'source_repo_public = "jaimenbell/mcp-factory"\n',
+        encoding="utf-8",
+    )
+    overrides = {
+        "mcp-factory": {
+            "source_repo": "C:\\fake\\mcp-factory",
+            "source_env": {"FAKE_VAR": "1"},
+        }
+    }
+    entries = cpn.load_manifest_entries(manifest_toml, local_overrides=overrides)
+    entry = entries["mcp-factory"]
+    assert entry.source_repo == "C:\\fake\\mcp-factory"
+    assert entry.source_env == {"FAKE_VAR": "1"}
+    assert entry.source_repo_public == "jaimenbell/mcp-factory"
+
+
+def test_manifest_entries_no_override_leaves_source_repo_none(tmp_path):
+    """With source_repo_public set but no matching local override at all,
+    source_repo stays None (the whole point: nothing local-path-shaped is
+    inline on the tracked manifest any more)."""
+    manifest_toml = tmp_path / "proof-manifest.toml"
+    manifest_toml.write_text(
+        '["mcp-factory"]\n'
+        "value = 222\n"
+        'source_cmd = "python -m pytest -q"\n'
+        'source_repo_public = "jaimenbell/mcp-factory"\n',
+        encoding="utf-8",
+    )
+    entries = cpn.load_manifest_entries(manifest_toml, local_overrides=None)
+    assert entries["mcp-factory"].source_repo is None
+    assert entries["mcp-factory"].source_repo_public == "jaimenbell/mcp-factory"
+
+
+def test_live_check_missing_local_override_warns_with_public_identity(tmp_path):
+    """Core behavior change: an entry meant to be live-checked
+    (source_repo_public set) but with no local override configured degrades
+    to an honest WARN naming the public identity -- never a silent skip and
+    never a FAIL."""
+    entry = cpn.ManifestEntry(
+        key="mcp-factory", value=222,
+        source_cmd="python -m pytest -q",
+        source_repo=None,
+        source_repo_public="jaimenbell/mcp-factory",
+    )
+    results = cpn.live_verify_manifest({"mcp-factory": entry})
+    assert len(results) == 1
+    assert results[0].status == "WARN"
+    assert "local override" in results[0].message.lower()
+    assert "jaimenbell/mcp-factory" in results[0].message
+    fails = [r for r in results if r.status == "FAIL"]
+    assert fails == []
+
+
+def test_live_check_no_source_repo_and_no_public_identity_still_silently_skipped():
+    """Unchanged prior behavior: an entry with neither source_repo nor
+    source_repo_public was never meant to be live-checked at all -- no
+    result, not even WARN (see test_live_check_no_source_repo_is_skipped_silently
+    above for the original, still-passing version of this contract)."""
+    entry = cpn.ManifestEntry(
+        key="mcp-factory", value=222, source_cmd="python -m pytest -q",
+        source_repo=None, source_repo_public=None,
+    )
+    results = cpn.live_verify_manifest({"mcp-factory": entry})
+    assert results == []
+
+
+def test_run_auto_discovers_sibling_local_override_file(tmp_path):
+    """Integration: run() with no explicit local_manifest_path finds
+    proof-manifest.local.toml sitting next to manifest_path automatically,
+    and live-verifies using it -- proving the merge actually wires end to
+    end, not just at the unit level."""
+    repo_dir = tmp_path / "mcp-factory"
+    _write_fake_runner(repo_dir, passed_count=222)
+
+    manifest_toml = tmp_path / "proof-manifest.toml"
+    manifest_toml.write_text(
+        '["mcp-factory"]\n'
+        "value = 222\n"
+        f'source_cmd = "{Path(sys.executable).as_posix()} fake_runner.py"\n'
+        'source_repo_public = "jaimenbell/mcp-factory"\n',
+        encoding="utf-8",
+    )
+    local_toml = tmp_path / "proof-manifest.local.toml"
+    local_toml.write_text(
+        f'["mcp-factory"]\nsource_repo = "{repo_dir.as_posix()}"\n',
+        encoding="utf-8",
+    )
+    site_dir = tmp_path / "site"
+    site_dir.mkdir()
+    write(site_dir, "index.html", "<p>mcp-factory: 222 passing tests</p>\n")
+
+    exit_code = cpn.run(root=site_dir, manifest_path=manifest_toml, target_patterns=["*.html"])
+    assert exit_code == 0
+
+
+def test_run_without_local_override_file_warns_and_still_exits_0(tmp_path, capsys):
+    """The public-clone / CI scenario: manifest carries source_repo_public
+    only, no proof-manifest.local.toml anywhere -- run() must still exit 0
+    (citations agree with the manifest value; the live-check degrades to
+    WARN, not FAIL) and the WARN must be visible in the printed output."""
+    manifest_toml = tmp_path / "proof-manifest.toml"
+    manifest_toml.write_text(
+        '["mcp-factory"]\n'
+        "value = 222\n"
+        'source_cmd = "python -m pytest -q"\n'
+        'source_repo_public = "jaimenbell/mcp-factory"\n',
+        encoding="utf-8",
+    )
+    site_dir = tmp_path / "site"
+    site_dir.mkdir()
+    write(site_dir, "index.html", "<p>mcp-factory: 222 passing tests</p>\n")
+
+    exit_code = cpn.run(root=site_dir, manifest_path=manifest_toml, target_patterns=["*.html"])
+    assert exit_code == 0
+    out = capsys.readouterr().out
+    assert "local override" in out.lower()
+
+
+# --- real tracked-manifest hardening gates (the actual acceptance bar for
+# this lane): the REAL repo's proof-manifest.toml must carry zero local
+# filesystem paths, proof-manifest.local.toml must stay gitignored, and the
+# checked-in .example template must cover every entry that wants live
+# verification. ---
+
+def test_real_tracked_manifest_has_no_windows_paths():
+    text = (REPO_ROOT / "proof-manifest.toml").read_text(encoding="utf-8")
+    # Regex, not a literal substring, so this guard's own source never
+    # contains the drive-letter pattern it's checking for the absence of --
+    # this test file is itself in the tracked/publicly-served tree.
+    windows_path_re = re.compile(r"[A-Za-z]:[\\/]{1,2}[Uu]sers")
+    match = windows_path_re.search(text)
+    assert match is None, (
+        "proof-manifest.toml is publicly served (no-build-step deploy) and "
+        f"must never carry a local filesystem path -- found: {match!r}"
+    )
+    assert "source_repo =" not in text, (
+        "the tracked manifest must carry only source_repo_public identity; "
+        "source_repo (a local path) belongs in proof-manifest.local.toml"
+    )
+
+
+def test_real_tracked_manifest_entries_carry_public_identity_not_local_path():
+    entries = cpn.load_manifest_entries(cpn.MANIFEST_PATH, local_overrides=None)
+    for key, entry in entries.items():
+        assert entry.source_repo is None, (
+            f"{key}: tracked manifest must not carry source_repo (found "
+            f"{entry.source_repo!r}) -- only proof-manifest.local.toml should"
+        )
+        if entry.source_cmd:
+            assert entry.source_repo_public, (
+                f"{key}: has a source_cmd (meant to be live-checked) but no "
+                f"source_repo_public identity for the tracked manifest"
+            )
+
+
+def test_real_gitignore_excludes_local_override_but_not_example():
+    gitignore = (REPO_ROOT / ".gitignore").read_text(encoding="utf-8")
+    assert "proof-manifest.local.toml" in gitignore
+    # Guard against an overly-broad glob (e.g. "proof-manifest.local.toml*")
+    # that would accidentally also ignore the checked-in .example template.
+    result = subprocess.run(
+        ["git", "check-ignore", "-q", "proof-manifest.local.toml.example"],
+        cwd=REPO_ROOT,
+    )
+    assert result.returncode != 0, (
+        "proof-manifest.local.toml.example must NOT be gitignored -- it is "
+        "the checked-in template"
+    )
+
+
+def test_real_local_example_template_covers_every_live_checked_entry():
+    """Every tracked entry that wants live verification (has source_cmd) must
+    have a matching section in the checked-in .example template, so a fresh
+    clone's operator has a ready-made place to fill in that repo's path."""
+    example_path = REPO_ROOT / "proof-manifest.local.toml.example"
+    assert example_path.is_file()
+    example_data = cpn.load_local_overrides(example_path)
+    entries = cpn.load_manifest_entries(cpn.MANIFEST_PATH, local_overrides=None)
+    for key, entry in entries.items():
+        if entry.source_repo_public:
+            assert key in example_data, (
+                f"{key}: has source_repo_public (live-checked) but no "
+                f"proof-manifest.local.toml.example section"
+            )
 
 
 def test_live_check_junitxml_preferred_over_summary_line_when_both_present(tmp_path):
