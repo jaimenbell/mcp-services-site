@@ -94,9 +94,15 @@
         injection, tool-parameter injection into a shell or eval, auth/network posture gaps,
         secret handling, write-tools-on-by-default / tool-scope-creep, secret-leak-via-tool-response,
         and job hazards in cron/CI/deploy files. A P0/P1 finding fails the build instead of merging
-        silently. On top of the raw scan, every finding is graded for reachability (does a
+        silently. On top of the raw scan, findings are graded for reachability (does a
         registered MCP tool actually reach this code path) and tool-parameter taint — never
         dropping a finding, only raising or lowering its confidence.
+        <strong>That grading is Python-only</strong>, because it needs an AST call-graph and the
+        scanner builds one for <code>.py</code> only. Findings in JavaScript, TypeScript, YAML or
+        shell are reported <strong>ungraded</strong> and are labelled as such — they are pattern
+        matches that a human still has to confirm, not reachability-confirmed defects. Most MCP
+        servers are TypeScript, so on a typical repo this is the majority of the output. Stated
+        here rather than discovered on your invoice.
       </p>
       <p>
         That part is the free, self-serve CI gate. <strong>Managed Watch is the recurring layer
@@ -191,7 +197,7 @@
           <div class="when">Point-in-time · opens every engagement</div>
           <ul>
             <li>Full scan across all seven detector families</li>
-            <li>Reachability + taint grading on every finding</li>
+            <li>Reachability + taint grading on Python findings; JS/TS reported ungraded</li>
             <li>8-section human-reviewed client report</li>
             <li>No recurring commitment</li>
           </ul>
