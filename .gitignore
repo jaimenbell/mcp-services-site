@@ -10,3 +10,7 @@ __pycache__/
 # served (no-build-step deploy). See proof-manifest.local.toml.example for
 # the checked-in template.
 proof-manifest.local.toml
+
+# internal planning docs - never public
+.claude/
+drafts/
