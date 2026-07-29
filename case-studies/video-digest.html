@@ -3,21 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Case study: video-digest — $0 local video-to-keyframes+transcript+digest pipeline (68 tests)</title>
-  <meta name="description" content="video-digest: turn a video (URL or local file) into keyframes + a timestamped transcript + a structured markdown digest, fully local, $0 cloud cost. yt-dlp + ffmpeg + faster-whisper, every subprocess/model/HTTP call dependency-injected and mocked in tests. 68 passing tests, public repo.">
+  <title>Case study: video-digest — $0 local video-to-keyframes+transcript+digest pipeline (126 tests)</title>
+  <meta name="description" content="video-digest: turn a video (URL or local file) into keyframes + a timestamped transcript + a structured markdown digest, fully local, $0 cloud cost. yt-dlp + ffmpeg + faster-whisper, every subprocess/model/HTTP call dependency-injected and mocked in tests. 126 passing tests, public repo.">
   <link rel="canonical" href="https://jaimenbell.dev/case-studies/video-digest.html">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="MCP Integration Sprint">
-  <meta property="og:title" content="Case study: video-digest — $0 local video-to-keyframes+transcript+digest pipeline (68 tests)">
-  <meta property="og:description" content="video-digest: turn a video into keyframes + a timestamped transcript + a structured markdown digest, fully local, $0 cloud cost. yt-dlp + ffmpeg + faster-whisper. 68 passing tests, public repo.">
+  <meta property="og:title" content="Case study: video-digest — $0 local video-to-keyframes+transcript+digest pipeline (126 tests)">
+  <meta property="og:description" content="video-digest: turn a video into keyframes + a timestamped transcript + a structured markdown digest, fully local, $0 cloud cost. yt-dlp + ffmpeg + faster-whisper. 126 passing tests, public repo.">
   <meta property="og:url" content="https://jaimenbell.dev/case-studies/video-digest.html">
   <meta property="og:image" content="https://jaimenbell.dev/img/og-card.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="jaimenbell.dev — Production MCP servers for AI agents">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Case study: video-digest — $0 local video-to-keyframes+transcript+digest pipeline (68 tests)">
-  <meta name="twitter:description" content="video-digest: turn a video into keyframes + a timestamped transcript + a structured markdown digest, fully local, $0 cloud cost. 68 passing tests.">
+  <meta name="twitter:title" content="Case study: video-digest — $0 local video-to-keyframes+transcript+digest pipeline (126 tests)">
+  <meta name="twitter:description" content="video-digest: turn a video into keyframes + a timestamped transcript + a structured markdown digest, fully local, $0 cloud cost. 126 passing tests.">
   <meta name="twitter:image" content="https://jaimenbell.dev/img/og-card.png">
   <link rel="stylesheet" href="../css/style.css">
 </head>
@@ -40,10 +40,10 @@
     <article class="cs">
       <a class="back" href="../index.html#cases">← All case studies</a>
       <h1>video-digest — video in, working material out, $0</h1>
-      <div class="meta">// data-pipeline category · 68 passing tests · fully local, $0 cloud cost · public repo</div>
+      <div class="meta">// data-pipeline category · 126 passing tests · fully local, $0 cloud cost · public repo</div>
 
       <span class="pill">Python CLI pipeline</span>
-      <span class="pill">68 passing tests</span>
+      <span class="pill">126 passing tests</span>
       <span class="pill">$0 / local</span>
       <span class="pill">dependency-injected I/O</span>
       <span class="pill">public repo</span>
@@ -88,8 +88,8 @@
         </p>
         <ul>
           <li>Repo: <a href="https://github.com/jaimenbell/video-digest">github.com/jaimenbell/video-digest</a> (MIT)</li>
-          <li>Tests: global <code>python -m pytest -q</code> (no repo-local venv) → <code>68 passed</code>
-          (junitxml: 68 total, 0 failed, 0 errors, 0 skipped). Every subprocess call (<code>yt-dlp</code>,
+          <li>Tests: global <code>python -m pytest -q</code> (no repo-local venv) → <code>126 passed</code>
+          (junitxml: 126 total, 0 failed, 0 errors, 0 skipped). Every subprocess call (<code>yt-dlp</code>,
           <code>ffmpeg</code>, <code>ffprobe</code>) and every model/HTTP call (faster-whisper's
           <code>WhisperModel</code>, the local vLLM request) is dependency-injected behind a
           <code>runner=subprocess.run</code> / <code>model_factory=</code> / <code>http_post=</code>
