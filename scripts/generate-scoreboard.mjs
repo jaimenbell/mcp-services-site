@@ -32,6 +32,7 @@
 // is NOTED, not built here — see FINDINGS at the bottom of this file.
 
 import fs from 'fs'
+import os from 'os'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -39,12 +40,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = path.join(__dirname, '..')
 const OUT_HTML = path.join(REPO_ROOT, 'scoreboard.html')
 
-// Absolute path to the vault note this machine already treats as the
-// fleet's canonical scoreboard. Same "read straight off this machine's
-// local project tree" pattern generate-og-image.mjs uses for Chrome.
+// Vault root: resolved from an env var so this script never hardcodes a
+// machine-specific username, with a sensible same-machine fallback
+// (<home>/projects/the vault) for the hand-run local case. Same
+// "read straight off this machine's local project tree" pattern
+// generate-og-image.mjs uses for Chrome, but configurable.
+const VAULT_ROOT = process.env.MCP_SITE_VAULT_ROOT
+  || path.join(os.homedir(), 'projects', 'the vault')
 const VAULT_SCOREBOARD_MD = path.join(
-  'C:', 'Users', 'jaime', 'projects', 'the vault', 'Reports',
-  'Signal Validation Scoreboard.md'
+  VAULT_ROOT, 'Reports', 'Signal Validation Scoreboard.md'
 )
 
 const GENERATED_AT = new Date().toISOString()
@@ -52,6 +56,20 @@ const GENERATED_AT = new Date().toISOString()
 // ---------------------------------------------------------------------
 // 1. Parse the vault markdown scoreboard into structured rows.
 // ---------------------------------------------------------------------
+
+// Strip Obsidian [[wikilink]] syntax before any vault text is transcribed
+// into public HTML. This page publishes to a live public site — internal
+// vault note titles are not for public disclosure. Handles [[Alias|Title]]
+// (renders as Title... actually Obsidian order is [[Target|Alias]], so
+// prefer the alias when present) and plain [[Note Title]] (renders as
+// Note Title). Applied once, here, at the parse boundary, so no caller
+// downstream needs to remember to do it.
+function stripWikilinks(text) {
+  if (!text) return text
+  return text.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_match, target, alias) => {
+    return (alias || target).trim()
+  })
+}
 
 function parseScoreboardMarkdown(md) {
   const lines = md.split(/\r?\n/)
@@ -72,16 +90,16 @@ function parseScoreboardMarkdown(md) {
       if (cells.length < 6) continue
       if (/^:?-+:?$/.test(cells[0])) continue // separator row
       const [sigRaw, owning_bot, status, wave, weight, notes] = cells
-      const signal_source = sigRaw.replace(/`/g, '').trim()
+      const signal_source = stripWikilinks(sigRaw.replace(/`/g, '').trim())
       if (!signal_source || signal_source.toLowerCase() === 'signal_source') continue
       rows.push({
         signal_source,
-        owning_bot: owning_bot || '—',
+        owning_bot: stripWikilinks(owning_bot) || '—',
         status: status.trim(),
         wave: wave.trim(),
         weight: weight.trim(),
-        notes: notes.trim(),
-        section: currentSection,
+        notes: stripWikilinks(notes.trim()),
+        section: currentSection ? stripWikilinks(currentSection) : currentSection,
       })
     }
   }
@@ -344,9 +362,11 @@ const html = `<!DOCTYPE html>
 <footer class="site">
   <div class="wrap">
     <span>MCP Server Engineering · auth-scoped, fail-soft, tested.</span>
-    <span><a href="https://github.com/jaimenbell/MCP-Factory">GitHub</a> · <a href="mailto:jaime@jaimenbell.dev">jaime@jaimenbell.dev</a></span>
+    <span><a href="https://github.com/jaimenbell/MCP-Factory">GitHub</a> · <a href="mailto:jaime@jaimenbell.dev">jaime@jaimenbell.dev</a> <span id="discord-footer-link-wrap" style="display:none">· <a id="discord-footer-link" href="" target="_blank" rel="noopener">Discord</a></span></span>
   </div>
 </footer>
+
+<script src="js/discord-cta.js" defer></script>
 
 <!--
   GENERATION FINDINGS (regen instructions + instrumentation gaps for a future auto-version):
@@ -385,12 +405,13 @@ const html = `<!DOCTYPE html>
          consistency (row count, enum values) before this script trusts it -- a
          typo'd status cell would render silently. A lint pass belongs in the
          eventual auto-version, not hand-added here as a one-off.
-      4. This script currently reads an ABSOLUTE machine path
-         (C:\\Users\\jaime\\projects\\the vault\\...) for the vault note, matching
-         the same pattern generate-og-image.mjs uses for a local Chrome binary.
-         That is fine for a hand-run generator on this machine; it is NOT fine for
-         a schtask-driven auto-regen without first deciding where the vault lives
-         relative to whatever runs the schtask.
+      4. This script reads the vault note from a path resolved via the
+         MCP_SITE_VAULT_ROOT env var, falling back to <home>/projects/the vault
+         for the hand-run local case (no machine username is hardcoded). That
+         fallback is fine for a hand-run generator on this machine; a
+         schtask-driven auto-regen should still set MCP_SITE_VAULT_ROOT
+         explicitly rather than rely on the fallback resolving correctly under
+         whatever account runs the schtask.
 -->
 
 </body>

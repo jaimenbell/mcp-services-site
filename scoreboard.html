@@ -118,7 +118,7 @@
 <div class="stat"><div class="n">1</div><div class="l">THIN-EDGE (capped)</div></div>
       </div>
 
-      <p class="sb-source-note">Parsed live from <code>the vault/Reports/Signal Validation Scoreboard.md</code> (47 rows) at generation time 2026-07-04T02:57:55.921Z. 1 row live-reverified against current data during this run (see "live-reverified" tag below).</p>
+      <p class="sb-source-note">Parsed live from <code>the vault/Reports/Signal Validation Scoreboard.md</code> (47 rows) at generation time 2026-07-28T23:55:15.819Z. 1 row live-reverified against current data during this run (see "live-reverified" tag below).</p>
 
       <div class="sb-wrap">
         <table class="sb">
@@ -138,7 +138,7 @@
           <td><span class="sb-badge sb-pending">UNVALIDATED — PENDING REPRO</span><div class="sb-override-tag">live-reverified</div></td>
           <td class="sb-n">127</td>
           <td class="sb-oos">OOS BLOCKED — 44 calendar days of ticker-scoped signal history (2026-04-07→2026-05-21) vs 90-day minimum; embargo (14d) consumes the entire 30% OOS window</td>
-          <td class="sb-notes">Only validated return-predictor fleet-wide; 70.5% win at 10d, p=0.0004 per [[2026-05-20 Whale-Tracker Signal Efficacy Backtest]]; **Wave 0-B.1 re-test (2026-05-21) reproduces under the corrected harness: 72.1% win at 10d, binomial p=5.08e-5, n=86 deduped — Class-1 reproducibility achieved**; decay-retest due ≥90d post-2026-05-20; mega-cap-momentum edge concentration is an honest-flag risk<div class="sb-override-note"><strong>Override evidence:</strong> research/whale_flow_check.py, re-run 2026-07-04 against whale-tracker/data/signal_log.jsonl (1218 rows) during scoreboard generation. Reverses the vault scoreboard's VALIDATED classification (70.5% win-rate @10d, p=0.0004, 2026-05-20 methodology) — a Spearman re-test on the same signal returned NO-EDGE (p=0.1247), an unresolved methodology mismatch per the vault's own Learning/Glossary ("Scoreboard and VALIDATED promotion") and the 2026-07-03 Data Feed Products design doc. Publishing the more cautious label per the "never price ahead of the honesty label" rule.</div></td>
+          <td class="sb-notes">Only validated return-predictor fleet-wide; 70.5% win at 10d, p=0.0004 per 2026-05-20 Whale-Tracker Signal Efficacy Backtest; **Wave 0-B.1 re-test (2026-05-21) reproduces under the corrected harness: 72.1% win at 10d, binomial p=5.08e-5, n=86 deduped — Class-1 reproducibility achieved**; decay-retest due ≥90d post-2026-05-20; mega-cap-momentum edge concentration is an honest-flag risk<div class="sb-override-note"><strong>Override evidence:</strong> research/whale_flow_check.py, re-run 2026-07-04 against whale-tracker/data/signal_log.jsonl (1218 rows) during scoreboard generation. Reverses the vault scoreboard's VALIDATED classification (70.5% win-rate @10d, p=0.0004, 2026-05-20 methodology) — a Spearman re-test on the same signal returned NO-EDGE (p=0.1247), an unresolved methodology mismatch per the vault's own Learning/Glossary ("Scoreboard and VALIDATED promotion") and the 2026-07-03 Data Feed Products design doc. Publishing the more cautious label per the "never price ahead of the honesty label" rule.</div></td>
         </tr>
 
         <tr>
@@ -174,7 +174,7 @@
           <td><span class="sb-badge sb-removed">REMOVED (anti-edge)</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
-          <td class="sb-notes">2026-05-20 NO-GO; anti-edge magnitude grows with horizon; re-entry only after upstream RCA per [[2026-05-20 Kronos Anti-Edge Root Cause]]; day-trader is SHADOW-ONLY for the entire campaign</td>
+          <td class="sb-notes">2026-05-20 NO-GO; anti-edge magnitude grows with horizon; re-entry only after upstream RCA per 2026-05-20 Kronos Anti-Edge Root Cause; day-trader is SHADOW-ONLY for the entire campaign</td>
         </tr>
 
         <tr>
@@ -498,7 +498,7 @@
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
-          <td class="sb-notes">LIKELY-REDUNDANT hint from [[2026-05-20 News-Gate Efficacy Backtest]]; Wave 7 tests whether this collapses into news_veto with no independent lift</td>
+          <td class="sb-notes">LIKELY-REDUNDANT hint from 2026-05-20 News-Gate Efficacy Backtest; Wave 7 tests whether this collapses into news_veto with no independent lift</td>
         </tr>
 
         <tr>
@@ -619,12 +619,13 @@
          consistency (row count, enum values) before this script trusts it -- a
          typo'd status cell would render silently. A lint pass belongs in the
          eventual auto-version, not hand-added here as a one-off.
-      4. This script currently reads an ABSOLUTE machine path
-         (C:\Users\jaime\projects\the vault\...) for the vault note, matching
-         the same pattern generate-og-image.mjs uses for a local Chrome binary.
-         That is fine for a hand-run generator on this machine; it is NOT fine for
-         a schtask-driven auto-regen without first deciding where the vault lives
-         relative to whatever runs the schtask.
+      4. This script reads the vault note from a path resolved via the
+         MCP_SITE_VAULT_ROOT env var, falling back to <home>/projects/the vault
+         for the hand-run local case (no machine username is hardcoded). That
+         fallback is fine for a hand-run generator on this machine; a
+         schtask-driven auto-regen should still set MCP_SITE_VAULT_ROOT
+         explicitly rather than rely on the fallback resolving correctly under
+         whatever account runs the schtask.
 -->
 
 </body>
