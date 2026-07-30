@@ -159,7 +159,7 @@
       <div class="cs-stats" style="margin-top:14px">
         <h3>What's actually built <span style="font-weight:400;font-size:0.85em">(live-verified, gate-checked)</span></h3>
         <ul>
-          <li><strong>265 passing tests</strong> across the repo (tool checks, discovery, report generation, and the fleet-health-mcp status surface). The repo is private, so this number is self-verified by me, not something you can clone and re-run yourself — verify by proxy against <a href="../proof-manifest.toml">proof-manifest.toml</a> instead of the source.</li>
+          <li><strong>265 passing tests</strong> across the repo (tool checks, discovery, report generation, and the fleet-health-mcp status surface). The repo is private, so this number is self-verified by me, not something you can clone and re-run yourself. What you can inspect is its provenance: <a href="../proof-manifest.toml">proof-manifest.toml</a> records the exact command, the run output it was read from, and every time the figure has drifted. That is disclosure, not independent verification — treat it accordingly.</li>
           <li><strong>6 universal hazard principles</strong>, cross-referenced to <strong>4 platform appendices</strong> (Windows, Linux/cron/systemd, cloud/IaC, CI/CD)</li>
           <li><strong>6 portable static checks</strong> (UC-1..UC-6) plus Windows-specific checks (HZ-1..HZ-10) in the original audit generator</li>
           <li><strong>1 zero-effector rail</strong>, asserted by a dedicated test — not a policy statement</li>
