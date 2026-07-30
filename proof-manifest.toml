@@ -39,6 +39,20 @@
 # so next to every citation of that number. check_proof_numbers.py reports
 # (never fails) every private-visibility entry via the same honest-WARN
 # convention as a missing live-check.
+#
+# SOURCE_TIMEOUT (2026-07-30): live-checking an entry runs its real suite
+# under a global timeout (LIVE_CHECK_TIMEOUT_SECONDS = 90s in
+# check_proof_numbers.py) -- a hang or a genuinely slow suite WARNs rather
+# than blocking the commit forever. Absent = the global 90s applies (the
+# default, most entries don't set it -- same sparse-only-when-needed
+# convention as source_repo/source_env/visibility above). Set
+# `source_timeout = <seconds>` on an entry ONLY when its suite legitimately
+# runs close enough to the global default, with real run-to-run variance,
+# that it intermittently trips the timeout and goes permanently unverified
+# -- never raise the global default itself just to accommodate one outlier
+# entry. Unlike source_repo/source_env, a timeout value carries no local
+# filesystem path, so it lives directly on this tracked manifest (no
+# proof-manifest.local.toml overlay needed).
 
 ["mcp-factory"]
 value = 222
@@ -151,6 +165,11 @@ value = 1281
 source_repo_public = "jaimenbell/Day-Trader"
 visibility = "private"
 source_cmd = ".venv/Scripts/python.exe -m pytest -q"
+# Measured 2026-07-30: 1281 passed, 0 failed, 84.99s -- runs close enough to
+# the global 90s live-check timeout, with 13-19s of observed run-to-run
+# variance, that it intermittently trips it and goes permanently unverified.
+# This entry only; every other entry keeps the fast-fail 90s default.
+source_timeout = 180
 tail_line = "1281 passed, 1 warning in 71.56s"
 verified_utc = "2026-07-30T13:00:00+00:00"
 status = "verified"

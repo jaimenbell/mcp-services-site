@@ -839,6 +839,105 @@ def test_manifest_source_env_loads_and_validates(tmp_path):
         assert "source_env" in str(exc)
 
 
+def test_manifest_source_timeout_loads_and_validates(tmp_path):
+    """source_timeout loads as a positive int; a non-int (or non-positive)
+    value fails the whole load loudly (same philosophy as source_env)."""
+    good = tmp_path / "good.toml"
+    good.write_text(
+        '["day-trader"]\n'
+        'value = 1281\n'
+        'source_cmd = "python -m pytest -q"\n'
+        'source_timeout = 180\n',
+        encoding="utf-8",
+    )
+    entries = cpn.load_manifest_entries(good)
+    assert entries["day-trader"].source_timeout == 180
+
+    bad = tmp_path / "bad.toml"
+    bad.write_text(
+        '["day-trader"]\n'
+        'value = 1281\n'
+        'source_cmd = "python -m pytest -q"\n'
+        'source_timeout = "180"\n',
+        encoding="utf-8",
+    )
+    try:
+        cpn.load_manifest_entries(bad)
+        raise AssertionError("expected ManifestValidationError")
+    except cpn.ManifestValidationError as exc:
+        assert "source_timeout" in str(exc)
+
+    negative = tmp_path / "negative.toml"
+    negative.write_text(
+        '["day-trader"]\n'
+        'value = 1281\n'
+        'source_cmd = "python -m pytest -q"\n'
+        'source_timeout = 0\n',
+        encoding="utf-8",
+    )
+    try:
+        cpn.load_manifest_entries(negative)
+        raise AssertionError("expected ManifestValidationError")
+    except cpn.ManifestValidationError as exc:
+        assert "source_timeout" in str(exc)
+
+
+def test_manifest_without_source_timeout_defaults_to_none(tmp_path):
+    """An entry that omits source_timeout must load with None -- no
+    behaviour change for every entry that doesn't set it."""
+    good = tmp_path / "good.toml"
+    good.write_text(
+        '["mcp-factory"]\n'
+        'value = 222\n'
+        'source_cmd = "python -m pytest -q"\n',
+        encoding="utf-8",
+    )
+    entries = cpn.load_manifest_entries(good)
+    assert entries["mcp-factory"].source_timeout is None
+
+
+def test_live_check_source_timeout_overrides_global_default(tmp_path):
+    """A manifest entry may carry a source_timeout that overrides the global
+    default passed to live_verify_manifest -- a suite that would time out
+    under the global value must still complete (and OK) when the entry's own
+    source_timeout is long enough. Real use: day-trader's suite measured
+    84.99s with 13-19s of run-to-run variance, straddling the 90s global
+    default closely enough to intermittently time out."""
+    repo_dir = tmp_path / "day-trader"
+    _write_fake_runner(repo_dir, passed_count=1281, extra_py="import time; time.sleep(2)")
+    entry = cpn.ManifestEntry(
+        key="day-trader",
+        value=1281,
+        source_cmd=f"{sys.executable} fake_runner.py",
+        source_repo=str(repo_dir),
+        source_timeout=10,
+    )
+
+    # Global default (1s) is too short -- without the per-entry override this
+    # would WARN as a timeout; the entry's own source_timeout=10 must win.
+    results = cpn.live_verify_manifest({"day-trader": entry}, timeout=1)
+
+    assert len(results) == 1
+    assert results[0].status == "OK", results[0].message
+    assert results[0].live_value == 1281
+
+
+def test_live_check_without_source_timeout_uses_global_default(tmp_path):
+    """An entry with no source_timeout must still respect the global default
+    passed to live_verify_manifest -- no behaviour change for entries that
+    don't set the new field."""
+    repo_dir = tmp_path / "mcp-factory"
+    _write_fake_runner(repo_dir, passed_count=199, extra_py="import time; time.sleep(5)")
+    entries = {"mcp-factory": _fake_entry(repo_dir, value=199)}
+    assert entries["mcp-factory"].source_timeout is None
+
+    results = cpn.live_verify_manifest(entries, timeout=1)
+
+    assert len(results) == 1
+    assert results[0].status == "WARN"
+    assert "timed out after 1s" in results[0].message.lower()
+
+
 # --- junitxml live-check parsing (2026-07-23 lane: 7 recurring LIVE-CHECK
 # WARNs from repos whose pytest config suppresses the plain "-q" summary
 # line under piped/non-tty capture -- github-mcp, desktop-mcp, rag-mcp,

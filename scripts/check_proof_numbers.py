@@ -103,6 +103,14 @@ MANIFEST_PATH = REPO_ROOT / "proof-manifest.toml"
 LOCAL_MANIFEST_PATH = REPO_ROOT / "proof-manifest.local.toml"
 
 # Live-check knobs (see LiveCheckResult / live_verify_manifest below).
+# LIVE_CHECK_TIMEOUT_SECONDS is the default applied to every entry. A single
+# entry whose suite legitimately runs close to that default (and has
+# meaningful run-to-run variance, so it intermittently trips the global
+# value) can override it via the manifest's per-entry "source_timeout" field
+# (see ManifestEntry / load_manifest_entries / live_verify_manifest below) --
+# mirrors the existing per-entry "source_env" override mechanism. Do not
+# raise this global default to accommodate one outlier entry; that would
+# slow down fast-fail for every other entry instead.
 LIVE_CHECK_TIMEOUT_SECONDS = 90
 SKIP_LIVE_CHECK_ENV_VAR = "PROOF_NUMBERS_SKIP_LIVE_CHECK"
 
@@ -511,6 +519,14 @@ def live_verify_manifest(
             ))
             continue
 
+        # Per-entry timeout override (manifest "source_timeout" field). Real
+        # use: day-trader's suite runs ~85s with 13-19s of run-to-run
+        # variance, which straddles the 90s global default closely enough to
+        # intermittently time out -- an entry-specific longer timeout keeps
+        # that one entry from going permanently unverified without loosening
+        # fast-fail for every other entry.
+        entry_timeout = entry.source_timeout if entry.source_timeout is not None else timeout
+
         # Every live-checked command is asked for a junitxml report (see
         # _prepare_junit_argv) -- this is what lets a repo whose plain "-q"
         # summary line is suppressed under piped/non-tty capture still be
@@ -546,12 +562,12 @@ def live_verify_manifest(
                     clean_env.update(entry.source_env)
                 proc = subprocess.run(
                     junit_argv, cwd=source_repo, capture_output=True, text=True,
-                    timeout=timeout, env=clean_env,
+                    timeout=entry_timeout, env=clean_env,
                 )
             except subprocess.TimeoutExpired:
                 results.append(LiveCheckResult(
                     key, "WARN",
-                    f"source_cmd timed out after {timeout}s in {source_repo} -- "
+                    f"source_cmd timed out after {entry_timeout}s in {source_repo} -- "
                     f"skipping live check ({entry.source_cmd!r})",
                 ))
                 continue
@@ -645,13 +661,24 @@ class ManifestEntry:
     only drives the informational PRIVATE-SOURCE report (_privacy_findings()
     below), which reuses the existing honest-WARN convention: printed and
     tallied, never escalated to FAIL.
+
+    `source_timeout` is an OPTIONAL per-entry override (in seconds) of the
+    global LIVE_CHECK_TIMEOUT_SECONDS default, for the one entry whose suite
+    legitimately runs close enough to that default (with real run-to-run
+    variance) that it intermittently times out and goes permanently
+    unverified otherwise. Absent (the default, None) -> the global 90s
+    applies unchanged; present -> live_verify_manifest uses it for that
+    entry only. Unlike source_repo/source_env it is not a local filesystem
+    path, so it needs no path-hardening overlay treatment -- it is set
+    directly on the tracked manifest.
     """
 
     def __init__(self, key: str, value: int, source_cmd: str | None = None,
                  source_repo: str | None = None,
                  source_env: dict[str, str] | None = None,
                  source_repo_public: str | None = None,
-                 visibility: str = "public"):
+                 visibility: str = "public",
+                 source_timeout: int | None = None):
         self.key = key
         self.value = value
         self.source_cmd = source_cmd
@@ -659,6 +686,7 @@ class ManifestEntry:
         self.source_env = source_env
         self.source_repo_public = source_repo_public
         self.visibility = visibility
+        self.source_timeout = source_timeout
 
 
 def load_local_overrides(path: Path = LOCAL_MANIFEST_PATH) -> dict[str, dict]:
@@ -761,6 +789,15 @@ def load_manifest_entries(
                 f'proof-manifest.toml: entry ["{key}"]\'s "visibility" must be '
                 f'"public" or "private"; got: {visibility!r}'
             )
+        source_timeout = entry.get("source_timeout")
+        if source_timeout is not None:
+            if isinstance(source_timeout, bool) or not isinstance(source_timeout, int) \
+                    or source_timeout <= 0:
+                raise ManifestValidationError(
+                    f'proof-manifest.toml: entry ["{key}"]\'s "source_timeout" '
+                    f"must be a positive integer (seconds); got: "
+                    f"{source_timeout!r}"
+                )
         source_repo = entry.get("source_repo")
         # Local overlay (untracked proof-manifest.local.toml) wins over
         # whatever the tracked manifest carries -- on the real repo the
@@ -782,6 +819,7 @@ def load_manifest_entries(
             source_env=source_env,
             source_repo_public=entry.get("source_repo_public"),
             visibility=visibility,
+            source_timeout=source_timeout,
         )
     return manifest
 
