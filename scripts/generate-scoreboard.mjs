@@ -13,12 +13,12 @@
 //
 // SOURCES (see the per-row HTML comment for the exact citation on every
 // number rendered):
-//   1. the vault/Reports/Signal Validation Scoreboard.md — the fleet's own
-//      hand-maintained "single source of truth for signal validation
-//      status" (its own frontmatter says so). Parsed below as markdown
-//      tables. This is the canonical list of 47 backtest-unit rows.
+//   1. an internal signal-validation record — the fleet's own hand-maintained
+//      "single source of truth for signal validation status" (its own
+//      frontmatter says so). Parsed below as markdown tables. This is the
+//      canonical list of 47 backtest-unit rows.
 //   2. OVERRIDES (below) — point-in-time corrections this generator run
-//      independently verified against LIVE data that the vault doc (last
+//      independently verified against LIVE data that the source record (last
 //      hand-edited 2026-05-21) does not yet reflect. Today's whale-tracker
 //      confluence override was produced by re-running
 //      research/whale_flow_check.py against the CURRENT
@@ -41,10 +41,13 @@ const REPO_ROOT = path.join(__dirname, '..')
 const OUT_HTML = path.join(REPO_ROOT, 'scoreboard.html')
 
 // Vault root: resolved from an env var so this script never hardcodes a
-// machine-specific username, with a sensible same-machine fallback
-// (<home>/projects/the vault) for the hand-run local case. Same
-// "read straight off this machine's local project tree" pattern
-// generate-og-image.mjs uses for Chrome, but configurable.
+// machine-specific username, with a sensible same-machine local-dev fallback
+// (see below) for the hand-run local case. Same "read straight off this
+// machine's local project tree" pattern generate-og-image.mjs uses for
+// Chrome, but configurable. The literal fallback folder name below is this
+// machine's own local dev convenience default, never emitted into the
+// generated page (see dataSourceNote / the per-row HTML comment template
+// further down, both of which use a generic description instead).
 const VAULT_ROOT = process.env.MCP_SITE_VAULT_ROOT
   || path.join(os.homedir(), 'projects', 'the vault')
 const VAULT_SCOREBOARD_MD = path.join(
@@ -54,7 +57,7 @@ const VAULT_SCOREBOARD_MD = path.join(
 const GENERATED_AT = new Date().toISOString()
 
 // ---------------------------------------------------------------------
-// 1. Parse the vault markdown scoreboard into structured rows.
+// 1. Parse the internal markdown scoreboard record into structured rows.
 // ---------------------------------------------------------------------
 
 // Strip Obsidian [[wikilink]] syntax before any vault text is transcribed
@@ -116,7 +119,7 @@ try {
 }
 
 // ---------------------------------------------------------------------
-// 2. Known overrides — LIVE-verified corrections the vault doc's own
+// 2. Known overrides — LIVE-verified corrections the source record's own
 //    last_updated (2026-05-21) predates. Every override cites the exact
 //    command + numbers that produced it. Do not add an override without
 //    a reproducible command behind it.
@@ -128,7 +131,7 @@ const OVERRIDES = {
     oos_progress: 'OOS BLOCKED — 44 calendar days of ticker-scoped signal history (2026-04-07→2026-05-21) vs 90-day minimum; embargo (14d) consumes the entire 30% OOS window',
     n: 127,
     live_stat: 'rho=+0.1360, t=+1.535, p=0.1247 @10d (full-sample, IS-biased — Spearman re-test, NOT the original win-rate methodology)',
-    evidence: 'research/whale_flow_check.py, re-run 2026-07-04 against whale-tracker/data/signal_log.jsonl (1218 rows) during scoreboard generation. Reverses the vault scoreboard\'s VALIDATED classification (70.5% win-rate @10d, p=0.0004, 2026-05-20 methodology) — a Spearman re-test on the same signal returned NO-EDGE (p=0.1247), an unresolved methodology mismatch per the vault\'s own Learning/Glossary ("Scoreboard and VALIDATED promotion") and the 2026-07-03 Data Feed Products design doc. Publishing the more cautious label per the "never price ahead of the honesty label" rule.',
+    evidence: 'research/whale_flow_check.py, re-run 2026-07-04 against whale-tracker/data/signal_log.jsonl (1218 rows) during scoreboard generation. Reverses the internal record\'s VALIDATED classification (70.5% win-rate @10d, p=0.0004, 2026-05-20 methodology) — a Spearman re-test on the same signal returned NO-EDGE (p=0.1247), an unresolved methodology mismatch per internal glossary guidance ("Scoreboard and VALIDATED promotion") and the 2026-07-03 Data Feed Products design doc. Publishing the more cautious label per the "never price ahead of the honesty label" rule.',
   },
 }
 
@@ -189,7 +192,7 @@ function badgeClass(key) {
 
 const rowsHtml = rows.map((r) => `
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "${esc(r.section || '')}" -->
+          <!-- source: internal signal-validation dataset, section "${esc(r.section || '')}" -->
           <td class="sb-name"><code>${esc(r.signal_source)}</code><div class="sb-bot">${esc(r.owning_bot)}</div></td>
           <td><span class="${badgeClass(r.disp.key)}">${esc(r.disp.label)}</span>${r.overridden ? '<div class="sb-override-tag">live-reverified</div>' : ''}</td>
           <td class="sb-n">${esc(r.n)}</td>
@@ -207,8 +210,8 @@ function displayStatusLabelForKey(key) {
 }
 
 const dataSourceNote = vaultReadError
-  ? `<p class="sb-error">Could not read the vault scoreboard (${esc(vaultReadError)}). This page could not be honestly regenerated — do not trust a stale copy below without checking the generation log.</p>`
-  : `<p class="sb-source-note">Parsed live from <code>the vault/Reports/Signal Validation Scoreboard.md</code> (${rows.length} rows) at generation time ${esc(GENERATED_AT)}. 1 row live-reverified against current data during this run (see "live-reverified" tag below).</p>`
+  ? `<p class="sb-error">Could not read the internal signal-validation source (${esc(vaultReadError)}). This page could not be honestly regenerated — do not trust a stale copy below without checking the generation log.</p>`
+  : `<p class="sb-source-note">Parsed live from the internal signal-validation dataset (${rows.length} rows) at generation time ${esc(GENERATED_AT)}. 1 row live-reverified against current data during this run (see "live-reverified" tag below).</p>`
 
 const html = `<!DOCTYPE html>
 <html lang="en">
@@ -367,6 +370,7 @@ const html = `<!DOCTYPE html>
 </footer>
 
 <script src="js/discord-cta.js" defer></script>
+<script src="js/click-track.js" defer></script>
 
 <!--
   GENERATION FINDINGS (regen instructions + instrumentation gaps for a future auto-version):
@@ -375,18 +379,18 @@ const html = `<!DOCTYPE html>
     node scripts/generate-scoreboard.mjs
 
   What renders vs what's deferred:
-  - All ${rows.length} rows render straight from the vault's own hand-maintained
-    "Signal Validation Scoreboard.md" (the file's own frontmatter calls it the
-    campaign's single source of truth). No status, wave, or note text is invented;
-    every row keeps its section-of-origin as a source citation (see the HTML
-    comment above each <tr>).
+  - All ${rows.length} rows render straight from the fleet's own hand-maintained
+    internal signal-validation record (that source's own frontmatter calls it
+    the campaign's single source of truth). No status, wave, or note text is
+    invented; every row keeps its section-of-origin as a source citation (see
+    the HTML comment above each <tr>).
   - One row (whale-tracker.confluence) carries a LIVE override: this generator run
     re-executed research/whale_flow_check.py against the current
     whale-tracker/data/signal_log.jsonl and got a materially different verdict than
-    the vault doc's last hand-edit (2026-05-21) reflects. That is disclosed inline,
-    not silently substituted.
+    the source record's last hand-edit (2026-05-21) reflects. That is disclosed
+    inline, not silently substituted.
   - NOT built in this pass, and needed before this can regenerate unattended:
-      1. whale_flow_check.py's own "SUMMARY FOR VAULT NOTE" block ends with THREE
+      1. whale_flow_check.py's own summary-for-record block ends with THREE
          hardcoded literal strings ("45-day history", "~90 days (~2026-07-07)",
          "~300 days (~2027-01-31)") that do NOT recompute from the script's own
          n_days_history variable -- they were correct once and are now silently
@@ -394,24 +398,23 @@ const html = `<!DOCTYPE html>
          printout. A future auto-version must fix this file to interpolate real
          values (or this generator will eventually cite a hardcoded lie next to a
          live one). Flagging this as the single highest-priority fix.
-      2. No persisted JSON snapshot exists anywhere for the scoreboard -- the vault
-         MD is hand-edited and whale_flow_check.py only prints to stdout. An
-         auto-regen hook needs (a) whale_flow_check.py refactored to write a dated
-         JSON artifact instead of print-only, and (b) the vault MD's own
-         Update Protocol ("same-PR rule") extended to also regenerate this page in
-         the same pass, so the public copy can never drift further behind the
-         internal one than a single commit.
-      3. No code anywhere currently re-verifies the vault MD table for internal
-         consistency (row count, enum values) before this script trusts it -- a
-         typo'd status cell would render silently. A lint pass belongs in the
-         eventual auto-version, not hand-added here as a one-off.
-      4. This script reads the vault note from a path resolved via the
-         MCP_SITE_VAULT_ROOT env var, falling back to <home>/projects/the vault
-         for the hand-run local case (no machine username is hardcoded). That
-         fallback is fine for a hand-run generator on this machine; a
-         schtask-driven auto-regen should still set MCP_SITE_VAULT_ROOT
-         explicitly rather than rely on the fallback resolving correctly under
-         whatever account runs the schtask.
+      2. No persisted JSON snapshot exists anywhere for the scoreboard -- the
+         internal record is hand-edited and whale_flow_check.py only prints to
+         stdout. An auto-regen hook needs (a) whale_flow_check.py refactored to
+         write a dated JSON artifact instead of print-only, and (b) the internal
+         record's own Update Protocol ("same-PR rule") extended to also
+         regenerate this page in the same pass, so the public copy can never
+         drift further behind the internal one than a single commit.
+      3. No code anywhere currently re-verifies the internal record's table for
+         internal consistency (row count, enum values) before this script trusts
+         it -- a typo'd status cell would render silently. A lint pass belongs in
+         the eventual auto-version, not hand-added here as a one-off.
+      4. This script reads the internal record from a path resolved via the
+         MCP_SITE_VAULT_ROOT env var, with a same-machine local-dev fallback
+         (no machine username is hardcoded). That fallback is fine for a
+         hand-run generator on this machine; a schtask-driven auto-regen should
+         still set MCP_SITE_VAULT_ROOT explicitly rather than rely on the
+         fallback resolving correctly under whatever account runs the schtask.
 -->
 
 </body>

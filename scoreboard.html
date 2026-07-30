@@ -118,7 +118,7 @@
 <div class="stat"><div class="n">1</div><div class="l">THIN-EDGE (capped)</div></div>
       </div>
 
-      <p class="sb-source-note">Parsed live from <code>the vault/Reports/Signal Validation Scoreboard.md</code> (47 rows) at generation time 2026-07-28T23:55:15.819Z. 1 row live-reverified against current data during this run (see "live-reverified" tag below).</p>
+      <p class="sb-source-note">Parsed live from the internal signal-validation dataset (47 rows) at generation time 2026-07-30T22:11:49.203Z. 1 row live-reverified against current data during this run (see "live-reverified" tag below).</p>
 
       <div class="sb-wrap">
         <table class="sb">
@@ -133,16 +133,16 @@
           </thead>
           <tbody>
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Pre-classified — VALIDATED" -->
+          <!-- source: internal signal-validation dataset, section "Pre-classified — VALIDATED" -->
           <td class="sb-name"><code>whale-tracker.confluence</code><div class="sb-bot">whale-tracker</div></td>
           <td><span class="sb-badge sb-pending">UNVALIDATED — PENDING REPRO</span><div class="sb-override-tag">live-reverified</div></td>
           <td class="sb-n">127</td>
           <td class="sb-oos">OOS BLOCKED — 44 calendar days of ticker-scoped signal history (2026-04-07→2026-05-21) vs 90-day minimum; embargo (14d) consumes the entire 30% OOS window</td>
-          <td class="sb-notes">Only validated return-predictor fleet-wide; 70.5% win at 10d, p=0.0004 per 2026-05-20 Whale-Tracker Signal Efficacy Backtest; **Wave 0-B.1 re-test (2026-05-21) reproduces under the corrected harness: 72.1% win at 10d, binomial p=5.08e-5, n=86 deduped — Class-1 reproducibility achieved**; decay-retest due ≥90d post-2026-05-20; mega-cap-momentum edge concentration is an honest-flag risk<div class="sb-override-note"><strong>Override evidence:</strong> research/whale_flow_check.py, re-run 2026-07-04 against whale-tracker/data/signal_log.jsonl (1218 rows) during scoreboard generation. Reverses the vault scoreboard's VALIDATED classification (70.5% win-rate @10d, p=0.0004, 2026-05-20 methodology) — a Spearman re-test on the same signal returned NO-EDGE (p=0.1247), an unresolved methodology mismatch per the vault's own Learning/Glossary ("Scoreboard and VALIDATED promotion") and the 2026-07-03 Data Feed Products design doc. Publishing the more cautious label per the "never price ahead of the honesty label" rule.</div></td>
+          <td class="sb-notes">Only validated return-predictor fleet-wide; 70.5% win at 10d, p=0.0004 per 2026-05-20 Whale-Tracker Signal Efficacy Backtest; **Wave 0-B.1 re-test (2026-05-21) reproduces under the corrected harness: 72.1% win at 10d, binomial p=5.08e-5, n=86 deduped — Class-1 reproducibility achieved**; decay-retest due ≥90d post-2026-05-20; mega-cap-momentum edge concentration is an honest-flag risk<div class="sb-override-note"><strong>Override evidence:</strong> research/whale_flow_check.py, re-run 2026-07-04 against whale-tracker/data/signal_log.jsonl (1218 rows) during scoreboard generation. Reverses the internal record's VALIDATED classification (70.5% win-rate @10d, p=0.0004, 2026-05-20 methodology) — a Spearman re-test on the same signal returned NO-EDGE (p=0.1247), an unresolved methodology mismatch per internal glossary guidance ("Scoreboard and VALIDATED promotion") and the 2026-07-03 Data Feed Products design doc. Publishing the more cautious label per the "never price ahead of the honesty label" rule.</div></td>
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Pre-classified — VALIDATED" -->
+          <!-- source: internal signal-validation dataset, section "Pre-classified — VALIDATED" -->
           <td class="sb-name"><code>cross-platform-arb.tte_filter</code><div class="sb-bot">cross-platform-arb</div></td>
           <td><span class="sb-badge sb-validated">VALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -151,7 +151,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Pre-classified — VALIDATED" -->
+          <!-- source: internal signal-validation dataset, section "Pre-classified — VALIDATED" -->
           <td class="sb-name"><code>solana-sniper.safety_bundle</code><div class="sb-bot">solana-sniper-bot</div></td>
           <td><span class="sb-badge sb-validated">VALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -160,7 +160,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Pre-classified — ANTI-PREDICTIVE" -->
+          <!-- source: internal signal-validation dataset, section "Pre-classified — ANTI-PREDICTIVE" -->
           <td class="sb-name"><code>whale-tracker.insider_cluster</code><div class="sb-bot">whale-tracker</div></td>
           <td><span class="sb-badge sb-removed">REMOVED (anti-edge)</span></td>
           <td class="sb-n">—</td>
@@ -169,7 +169,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Pre-classified — ANTI-PREDICTIVE" -->
+          <!-- source: internal signal-validation dataset, section "Pre-classified — ANTI-PREDICTIVE" -->
           <td class="sb-name"><code>kronos.edge_pct</code><div class="sb-bot">day-trader</div></td>
           <td><span class="sb-badge sb-removed">REMOVED (anti-edge)</span></td>
           <td class="sb-n">—</td>
@@ -178,7 +178,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Pre-classified — THIN-EDGE" -->
+          <!-- source: internal signal-validation dataset, section "Pre-classified — THIN-EDGE" -->
           <td class="sb-name"><code>funding-rate-arb.funding_rate</code><div class="sb-bot">funding-rate-arb</div></td>
           <td><span class="sb-badge sb-thin">THIN-EDGE (capped)</span></td>
           <td class="sb-n">—</td>
@@ -187,7 +187,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 1 — Whale-tracker remaining tags + Elections scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 1 — Whale-tracker remaining tags + Elections scanner" -->
           <td class="sb-name"><code>whale-tracker.congressional</code><div class="sb-bot">whale-tracker</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -196,7 +196,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 1 — Whale-tracker remaining tags + Elections scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 1 — Whale-tracker remaining tags + Elections scanner" -->
           <td class="sb-name"><code>whale-tracker.institutional</code><div class="sb-bot">whale-tracker</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -205,7 +205,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 1 — Whale-tracker remaining tags + Elections scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 1 — Whale-tracker remaining tags + Elections scanner" -->
           <td class="sb-name"><code>whale-tracker.options_flow</code><div class="sb-bot">whale-tracker</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -214,7 +214,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 1 — Whale-tracker remaining tags + Elections scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 1 — Whale-tracker remaining tags + Elections scanner" -->
           <td class="sb-name"><code>whale-tracker.kronos_edge_pct</code><div class="sb-bot">whale-tracker</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -223,7 +223,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 1 — Whale-tracker remaining tags + Elections scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 1 — Whale-tracker remaining tags + Elections scanner" -->
           <td class="sb-name"><code>prediction-trader.elections</code><div class="sb-bot">prediction_trader</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -232,7 +232,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 2 — Options-bot TA core + AI/Tech scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 2 — Options-bot TA core + AI/Tech scanner" -->
           <td class="sb-name"><code>options-bot.connors_rsi</code><div class="sb-bot">options-bot</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -241,7 +241,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 2 — Options-bot TA core + AI/Tech scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 2 — Options-bot TA core + AI/Tech scanner" -->
           <td class="sb-name"><code>options-bot.rsi_14</code><div class="sb-bot">options-bot</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -250,7 +250,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 2 — Options-bot TA core + AI/Tech scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 2 — Options-bot TA core + AI/Tech scanner" -->
           <td class="sb-name"><code>options-bot.macd_cross</code><div class="sb-bot">options-bot</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -259,7 +259,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 2 — Options-bot TA core + AI/Tech scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 2 — Options-bot TA core + AI/Tech scanner" -->
           <td class="sb-name"><code>options-bot.bb_squeeze_breakout</code><div class="sb-bot">options-bot</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -268,7 +268,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 2 — Options-bot TA core + AI/Tech scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 2 — Options-bot TA core + AI/Tech scanner" -->
           <td class="sb-name"><code>options-bot.volume_spike</code><div class="sb-bot">options-bot</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -277,7 +277,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 2 — Options-bot TA core + AI/Tech scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 2 — Options-bot TA core + AI/Tech scanner" -->
           <td class="sb-name"><code>prediction-trader.ai_tech</code><div class="sb-bot">prediction_trader</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -286,7 +286,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 3 — Options-bot vol/flow + Weather scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 3 — Options-bot vol/flow + Weather scanner" -->
           <td class="sb-name"><code>options-bot.iv_rank</code><div class="sb-bot">options-bot</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -295,7 +295,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 3 — Options-bot vol/flow + Weather scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 3 — Options-bot vol/flow + Weather scanner" -->
           <td class="sb-name"><code>options-bot.vix_rank</code><div class="sb-bot">options-bot</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -304,7 +304,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 3 — Options-bot vol/flow + Weather scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 3 — Options-bot vol/flow + Weather scanner" -->
           <td class="sb-name"><code>options-bot.voi_sweep</code><div class="sb-bot">options-bot</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -313,7 +313,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 3 — Options-bot vol/flow + Weather scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 3 — Options-bot vol/flow + Weather scanner" -->
           <td class="sb-name"><code>options-bot.put_call_iv_skew</code><div class="sb-bot">options-bot</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -322,7 +322,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 3 — Options-bot vol/flow + Weather scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 3 — Options-bot vol/flow + Weather scanner" -->
           <td class="sb-name"><code>options-bot.earnings_0_7d_bonus</code><div class="sb-bot">options-bot</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -331,7 +331,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 3 — Options-bot vol/flow + Weather scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 3 — Options-bot vol/flow + Weather scanner" -->
           <td class="sb-name"><code>prediction-trader.weather</code><div class="sb-bot">prediction_trader</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -340,7 +340,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 4 — Grid-trading regime classifier + Econ scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 4 — Grid-trading regime classifier + Econ scanner" -->
           <td class="sb-name"><code>grid-trading.adx</code><div class="sb-bot">grid-trading-bot</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -349,7 +349,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 4 — Grid-trading regime classifier + Econ scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 4 — Grid-trading regime classifier + Econ scanner" -->
           <td class="sb-name"><code>grid-trading.bb_width</code><div class="sb-bot">grid-trading-bot</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -358,7 +358,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 4 — Grid-trading regime classifier + Econ scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 4 — Grid-trading regime classifier + Econ scanner" -->
           <td class="sb-name"><code>grid-trading.grid_score</code><div class="sb-bot">grid-trading-bot</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -367,7 +367,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 4 — Grid-trading regime classifier + Econ scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 4 — Grid-trading regime classifier + Econ scanner" -->
           <td class="sb-name"><code>prediction-trader.econ</code><div class="sb-bot">prediction_trader</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -376,7 +376,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 5 — Solana-sniper quality stack + MiroFish scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 5 — Solana-sniper quality stack + MiroFish scanner" -->
           <td class="sb-name"><code>solana-sniper.m1_momentum</code><div class="sb-bot">solana-sniper-bot</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -385,7 +385,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 5 — Solana-sniper quality stack + MiroFish scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 5 — Solana-sniper quality stack + MiroFish scanner" -->
           <td class="sb-name"><code>solana-sniper.buy_sell_ratio</code><div class="sb-bot">solana-sniper-bot</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -394,7 +394,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 5 — Solana-sniper quality stack + MiroFish scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 5 — Solana-sniper quality stack + MiroFish scanner" -->
           <td class="sb-name"><code>solana-sniper.bonding_curve_position</code><div class="sb-bot">solana-sniper-bot</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -403,7 +403,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 5 — Solana-sniper quality stack + MiroFish scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 5 — Solana-sniper quality stack + MiroFish scanner" -->
           <td class="sb-name"><code>solana-sniper.creator_wallet_age_tier</code><div class="sb-bot">solana-sniper-bot</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -412,7 +412,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 5 — Solana-sniper quality stack + MiroFish scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 5 — Solana-sniper quality stack + MiroFish scanner" -->
           <td class="sb-name"><code>solana-sniper.price_dump_penalty</code><div class="sb-bot">solana-sniper-bot</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -421,7 +421,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 5 — Solana-sniper quality stack + MiroFish scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 5 — Solana-sniper quality stack + MiroFish scanner" -->
           <td class="sb-name"><code>solana-sniper.volume_spike_ratio_h1_h24</code><div class="sb-bot">solana-sniper-bot</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -430,7 +430,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 5 — Solana-sniper quality stack + MiroFish scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 5 — Solana-sniper quality stack + MiroFish scanner" -->
           <td class="sb-name"><code>prediction-trader.mirofish</code><div class="sb-bot">prediction_trader</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -439,7 +439,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 6 — Cross-platform-arb thesis + NewsSentiment scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 6 — Cross-platform-arb thesis + NewsSentiment scanner" -->
           <td class="sb-name"><code>cross-platform-arb.polymarket_leads_kalshi</code><div class="sb-bot">cross-platform-arb</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -448,7 +448,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 6 — Cross-platform-arb thesis + NewsSentiment scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 6 — Cross-platform-arb thesis + NewsSentiment scanner" -->
           <td class="sb-name"><code>cross-platform-arb.manifold_agreement_boost</code><div class="sb-bot">cross-platform-arb</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -457,7 +457,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 6 — Cross-platform-arb thesis + NewsSentiment scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 6 — Cross-platform-arb thesis + NewsSentiment scanner" -->
           <td class="sb-name"><code>cross-platform-arb.polymarket_volume_confidence_tiers</code><div class="sb-bot">cross-platform-arb</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -466,7 +466,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 6 — Cross-platform-arb thesis + NewsSentiment scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 6 — Cross-platform-arb thesis + NewsSentiment scanner" -->
           <td class="sb-name"><code>cross-platform-arb.fuzzy_match_confidence</code><div class="sb-bot">cross-platform-arb</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -475,7 +475,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 6 — Cross-platform-arb thesis + NewsSentiment scanner" -->
+          <!-- source: internal signal-validation dataset, section "Wave 6 — Cross-platform-arb thesis + NewsSentiment scanner" -->
           <td class="sb-name"><code>prediction-trader.news_sentiment</code><div class="sb-bot">prediction_trader</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -484,7 +484,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 7 — Data-accrual-gated re-tests" -->
+          <!-- source: internal signal-validation dataset, section "Wave 7 — Data-accrual-gated re-tests" -->
           <td class="sb-name"><code>news-bot.market_regime_fng</code><div class="sb-bot">news-bot</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">2</td>
@@ -493,7 +493,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 7 — Data-accrual-gated re-tests" -->
+          <!-- source: internal signal-validation dataset, section "Wave 7 — Data-accrual-gated re-tests" -->
           <td class="sb-name"><code>news-bot.alerts_high</code><div class="sb-bot">news-bot</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -502,7 +502,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 7 — Data-accrual-gated re-tests" -->
+          <!-- source: internal signal-validation dataset, section "Wave 7 — Data-accrual-gated re-tests" -->
           <td class="sb-name"><code>news-bot.news_veto</code><div class="sb-bot">news-bot</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -511,7 +511,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 7 — Data-accrual-gated re-tests" -->
+          <!-- source: internal signal-validation dataset, section "Wave 7 — Data-accrual-gated re-tests" -->
           <td class="sb-name"><code>options-bot.wheel_csp_iv_rank</code><div class="sb-bot">options-bot</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -520,7 +520,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 7 — Data-accrual-gated re-tests" -->
+          <!-- source: internal signal-validation dataset, section "Wave 7 — Data-accrual-gated re-tests" -->
           <td class="sb-name"><code>options-bot.cross_bot_sweep_bus</code><div class="sb-bot">options-bot</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -529,7 +529,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 8 — sage-bot LLM analysts (90-day clock gated)" -->
+          <!-- source: internal signal-validation dataset, section "Wave 8 — sage-bot LLM analysts (90-day clock gated)" -->
           <td class="sb-name"><code>sage-bot.core_analysts</code><div class="sb-bot">sage-bot</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -538,7 +538,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Wave 8 — sage-bot LLM analysts (90-day clock gated)" -->
+          <!-- source: internal signal-validation dataset, section "Wave 8 — sage-bot LLM analysts (90-day clock gated)" -->
           <td class="sb-name"><code>sage-bot.full_roster</code><div class="sb-bot">sage-bot</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -547,7 +547,7 @@
         </tr>
 
         <tr>
-          <!-- source: the vault/Reports/Signal Validation Scoreboard.md, section "Deferred — Wave 9 / post-campaign" -->
+          <!-- source: internal signal-validation dataset, section "Deferred — Wave 9 / post-campaign" -->
           <td class="sb-name"><code>day-trader.deerflow_scorer</code><div class="sb-bot">day-trader</div></td>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
@@ -590,18 +590,18 @@
     node scripts/generate-scoreboard.mjs
 
   What renders vs what's deferred:
-  - All 47 rows render straight from the vault's own hand-maintained
-    "Signal Validation Scoreboard.md" (the file's own frontmatter calls it the
-    campaign's single source of truth). No status, wave, or note text is invented;
-    every row keeps its section-of-origin as a source citation (see the HTML
-    comment above each <tr>).
+  - All 47 rows render straight from the fleet's own hand-maintained
+    internal signal-validation record (that source's own frontmatter calls it
+    the campaign's single source of truth). No status, wave, or note text is
+    invented; every row keeps its section-of-origin as a source citation (see
+    the HTML comment above each <tr>).
   - One row (whale-tracker.confluence) carries a LIVE override: this generator run
     re-executed research/whale_flow_check.py against the current
     whale-tracker/data/signal_log.jsonl and got a materially different verdict than
-    the vault doc's last hand-edit (2026-05-21) reflects. That is disclosed inline,
-    not silently substituted.
+    the source record's last hand-edit (2026-05-21) reflects. That is disclosed
+    inline, not silently substituted.
   - NOT built in this pass, and needed before this can regenerate unattended:
-      1. whale_flow_check.py's own "SUMMARY FOR VAULT NOTE" block ends with THREE
+      1. whale_flow_check.py's own summary-for-record block ends with THREE
          hardcoded literal strings ("45-day history", "~90 days (~2026-07-07)",
          "~300 days (~2027-01-31)") that do NOT recompute from the script's own
          n_days_history variable -- they were correct once and are now silently
@@ -609,24 +609,23 @@
          printout. A future auto-version must fix this file to interpolate real
          values (or this generator will eventually cite a hardcoded lie next to a
          live one). Flagging this as the single highest-priority fix.
-      2. No persisted JSON snapshot exists anywhere for the scoreboard -- the vault
-         MD is hand-edited and whale_flow_check.py only prints to stdout. An
-         auto-regen hook needs (a) whale_flow_check.py refactored to write a dated
-         JSON artifact instead of print-only, and (b) the vault MD's own
-         Update Protocol ("same-PR rule") extended to also regenerate this page in
-         the same pass, so the public copy can never drift further behind the
-         internal one than a single commit.
-      3. No code anywhere currently re-verifies the vault MD table for internal
-         consistency (row count, enum values) before this script trusts it -- a
-         typo'd status cell would render silently. A lint pass belongs in the
-         eventual auto-version, not hand-added here as a one-off.
-      4. This script reads the vault note from a path resolved via the
-         MCP_SITE_VAULT_ROOT env var, falling back to <home>/projects/the vault
-         for the hand-run local case (no machine username is hardcoded). That
-         fallback is fine for a hand-run generator on this machine; a
-         schtask-driven auto-regen should still set MCP_SITE_VAULT_ROOT
-         explicitly rather than rely on the fallback resolving correctly under
-         whatever account runs the schtask.
+      2. No persisted JSON snapshot exists anywhere for the scoreboard -- the
+         internal record is hand-edited and whale_flow_check.py only prints to
+         stdout. An auto-regen hook needs (a) whale_flow_check.py refactored to
+         write a dated JSON artifact instead of print-only, and (b) the internal
+         record's own Update Protocol ("same-PR rule") extended to also
+         regenerate this page in the same pass, so the public copy can never
+         drift further behind the internal one than a single commit.
+      3. No code anywhere currently re-verifies the internal record's table for
+         internal consistency (row count, enum values) before this script trusts
+         it -- a typo'd status cell would render silently. A lint pass belongs in
+         the eventual auto-version, not hand-added here as a one-off.
+      4. This script reads the internal record from a path resolved via the
+         MCP_SITE_VAULT_ROOT env var, with a same-machine local-dev fallback
+         (no machine username is hardcoded). That fallback is fine for a
+         hand-run generator on this machine; a schtask-driven auto-regen should
+         still set MCP_SITE_VAULT_ROOT explicitly rather than rely on the
+         fallback resolving correctly under whatever account runs the schtask.
 -->
 
 </body>
