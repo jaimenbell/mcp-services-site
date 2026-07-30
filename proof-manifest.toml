@@ -26,6 +26,19 @@
 # it's merged in at live-check time). Without that overlay present (CI, a
 # fresh public clone) the live-check for each entry degrades to an honest
 # WARN, never a FAIL.
+#
+# VISIBILITY (2026-07-29): a `visibility` field marks whether the entry's
+# `source_repo_public` github slug is a repo a site visitor can actually open
+# and re-count for themselves. Absent = "public" (the default -- most entries
+# don't set it explicitly, same sparse-only-when-needed convention as
+# source_repo/source_env above). Set `visibility = "private"` when the repo
+# is private: the number is still live-verified by THIS operator (the
+# live-check machinery doesn't care about GitHub visibility, only local
+# filesystem access via proof-manifest.local.toml), but it is NOT
+# independently checkable by a visitor clicking through -- the site must say
+# so next to every citation of that number. check_proof_numbers.py reports
+# (never fails) every private-visibility entry via the same honest-WARN
+# convention as a missing live-check.
 
 ["mcp-factory"]
 value = 222
@@ -80,6 +93,7 @@ note = "DRIFT FOUND 2026-07-23 (checker-parse-fix lane: junitxml live-check fix 
 ["options-bot"]
 value = 383
 source_repo_public = "jaimenbell/options-bot"
+visibility = "private"
 source_cmd = ".venv/Scripts/python.exe -m pytest -q"
 tail_line = "383 passed, 1 skipped in 30.98s"
 verified_utc = "2026-07-30T03:32:00+00:00"
@@ -98,11 +112,12 @@ note = "DRIFT MID-LANE 2026-07-24 (cred-refresh lane, first time cited on site):
 ["reliability-retainer"]
 value = 265
 source_repo_public = "jaimenbell/reliability-retainer"
+visibility = "private"
 source_cmd = "python -m pytest -q --tb=no"
-tail_line = "265 passed in 4.84s"
-verified_utc = "2026-07-22T05:28:49+00:00"
+tail_line = "265 passed in 5.38s"
+verified_utc = "2026-07-29T00:00:00+00:00"
 status = "verified"
-note = "Seeded 2026-07-13 for the new (unlinked, staged) case-studies/reliability-retainer.html page, which cites the repo's full-suite count. Live-verified at commit a4733c3 on branch slice5-runbook-sow-reconcile (unmerged slice1-5 work; no .venv in this repo, ran with the global python per the github-mcp/desktop-mcp fallback convention). 239 covers the whole repo (tools/, tests/, fleet-health-mcp/) -- not the same as the README's 'tests/ -- 39 tests' figure, which is a narrower subdirectory count from an earlier slice and is NOT cited on the site."
+note = "Seeded 2026-07-13 for case-studies/reliability-retainer.html, which cites the repo's full-suite count; that page IS linked from index.html:1004 (the #cases proof-card grid) -- the original 'unlinked, staged' note here was stale. Original seed value was live-verified at commit a4733c3 on branch slice5-runbook-sow-reconcile (unmerged slice1-5 work at the time; no .venv in this repo, ran with the global python per the github-mcp/desktop-mcp fallback convention). RE-VERIFIED 2026-07-29 (disclose-private lane) on the repo's DEFAULT branch: local checkout was already on master (origin/HEAD -> refs/remotes/origin/master, confirmed via `git symbolic-ref`) at commit fc20b8a8, working tree not touched (no checkout/branch switch performed) -- 265 passed in 5.38s, unchanged from the original seed, so the number holds on the default branch despite first being measured on an unmerged feature branch. Both options-bot and reliability-retainer are PRIVATE GitHub repos (verified via `gh repo view --json visibility`, 2026-07-29) -- see visibility = \"private\" above; the site now discloses this next to every citation of this number instead of implying an independently-checkable public repo."
 
 ["rails-mcp"]
 value = 106

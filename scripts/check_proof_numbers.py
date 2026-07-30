@@ -411,15 +411,21 @@ class LiveCheckResult:
     """
 
     def __init__(self, repo_key: str, status: str, message: str,
-                 live_value: int | None = None, expected: int | None = None):
+                 live_value: int | None = None, expected: int | None = None,
+                 label: str = "LIVE-CHECK"):
         self.repo_key = repo_key
         self.status = status
         self.message = message
         self.live_value = live_value
         self.expected = expected
+        # Overridable prefix so this same "print, tally, never fail" WARN
+        # convention can be reused for reports that aren't actually a live
+        # test-suite check (e.g. _privacy_findings() below) without the
+        # output claiming to be one.
+        self.label = label
 
     def format(self) -> str:
-        return f"LIVE-CHECK {self.status} [{self.repo_key}]: {self.message}"
+        return f"{self.label} {self.status} [{self.repo_key}]: {self.message}"
 
 
 def _resolve_live_check_argv(source_cmd: str, source_repo: Path) -> list[str] | None:
@@ -631,18 +637,27 @@ class ManifestEntry:
     purely documentation, never used to drive execution. Its presence is what
     tells live_verify_manifest() an entry is *meant* to be live-checked (so a
     missing local override WARNs instead of silently doing nothing).
+
+    `visibility` is "public" (default) or "private" -- see proof-manifest.toml's
+    VISIBILITY header comment. It never affects live-checking (that only cares
+    about local filesystem access) or FAIL/pass verdicts on citations -- it
+    only drives the informational PRIVATE-SOURCE report (_privacy_findings()
+    below), which reuses the existing honest-WARN convention: printed and
+    tallied, never escalated to FAIL.
     """
 
     def __init__(self, key: str, value: int, source_cmd: str | None = None,
                  source_repo: str | None = None,
                  source_env: dict[str, str] | None = None,
-                 source_repo_public: str | None = None):
+                 source_repo_public: str | None = None,
+                 visibility: str = "public"):
         self.key = key
         self.value = value
         self.source_cmd = source_cmd
         self.source_repo = source_repo
         self.source_env = source_env
         self.source_repo_public = source_repo_public
+        self.visibility = visibility
 
 
 def load_local_overrides(path: Path = LOCAL_MANIFEST_PATH) -> dict[str, dict]:
@@ -739,6 +754,12 @@ def load_manifest_entries(
                     f"must be a table of string values (env var name -> "
                     f"value); got: {source_env!r}"
                 )
+        visibility = entry.get("visibility", "public")
+        if visibility not in ("public", "private"):
+            raise ManifestValidationError(
+                f'proof-manifest.toml: entry ["{key}"]\'s "visibility" must be '
+                f'"public" or "private"; got: {visibility!r}'
+            )
         source_repo = entry.get("source_repo")
         # Local overlay (untracked proof-manifest.local.toml) wins over
         # whatever the tracked manifest carries -- on the real repo the
@@ -759,6 +780,7 @@ def load_manifest_entries(
             source_repo=source_repo,
             source_env=source_env,
             source_repo_public=entry.get("source_repo_public"),
+            visibility=visibility,
         )
     return manifest
 
@@ -936,6 +958,29 @@ def _live_check_findings(entries: dict[str, ManifestEntry]) -> tuple[list[LiveCh
     return fails, warns
 
 
+def _privacy_findings(entries: dict[str, ManifestEntry]) -> list[LiveCheckResult]:
+    """Report every manifest entry marked visibility="private" (see
+    proof-manifest.toml's VISIBILITY header comment) -- named, PRIVATE-SOURCE,
+    always WARN. This reuses LiveCheckResult / the existing honest-WARN
+    convention (printed, tallied, never escalated to FAIL) rather than
+    inventing a second reporting mechanism: a private source_repo is a
+    legitimate, disclosed state (the site says so next to every citation of
+    the number), not a defect the commit gate should ever block on."""
+    results: list[LiveCheckResult] = []
+    for key, entry in entries.items():
+        if entry.visibility != "private":
+            continue
+        public_id = entry.source_repo_public or "no public identity given"
+        results.append(LiveCheckResult(
+            key, "WARN",
+            f"manifest visibility=private -- source repo ({public_id}) is "
+            f"not public; its cited count is self-verified by the operator, "
+            f"not independently checkable by a site visitor.",
+            label="PRIVATE-SOURCE",
+        ))
+    return results
+
+
 def run(root: Path = REPO_ROOT, manifest_path: Path = MANIFEST_PATH,
         target_patterns: list[str] | None = None,
         local_manifest_path: Path | None = None) -> int:
@@ -972,6 +1017,7 @@ def run(root: Path = REPO_ROOT, manifest_path: Path = MANIFEST_PATH,
     live_fails, live_warns = _live_check_findings(entries)
     all_fails.extend(live_fails)
     all_warns.extend(live_warns)
+    all_warns.extend(_privacy_findings(entries))
 
     for w in all_warns:
         print(w.format())
@@ -1011,6 +1057,7 @@ def main(argv: list[str]) -> int:
         live_fails, live_warns = _live_check_findings(entries)
         all_fails.extend(live_fails)
         all_warns.extend(live_warns)
+        all_warns.extend(_privacy_findings(entries))
 
         for w in all_warns:
             print(w.format())
