@@ -78,13 +78,13 @@ status = "verified"
 note = "DRIFT FOUND 2026-07-23 (checker-parse-fix lane: junitxml live-check fix caught real drift previously hidden behind a silent WARN -- this entry's own source_cmd already carried the <scratch> junitxml convention, which the fix now actually substitutes and parses instead of leaving unused). 62->99 since the 07-09 seed: 'ci: add GitHub Actions workflow + README count-verification gate' (acd5e5f) added tests/test_check_readme_counts.py (+11, same pattern as github-mcp/desktop-mcp), plus 'fix(security): validate lane param against path injection' (45a4f1a) and 'fix(security): gate 4 mutating tools behind default-OFF write flag' (186fc1f) each added their own dedicated test coverage for the remaining +26. Cross-checked against the repo's own README Tests badge, which already reads '100 (99 passing, 1 skipped)' -- manifest catching up to a repo that self-corrected. Still not cited as a proof number anywhere in site content (re-verified 2026-07-23: grepped index.html/README.md/GO-LIVE.md/case-studies/*/articles/*/scoreboard.html -- only bare repo-name mentions in fleet-reliability-day.html and fleet-audit-methodology.html, no numeric test-count citation either place). Tool count not re-checked this pass."
 
 ["options-bot"]
-value = 371
+value = 383
 source_repo_public = "jaimenbell/options-bot"
 source_cmd = ".venv/Scripts/python.exe -m pytest -q"
-tail_line = "353 passed, 1 skipped in 26.44s"
-verified_utc = "2026-07-21T13:00:00+00:00"
+tail_line = "383 passed, 1 skipped in 30.98s"
+verified_utc = "2026-07-30T03:32:00+00:00"
 status = "verified"
-note = "DRIFT AGAIN 2026-07-20/21 (sixth rot since 07-06: 186->281->292->299->321->353): tastytrade price_effect sign-fix (+21 tests) and test-log-isolation fix (+2 tests) merged to master. Re-verified in options-bot's own .venv. Prior: DRIFT AGAIN 2026-07-19 (299->321)."
+note = "DRIFT AGAIN 2026-07-29 (seventh rot since 07-06: 186->281->292->299->321->353->371->383): sched_guard.py's two process-lookup sites bounded against the Windows subprocess.run(timeout=) double-communicate hang (+12 tests, options-bot 038479e). Re-verified live in options-bot's own .venv. NOTE: the prior entry's value (371) and tail_line (\"353 passed\") had ALREADY diverged from each other -- the tail_line went stale on 07-21 while the value was bumped later, so neither matched the repo. Both are now measured from the same run. Prior: DRIFT AGAIN 2026-07-20/21 (299->321->353)."
 
 ["discord-mcp"]
 value = 162
