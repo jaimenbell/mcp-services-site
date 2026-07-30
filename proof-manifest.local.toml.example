@@ -49,6 +49,9 @@ source_repo = "/ABSOLUTE/PATH/TO/YOUR/PROJECTS/bus-mcp"
 ["options-bot"]
 source_repo = "/ABSOLUTE/PATH/TO/YOUR/PROJECTS/options-bot"
 
+["day-trader"]
+source_repo = "/ABSOLUTE/PATH/TO/YOUR/PROJECTS/day-trader"
+
 ["discord-mcp"]
 source_repo = "/ABSOLUTE/PATH/TO/YOUR/PROJECTS/discord-mcp"
 

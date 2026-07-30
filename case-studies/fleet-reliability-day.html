@@ -189,10 +189,11 @@
         verify-before-dispatch (one lane found its assigned bug already fixed on master, said so, and
         did no-op work instead of re-implementing it — <code>bind-watchdog</code> lane, 13:17 MT), a
         shared union test suite that every convergence recomputes rather than trusts, and adversarial
-        review passes that catch the previous lane's mistakes (see arc 1). The frontend test suite grew
-        from 2513 to <strong>2806</strong> passing tests across the day (verified live: <code>npx vitest
-        run</code>, 202 files, 2806/2806); the backend suite grew from 249 to
-        <strong>283</strong> (verified live: <code>pytest --collect-only -q</code>, 283 collected).
+        review passes that catch the previous lane's mistakes (see arc 1). Mid-day, the frontend test
+        suite had grown from 2513 to <strong>2806</strong> passing tests (verified live at that
+        checkpoint: <code>npx vitest run</code>, 202 files, 2806/2806), and the backend suite from 249
+        to <strong>283</strong> (verified live: <code>pytest --collect-only -q</code>, 283 collected) —
+        both kept growing for the rest of the day; see the final day's-end tally below.
       </p>
       <p>
         Even this case study is an example of the discipline it describes: the brief for this page

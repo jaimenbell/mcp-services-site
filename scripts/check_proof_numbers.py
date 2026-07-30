@@ -217,23 +217,24 @@ WINDOW = 10  # lines to search above/below for association fallback (d)
 #     sells) -- see case-studies/honest-harness.html and GO-LIVE.md. Its
 #     count is cited for narrative honesty but is not live-verified by this
 #     repo's tooling, so it has no proof-manifest.toml entry to check against.
-#   - 2806, 283: case-studies/fleet-reliability-day.html's "N + M tests"
-#     composite -- an aggregate across ~30 fleet lanes, not any single repo's
-#     suite count, so it has no single manifest entry either.
-#   - 1002: day-trader's full-suite test count, cited in
-#     case-studies/orphan-position-recovery.html. day-trader is a live trading
-#     repo, deliberately kept off this manifest and out of the public repo set
-#     (see github-profile.md's "do NOT rush to publish" list) -- its count is
-#     quotable for narrative honesty (live-verified in its own .venv,
-#     2026-07-21: 1002 passed) but not tracked here since the repo itself is
-#     never linked from the site.
+#   - 2806, 283: case-studies/fleet-reliability-day.html's mid-day checkpoint
+#     ("N + M tests" composite, an aggregate across ~30 fleet lanes, not any
+#     single repo's suite count) -- the prose is explicit this was a mid-day
+#     reading, not the day's final tally (see 2923/327 below).
+#   - 2923, 327: the SAME composite's day's-end tally (frontend/backend),
+#     cited in the "By the numbers" summary on the same case study page and
+#     on the index.html proof-card for that case study. Also an aggregate,
+#     also no single manifest entry.
 #   - 17: the number of new tests shipped with day-trader's orphan-lifecycle
-#     hardening (same case study) -- a delta within the untracked 1002-test
-#     day-trader suite above, not a separate repo's total.
+#     hardening (case-studies/orphan-position-recovery.html) -- a delta
+#     within day-trader's suite, not a separate repo total. (day-trader's
+#     full-suite count itself IS manifest-tracked as of 2026-07-30 -- see the
+#     ["day-trader"] entry in proof-manifest.toml -- this 17 is just the
+#     smaller within-suite delta the case study also calls out.)
 # When adding a new named-but-untracked proof-number callout to the site,
 # add its value(s) here (with a comment explaining why it's untracked) or it
 # will start FAILing the commit gate as a suspicious orphaned number.
-KNOWN_NONCANONICAL_NUMBERS = {186, 2806, 283, 1002, 17}
+KNOWN_NONCANONICAL_NUMBERS = {186, 2806, 283, 2923, 327, 17}
 
 
 class Finding:
