@@ -687,13 +687,73 @@ def test_run_respects_skip_live_check_env_var(tmp_path, monkeypatch):
 
 
 def _bash_path() -> str:
+    """Return the bash GIT ITSELF uses to run hooks -- not merely the first
+    bash on PATH.
+
+    This distinction is the whole point. `shutil.which("bash")` resolves
+    against the *pytest process's* PATH, which differs by how the suite was
+    launched: from Git Bash it finds Git's bundled bash, but from PowerShell
+    it finds C:\\...\\WindowsApps\\bash.EXE -- the WSL launcher. Under WSL on
+    this machine `python3` is /usr/bin/python3 3.10.12 (no `tomllib`, which
+    the checker imports) and no other interpreter is reachable at all, since
+    Windows-exe interop is off ("Exec format error"). So the same test passed
+    from one shell and failed from the other, and the failure described an
+    environment git will never use: on Windows git spawns hooks with its OWN
+    bundled bash, never with the WSL launcher.
+
+    Deriving the path from `git --exec-path` pins the test to the real hook
+    execution environment, so the result no longer depends on which shell
+    started pytest. On POSIX there is only one bash and PATH is correct.
+    """
+    if sys.platform == "win32":
+        try:
+            exec_path = subprocess.run(
+                ["git", "--exec-path"], capture_output=True, text=True, check=True,
+            ).stdout.strip()
+        except (OSError, subprocess.CalledProcessError):  # pragma: no cover - git is a hard dep here
+            exec_path = ""
+        if exec_path:
+            # e.g. C:/Program Files/Git/mingw64/libexec/git-core -> the Git
+            # install root is a few levels up; probe rather than hardcode a
+            # depth, since the layout differs across Git for Windows versions.
+            base = Path(exec_path)
+            for parent in [base, *base.parents]:
+                for rel in ("bin/bash.exe", "usr/bin/bash.exe"):
+                    candidate = parent / rel
+                    if candidate.is_file():
+                        return str(candidate)
+        pytest.skip(
+            "git's bundled bash not found -- cannot exercise the shell hook in the "
+            "environment git actually runs hooks in (refusing to fall back to a PATH "
+            "bash, which may be the WSL launcher and would test a fiction)"
+        )
     path = shutil.which("bash")
     if path is None:
         pytest.skip("bash not found on PATH -- cannot exercise the shell hook end-to-end")
     return path
 
 
-def _build_temp_hook_repo(tmp_path: Path, manifest_toml_text: str, index_html_text: str) -> Path:
+def test_bash_path_is_gits_own_bash_not_the_wsl_launcher():
+    """Regression pin for the harness bug above: the hook tests must resolve
+    git's bundled bash, never the WindowsApps WSL launcher. Without this, the
+    suite's pass/fail depended on whether it was launched from PowerShell or
+    Git Bash -- and the PowerShell failure was reporting a defect in an
+    environment git never uses."""
+    if sys.platform != "win32":
+        pytest.skip("Windows-only: the WSL-launcher ambiguity does not exist on POSIX")
+    resolved = _bash_path().replace("\\", "/").lower()
+    assert "windowsapps" not in resolved, (
+        f"resolved the WSL bash launcher, not git's bundled bash: {resolved!r}"
+    )
+    assert Path(resolved).is_file()
+
+
+def _build_temp_hook_repo(
+    tmp_path: Path,
+    manifest_toml_text: str,
+    index_html_text: str,
+    checker_override: str | None = None,
+) -> Path:
     """Build a minimal git repo with the REAL .githooks/pre-commit and the
     REAL scripts/check_proof_numbers.py wired up, so the shell-script-level
     fixes (findings 4 and 5) are exercised end-to-end rather than only
@@ -705,7 +765,15 @@ def _build_temp_hook_repo(tmp_path: Path, manifest_toml_text: str, index_html_te
     subprocess.run(["git", "config", "user.name", "Test"], cwd=repo, check=True)
 
     (repo / "scripts").mkdir()
-    shutil.copy2(REPO_ROOT / "scripts" / "check_proof_numbers.py", repo / "scripts" / "check_proof_numbers.py")
+    if checker_override is None:
+        shutil.copy2(REPO_ROOT / "scripts" / "check_proof_numbers.py", repo / "scripts" / "check_proof_numbers.py")
+    else:
+        # Stand in a deliberately broken checker to exercise the hook's
+        # crash-vs-verdict branch without depending on any particular
+        # interpreter being absent.
+        (repo / "scripts" / "check_proof_numbers.py").write_text(
+            checker_override, encoding="utf-8", newline="\n"
+        )
     (repo / ".githooks").mkdir()
     shutil.copy2(REPO_ROOT / ".githooks" / "pre-commit", repo / ".githooks" / "pre-commit")
 
@@ -743,10 +811,21 @@ def test_hook_blocked_message_survives_set_e(tmp_path):
 
     result = subprocess.run([bash, ".githooks/pre-commit"], cwd=repo, capture_output=True, text=True)
 
-    assert result.returncode != 0, f"stale commit must still be blocked: {result.stdout}\n{result.stderr}"
+    assert result.returncode == 2, (
+        f"stale commit must be blocked with the checker's VERDICT code (2), not an "
+        f"incidental crash exit: rc={result.returncode} {result.stdout}\n{result.stderr}"
+    )
     assert "BLOCKED" in result.stdout, (
         f"guidance message must survive set -e, not be swallowed by it: "
         f"stdout={result.stdout!r} stderr={result.stderr!r}"
+    )
+    # Without this, the assertion above passes for the WRONG REASON: a checker
+    # that crashes also exits non-zero and also prints BLOCKED, so this test
+    # could not distinguish "the gate correctly found a stale number" from
+    # "the gate exploded and blamed the numbers". That is exactly the failure
+    # that surfaced under WSL python (ModuleNotFoundError: tomllib).
+    assert "Traceback" not in result.stderr, (
+        f"the checker must reach a real verdict, not crash: stderr={result.stderr!r}"
     )
 
 
@@ -763,6 +842,43 @@ def test_hook_allows_clean_commit_with_no_blocked_message(tmp_path):
 
     assert result.returncode == 0, f"clean commit must pass: {result.stdout}\n{result.stderr}"
     assert "BLOCKED" not in result.stdout
+
+
+def test_hook_reports_a_crashed_checker_as_cannot_run_not_as_a_verdict(tmp_path):
+    """A checker that CRASHES must not be reported as 'proof numbers disagree'.
+
+    The hook previously branched on `[ "$STATUS" -ne 0 ]`, so every failure
+    mode printed the same 'BLOCKED -- one or more proof numbers ... disagree
+    with proof-manifest.toml' guidance. But the checker's contract is
+    specific: it returns 2 for a real proof-number verdict and 0 for clean.
+    Exit 1 is only ever a crash (an uncaught exception). Conflating them made
+    the gate lie about WHY it blocked -- an operator would go hunting for a
+    stale number in the site content when the actual problem was the
+    interpreter (this is precisely how `ModuleNotFoundError: tomllib`
+    presented itself: as a proof-number disagreement).
+
+    Still fails closed -- a gate that cannot run must never let a commit
+    through -- but it must say what actually happened."""
+    bash = _bash_path()
+    manifest_toml_text = '["mcp-factory"]\nvalue = 187\nsource_cmd = "pytest -q"\n'
+    clean_index = "<p>mcp-factory: 187 passing tests</p>\n"
+    repo = _build_temp_hook_repo(
+        tmp_path,
+        manifest_toml_text,
+        clean_index,
+        checker_override="import definitely_not_a_real_module_xyz\n",
+    )
+
+    result = subprocess.run([bash, ".githooks/pre-commit"], cwd=repo, capture_output=True, text=True)
+
+    assert result.returncode != 0, "a gate that cannot run must fail closed, never pass"
+    assert "BLOCKED" not in result.stdout, (
+        f"a crashed checker must NOT be misreported as a proof-number verdict: "
+        f"stdout={result.stdout!r}"
+    )
+    assert "CANNOT RUN" in result.stdout, (
+        f"the hook must say the gate failed to run: stdout={result.stdout!r} stderr={result.stderr!r}"
+    )
 
 
 def test_live_check_source_env_reaches_subprocess(tmp_path):
