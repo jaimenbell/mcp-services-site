@@ -14,6 +14,9 @@ case-studies/rag-mcp.html          case study 2 — RAG retrieval MCP (149 tests
 case-studies/honest-harness.html   case study 3 — honest validation harness (rigor, not returns)
 404.html                           GitHub Pages custom 404 (no build step needed for this to work)
 scripts/swap_email.py              one-shot jaime@jaimenbell.dev -> real address swap (+ optional Calendly)
+scripts/generate_self_audit_table.py  regenerates the dogfood self-audit block on
+                                    articles/fleet-audit-methodology.html from a live run --
+                                    see "Dev setup" below, never hand-edit that block
 .nojekyll                          tells GitHub Pages to serve files as-is (no Jekyll processing)
 ```
 
@@ -91,6 +94,33 @@ git config core.hooksPath .githooks
 (e.g. some non-git file transfer), restore it with `git update-index --chmod=+x .githooks/pre-commit`.
 
 Tests: `pip install -r requirements-dev.txt` then `python -m pytest` (see `pytest.ini`).
+
+## Dev setup — regenerating the dogfood self-audit block
+
+`articles/fleet-audit-methodology.html` embeds a worked example of running
+[mcp-security-scanner](https://github.com/jaimenbell/mcp-security-scanner)'s
+`--self-audit` against the fleet of MCP servers this site sells (which server
+is clean, which has findings, per-server P1 counts and finding descriptions).
+That content sits between `<!-- SELF-AUDIT-AUTOGEN:START -->` /
+`<!-- SELF-AUDIT-AUTOGEN:END -->` markers and **must never be hand-edited** --
+it goes stale the same way a hardcoded test count does the moment any fleet
+server's audit status changes. Regenerate it instead:
+
+```
+# PowerShell
+$env:MCP_SCANNER_FLEET_ROOT = "C:\Users\you\projects"   # dir containing your fleet repos
+python scripts/generate_self_audit_table.py               # writes the file if data changed
+python scripts/generate_self_audit_table.py --check        # dry run, exit 1 if stale
+```
+
+It runs `mcp-scan --self-audit --json` live in your local
+`mcp-security-scanner` checkout (default: a sibling `../mcp-security-scanner`
+directory next to this repo; override with `MCP_SCANNER_REPO`) and rewrites
+the marker region from the real result -- verdict, P1 counts, and the actual
+finding titles, not typed prose. Review the diff and commit like any other
+change. This is not yet wired into the pre-commit gate (`check_proof_numbers.py`
+only covers numeric test-count citations); running it is a manual step for now
+whenever the fleet's audit posture might have moved.
 
 ## License / status
 
