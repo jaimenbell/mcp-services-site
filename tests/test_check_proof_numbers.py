@@ -468,12 +468,28 @@ for a in sys.argv[1:]:
     if a.startswith("--junitxml="):
         junit_path = a[len("--junitxml="):]
 if junit_path:
+    cases = "".join(
+        "<testcase classname='t' name='p%d'/>" % i for i in range({passed})
+    )
+    cases += "".join(
+        "<testcase classname='t' name='f%d'><failure/></testcase>" % i
+        for i in range({failures})
+    )
+    cases += "".join(
+        "<testcase classname='t' name='e%d'><error/></testcase>" % i
+        for i in range({errors})
+    )
+    cases += "".join(
+        "<testcase classname='t' name='s%d'><skipped/></testcase>" % i
+        for i in range({skipped})
+    )
     with open(junit_path, "w", encoding="utf-8") as fh:
         fh.write(
             "<?xml version='1.0' encoding='utf-8'?>"
             "<testsuites name='pytest tests'>"
             "<testsuite name='pytest' errors='{errors}' failures='{failures}' "
             "skipped='{skipped}' tests='{tests}' time='0.01'>"
+            + cases +
             "</testsuite></testsuites>"
         )
 print("." * {passed} + "             [100%]")
@@ -1064,11 +1080,14 @@ def test_parse_junit_counts_testsuites_wrapper(tmp_path):
     """Current pytest wraps a single <testsuite> in a <testsuites> root
     (verified live against rag-mcp 2026-07-23)."""
     xml_path = tmp_path / "junit.xml"
+    cases = "".join(f'<testcase classname="t" name="p{i}"/>' for i in range(60))
+    cases += '<testcase classname="t" name="s0"><skipped/></testcase>'
+    cases += '<testcase classname="t" name="s1"><skipped/></testcase>'
     xml_path.write_text(
         '<?xml version="1.0" encoding="utf-8"?>'
         '<testsuites name="pytest tests">'
         '<testsuite name="pytest" errors="0" failures="0" skipped="2" tests="62">'
-        '</testsuite></testsuites>',
+        f'{cases}</testsuite></testsuites>',
         encoding="utf-8",
     )
     assert cpn._parse_junit_counts(xml_path) == 60
@@ -1078,12 +1097,73 @@ def test_parse_junit_counts_bare_testsuite_root(tmp_path):
     """Older pytest / other runners may emit a bare <testsuite> root with no
     wrapping <testsuites> -- must be handled too."""
     xml_path = tmp_path / "junit.xml"
+    cases = "".join(f'<testcase classname="t" name="p{i}"/>' for i in range(8))
+    cases += '<testcase classname="t" name="f"><failure/></testcase>'
+    cases += '<testcase classname="t" name="e"><error/></testcase>'
     xml_path.write_text(
         '<testsuite name="pytest" errors="1" failures="1" skipped="0" tests="10">'
-        '</testsuite>',
+        f'{cases}</testsuite>',
         encoding="utf-8",
     )
     assert cpn._parse_junit_counts(xml_path) == 8
+
+
+def test_parse_junit_counts_prefers_testcase_elements_over_tests_attribute(tmp_path):
+    """The `tests=` attribute can OVERSTATE the real testcase count.
+
+    Observed live 2026-07-31 against day-trader: a single
+    `.venv/Scripts/python.exe -m pytest -q --junitxml=...` run whose own
+    summary line read `1348 passed` emitted a report carrying
+    `tests="1378" skipped="0" failures="0" errors="0"` while containing
+    exactly 1348 `<testcase>` elements -- no duplicates, no skip/failure
+    children. Trusting the attribute would have published 30 tests that do
+    not exist onto a public marketing page.
+
+    The elements ARE the artifact; the attribute is the report's own
+    bookkeeping about itself. Count the artifact.
+    """
+    xml_path = tmp_path / "junit.xml"
+    xml_path.write_text(
+        '<?xml version="1.0" encoding="utf-8"?>'
+        '<testsuites name="pytest tests">'
+        '<testsuite name="pytest" errors="0" failures="0" skipped="0" tests="1378">'
+        '<testcase classname="t" name="a"/>'
+        '<testcase classname="t" name="b"/>'
+        '<testcase classname="t" name="c"/>'
+        '</testsuite></testsuites>',
+        encoding="utf-8",
+    )
+    assert cpn._parse_junit_counts(xml_path) == 3
+
+
+def test_parse_junit_counts_excludes_skipped_failed_and_errored_cases(tmp_path):
+    """Only PASSED cases count -- a case with a skipped/failure/error child
+    is not a passing test, regardless of what the attributes say."""
+    xml_path = tmp_path / "junit.xml"
+    xml_path.write_text(
+        '<testsuite name="pytest" errors="0" failures="0" skipped="0" tests="99">'
+        '<testcase classname="t" name="pass1"/>'
+        '<testcase classname="t" name="pass2"/>'
+        '<testcase classname="t" name="skip"><skipped message="no gpu"/></testcase>'
+        '<testcase classname="t" name="fail"><failure message="boom"/></testcase>'
+        '<testcase classname="t" name="err"><error message="setup"/></testcase>'
+        '</testsuite>',
+        encoding="utf-8",
+    )
+    assert cpn._parse_junit_counts(xml_path) == 2
+
+
+def test_parse_junit_counts_no_testcase_elements_returns_none(tmp_path):
+    """A report claiming tests but carrying no testcase elements cannot
+    substantiate a count -- return None (unverifiable) rather than trusting
+    the attribute. A gate that cannot observe the artifact must say so."""
+    xml_path = tmp_path / "junit.xml"
+    xml_path.write_text(
+        '<testsuite name="pytest" errors="0" failures="0" skipped="2" tests="62">'
+        '</testsuite>',
+        encoding="utf-8",
+    )
+    assert cpn._parse_junit_counts(xml_path) is None
 
 
 def test_parse_junit_counts_missing_file_returns_none(tmp_path):

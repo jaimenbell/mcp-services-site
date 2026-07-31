@@ -131,13 +131,12 @@ async def test_refund_returns_clean_error_when_upstream_down(monkeypatch):
       </p>
       <p>
         I run this discipline on my own systems, not just client work: a
-        <a href="../case-studies/honest-harness.html">forward-testing harness</a> that took one
-        strategy to a real, unflattering verdict —
-        <code>sage-bot: -$735.66 over 1,002 paper trades</code> — and retired it, because the
-        cost-reality gate was written down before the trades ran, not adjusted after. The harness
-        did its job by producing a trustworthy "no." An MCP server's kill bar looks the same in
-        shape: pick the p99 latency, the fail-soft coverage percentage, or the eval pass rate that
-        would mean "not ready," write it down, then run the suite and honor what it says.
+        <a href="../case-studies/honest-harness.html">forward-testing harness</a> where the
+        cost-reality gate is written down before the trades run, not adjusted after, so a strategy
+        that fails it gets an unflattering verdict rather than a rescued one. An MCP server's kill
+        bar looks the same in shape: pick the p99 latency, the fail-soft coverage percentage, or the
+        eval pass rate that would mean "not ready," write it down, then run the suite and honor what
+        it says.
       </p>
 
       <h2>What this looks like as a checklist</h2>

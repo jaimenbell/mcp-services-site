@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Case study: an honest validation harness — I kill what doesn't clear costs</title>
-  <meta name="description" content="How I forward-test systems honestly and retire the ones that don't earn their keep — e.g. a strategy taken to -$735.66 over 1,002 paper trades, then killed. Rigor and clean engineering, not performance claims.">
+  <meta name="description" content="How I forward-test systems honestly and retire the ones that don't earn their keep: kill criteria written down before the run, then honored. Rigor and clean engineering, not performance claims.">
   <link rel="canonical" href="https://jaimenbell.dev/case-studies/honest-harness.html">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="MCP Integration Sprint">
   <meta property="og:title" content="Case study: an honest validation harness — I kill what doesn't clear costs">
-  <meta property="og:description" content="How I forward-test systems honestly and retire the ones that don't earn their keep — e.g. a strategy taken to -$735.66 over 1,002 paper trades, then killed. Rigor and clean engineering, not performance claims.">
+  <meta property="og:description" content="How I forward-test systems honestly and retire the ones that don't earn their keep: kill criteria written down before the run, then honored. Rigor and clean engineering, not performance claims.">
   <meta property="og:url" content="https://jaimenbell.dev/case-studies/honest-harness.html">
   <meta property="og:image" content="https://jaimenbell.dev/img/og-card.png">
   <meta property="og:image:width" content="1200">
@@ -49,7 +49,7 @@
       <span class="pill">forward-testing</span>
       <span class="pill">cost-reality gate</span>
       <span class="pill">fail-soft real-time data</span>
-      <span class="pill">383 tests (options-bot)</span>
+      <span class="pill">391 tests (options-bot)</span>
 
       <div class="honest">
         <p>
@@ -58,7 +58,7 @@
           the trading fleet is frozen on purpose. What I'm selling here is the <em>engineering and the
           discipline to tell the truth about results</em>, which is exactly what you want in someone
           wiring an agent into your production systems. One more disclosure in the same spirit: the
-          options-bot repo itself is private, so the 383 figure below is self-verified by me, not
+          options-bot repo itself is private, so the 391 figure below is self-verified by me, not
           something you can click through and recount yourself the way you can with the public repos
           elsewhere on this site.
         </p>
@@ -83,17 +83,6 @@
         the answer rather than buried.
       </p>
 
-      <div class="evidence">
-        <h3>Evidence: a strategy I killed</h3>
-        <p>
-          One strategy ("sage-bot") was taken to a real verdict and retired:
-        </p>
-        <ul>
-          <li><code>sage-bot: -$735.66 over 1,002 paper trades</code> → does not clear costs → <strong>PARKED / retired</strong>.</li>
-          <li>That number is the <em>deliverable</em>. The harness did its job: it produced a trustworthy "no" on a meaningful sample instead of a flattering "maybe."</li>
-        </ul>
-      </div>
-
       <h2>An engineering vignette: real-time data done right</h2>
       <p>
         The same fleet is where I solve genuinely hard integration problems. The options bot needed
@@ -108,7 +97,7 @@
         <li><strong>Bounded waits</strong> — only a freshly-subscribed symbol pays a short wait for its first quote; everything after is a cache read.</li>
         <li><strong>Fail-soft + self-healing</strong> — any error returns a clean <code>None</code> to the caller (never a crash); the handler backs off exponentially (1s → 30s) and auto-reconnects, re-subscribing known symbols so the cache heals itself.</li>
         <li><strong>Honest paper mode</strong> — in paper mode an order is validated and logged but never submitted live; auth failures are caught, logged, and exit cleanly.</li>
-        <li><strong>Tested</strong> — 383 tests cover the streamer, signals, P&amp;L accounting, market hours, the data-source fallbacks, and the proof-integrity count-gate that keeps this very number honest. (options-bot is a private repo — self-verified, not independently checkable.)</li>
+        <li><strong>Tested</strong> — 391 tests cover the streamer, signals, P&amp;L accounting, market hours, the data-source fallbacks, and the proof-integrity count-gate that keeps this very number honest. (options-bot is a private repo — self-verified, not independently checkable.)</li>
       </ul>
 
       <h2>What it shows about how I work</h2>

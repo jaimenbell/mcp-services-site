@@ -364,16 +364,33 @@ def _parse_junit_counts(junit_path: Path) -> int | None:
     suites = [root] if root.tag == "testsuite" else list(root.findall("testsuite"))
     if not suites:
         return None
-    total_tests = total_failures = total_errors = total_skipped = 0
+
+    # Count the <testcase> ELEMENTS, not the <testsuite tests="..."> attribute.
+    #
+    # The attribute is the report's bookkeeping about itself and can overstate
+    # the real count. Observed live 2026-07-31 against day-trader: one run
+    # whose own summary read "1348 passed" emitted tests="1378" skipped="0"
+    # failures="0" errors="0" while carrying exactly 1348 <testcase> elements,
+    # no duplicates. Trusting the attribute would have published 30 tests that
+    # do not exist onto a public page -- the precise failure this gate exists
+    # to prevent, committed by the gate itself.
+    #
+    # A case is PASSED when it carries no failure/error/skipped child.
+    not_passed = {"failure", "error", "skipped"}
+    passed = 0
+    seen_any_case = False
     for suite in suites:
-        try:
-            total_tests += int(suite.get("tests", 0))
-            total_failures += int(suite.get("failures", 0))
-            total_errors += int(suite.get("errors", 0))
-            total_skipped += int(suite.get("skipped", 0))
-        except (TypeError, ValueError):
-            return None
-    return total_tests - total_failures - total_errors - total_skipped
+        for case in suite.iter("testcase"):
+            seen_any_case = True
+            if not any(child.tag in not_passed for child in case):
+                passed += 1
+
+    # A report that claims tests but carries no <testcase> elements cannot
+    # substantiate a count. Report unverifiable rather than guessing from the
+    # attribute -- a gate that cannot observe the artifact must say so.
+    if not seen_any_case:
+        return None
+    return passed
 
 
 def _parse_dot_count(output: str) -> int | None:
