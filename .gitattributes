@@ -1,0 +1,9 @@
+# Git hooks are executed by bash, which treats a CR as part of the command and
+# dies with "$'\r': command not found" followed by a syntax error. This repo has
+# core.autocrlf=true, so without this rule the checked-out hook is CRLF and the
+# pre-commit proof-number gate cannot run AT ALL -- it fails before it reaches
+# its first check, which reads like a passing commit rather than a skipped gate.
+#
+# Found 2026-07-30: tests/test_check_proof_numbers.py's two end-to-end hook tests
+# were failing for this reason while the checker itself was fine.
+.githooks/** text eol=lf
