@@ -166,21 +166,26 @@
         <h3>Worked example: the self-audit catching the tool's own blind spot</h3>
         <p>
           The strongest proof that this discipline is real rather than a slide is <code>--self-audit</code>
-          — pointing the scanner at the fleet of MCP servers it was built alongside:
+          — pointing the scanner at the fleet of MCP servers it was built alongside. The trust claim,
+          locked by a real test in the suite (<code>tests/test_self_audit.py</code>) and reproducible
+          yourself, not a one-off demo run: <strong>eight real, in-production MCP servers, P0=0
+          fleet-wide, six with a clean bill, two with findings</strong> — <code>github-mcp</code>
+          (2x P1/LOW, its own fake test tokens, honestly reported) and <code>discord-mcp</code>
+          (1x P1/LOW, a TEST_TOKEN fixture, honestly reported). No other server carries a P0 or P1.
         </p>
-        <pre style="background:rgba(0,0,0,0.25); padding:14px 16px; border-radius:8px; overflow-x:auto; font-size:0.85em; line-height:1.5"><code>FINDINGS mcp-factory   P0=0 P1=1 P2=0 P3=0   &lt;- flags the known codegen-injection class
-CLEAN    github-mcp    P0=0 P1=0 P2=0 P3=0
-CLEAN    bus-mcp       P0=0 P1=0 P2=0 P3=0
-CLEAN    desktop-mcp   P0=0 P1=0 P2=1 P3=0   &lt;- one P2/low heuristic note, clean bill
-CLEAN    rag-mcp       P0=0 P1=0 P2=1 P3=0   &lt;- one P2/low heuristic note, clean bill
-CLEAN    discord-mcp   P0=0 P1=0 P2=0 P3=0</code></pre>
         <p>
-          The acceptance test for this run has two parts, and both have to pass: it must
-          <strong>flag the mcp-factory codegen-injection class</strong> that an independent manual
-          audit found first, and it must <strong>give the audited-clean servers a clean bill</strong>
-          — no P0/P1 noise on servers that don't have the problem. It does both, and it's a real test
-          in the suite (<code>tests/test_self_audit.py</code>), not a one-off demo run.
+          Illustrative sample run (2026-07-31 — a dated snapshot, not a live feed; per-server P2/ungraded
+          counts drift run-to-run as detectors evolve and are deliberately not part of the trust claim
+          above, only the P0/P1 headline is):
         </p>
+        <pre style="background:rgba(0,0,0,0.25); padding:14px 16px; border-radius:8px; overflow-x:auto; font-size:0.85em; line-height:1.5"><code>CLEAN    mcp-factory
+FINDINGS github-mcp    P1=2
+CLEAN    bus-mcp
+CLEAN    desktop-mcp
+CLEAN    rag-mcp
+FINDINGS discord-mcp   P1=1
+CLEAN    rails-mcp
+CLEAN    vllm-ops-mcp</code></pre>
         <p>
           The honest caveat, printed on every report the tool produces: this is <strong>static
           analysis, not a prover.</strong> It reads code; it does not run the server and does not
