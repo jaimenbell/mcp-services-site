@@ -55,16 +55,22 @@
 # proof-manifest.local.toml overlay needed).
 
 ["mcp-factory"]
-value = 229
+value = 233
 source_repo_public = "jaimenbell/mcp-factory"
 source_cmd = "python -m pytest -q"
-# Neutralizes test_smoke_hub's live-bot auto-discovery on the fleet machine so
-# the live-check reproduces the clean-checkout count that public CI gates on.
-# (The actual MCP_FACTORY_SMOKE_ROOTS path is local-machine-only -- see
-# proof-manifest.local.toml.example -- and lives in the local overlay, not
-# here.)
-tail_line = "229 passed, 10 skipped in 5.38s"
-verified_utc = "2026-07-31T20:16:18+00:00"
+# NOTE 2026-08-03: the MCP_FACTORY_SMOKE_ROOTS neutralization that used to live
+# here is now OBSOLETE and has been removed. It pointed the smoke-hub's
+# auto-discovery at an empty root to reproduce a clean-checkout count -- but
+# commit "feat: bundle a labelled demo bot as a directory-listing fallback"
+# (2026-07-31) ships a demo bot precisely so those 4 smoke tests PASS on a clean
+# checkout. Pointing them at an empty root now defeats that fallback and
+# under-counts by exactly 4. Measured both ways on 2026-08-03:
+#   with neutralization -> 229 passed, 10 skipped   (artificially low)
+#   without             -> 233 passed,  6 skipped   (matches repo README + CI)
+# The repo README states 233/6 and is itself CI-gated by
+# scripts/check_readme_counts.py, so 233 is the number public CI produces.
+tail_line = "233 passed, 6 skipped in 9.70s"
+verified_utc = "2026-08-03T14:20:00+00:00"
 status = "verified"
 note = "DRIFT 2026-07-31 (caught by the pre-commit gate itself when committing an unrelated mcp-factory-count site update): 222->229 at commit 4cf5c10 (feat: bundle a labelled demo bot as a directory-listing fallback), now pushed and public. Re-verified live in this pass: clean checkout, working tree clean, ran `MCP_FACTORY_SMOKE_ROOTS=<empty_smoke_root> python -m pytest -q --junitxml=...` per this entry's neutralization note -- summary line '229 passed, 10 skipped in 5.38s', cross-checked against the junitxml (tests=239 skipped=10 errors=0 failures=0 -> 229 passed). Prior: DRIFT 2026-07-22 (evening-ceremony preflight, ahead of the paired site refresh + factory push): 216->224->222 at commit 2491528 (ci: add GitHub Actions CI with README count-verification gate; repo local main ahead of origin by 1 commit at time of this check). Re-verified live in this pass. Prior: DRIFT 2026-07-20/21: 213->215 (2 tests added since 07-13, untraced, unrelated). Re-verified stable across 10+ independent runs after root-causing an unrelated apparent-flakiness report (213/215/195 across different invocations) down to a real bug in THIS checker's own live-check subprocess call -- see check_proof_numbers.py's live_verify_manifest() fix, 2026-07-21: it inherited GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE from git's own hook-invocation environment and leaked them into mcp-factory's test subprocess, corrupting its git-aware tests (test_workflow_runner.py) and producing a phantom 195. Fixed by stripping GIT_* env vars before spawning a different repo's test command. Prior: DRIFT 2026-07-13, 187->213."
 
