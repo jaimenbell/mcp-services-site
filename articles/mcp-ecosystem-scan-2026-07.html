@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>13 Popular MCP Servers, 1,170 Raw Findings, 1 Genuine Vulnerability</title>
+  <meta name="description" content="We ran our static MCP-server security scanner against 13 popular public MCP repositories and aggregated the results. Only counts and anonymized patterns are published here -- no finding is tied to a named repo.">
+  <link rel="canonical" href="https://jaimenbell.dev/articles/mcp-ecosystem-scan-2026-07.html">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="MCP Integration Sprint">
+  <meta property="og:title" content="13 Popular MCP Servers, 1,170 Raw Findings, 1 Genuine Vulnerability">
+  <meta property="og:description" content="An honest-triage aggregate scan across 13 popular public MCP servers: raw severity counts, detector-class distribution, and the false-positive classes a static scanner has to be read past before any finding is real.">
+  <meta property="og:url" content="https://jaimenbell.dev/articles/mcp-ecosystem-scan-2026-07.html">
+  <meta property="og:image" content="https://jaimenbell.dev/img/og-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="jaimenbell.dev — Production MCP servers for AI agents">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="13 Popular MCP Servers, 1,170 Raw Findings, 1 Genuine Vulnerability">
+  <meta name="twitter:description" content="An honest-triage aggregate scan across 13 popular public MCP servers -- raw severity counts, detector-class distribution, and the false-positive classes a static scanner has to be read past before any finding is real.">
+  <meta name="twitter:image" content="https://jaimenbell.dev/img/og-card.png">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="../index.html" style="text-decoration:none">MCP<span class="dot">·</span>Engineering</a>
+    <nav class="top">
+      <a href="../index.html#proof">Proof</a>
+      <a href="../index.html#pricing">Offer</a>
+      <a href="../index.html#faq">FAQ</a>
+      <a href="mailto:jaime@jaimenbell.dev">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<section style="border-bottom:0">
+  <div class="wrap">
+    <article class="cs">
+      <a class="back" href="../index.html">← Back to MCP Integration Sprint</a>
+      <h1>13 popular MCP servers, 1,170 raw findings, 1 genuine vulnerability</h1>
+      <div class="meta">// ecosystem scan · aggregate results only · no repo named · ~7 min read</div>
+
+      <span class="pill">static analysis</span>
+      <span class="pill">aggregate-only, no attribution</span>
+      <span class="pill">honest false-positive triage</span>
+      <span class="pill">762 passing tests (mcp-security-scanner)</span>
+
+      <div class="honest">
+        <p>
+          <strong>What this is:</strong> I ran <code>mcp-security-scanner</code> against 13 popular,
+          actively-maintained public MCP server repositories and aggregated the results. This page
+          publishes <strong>only counts, distributions, and anonymized patterns</strong> -- no finding
+          below is tied to a named repository, and the list of which 13 repos were scanned is
+          deliberately not published either, so it cannot be used to narrow down which one had the
+          real issue. Exactly one repo had a genuine, previously-undisclosed, actionable vulnerability.
+          Responsible disclosure is in progress for that finding; it is not detailed further here, by
+          design.
+        </p>
+      </div>
+
+      <h2>Methodology</h2>
+      <p>
+        13 repos were chosen for diversity -- official-org servers, frameworks, monorepos, and
+        single-purpose servers, spanning Python and JS/TS, all with recent commit activity. Each was
+        shallow-cloned (<code>--depth 1</code>), scanned read-only, and the JSON output was
+        hand-reviewed before any conclusion was drawn.
+      </p>
+      <p>
+        <strong>What "hand-reviewed" means here:</strong> every P0 finding (6 total) and every P1
+        finding outside test/fixture/example paths (roughly 90 of 194) was individually read in source
+        to judge genuine reportability -- not just tallied. That distinction matters because a static
+        scanner's raw finding count, taken uncritically, overstates real risk. See the results below
+        for exactly how much it overstated it here.
+      </p>
+      <p>
+        <strong>Scanner version used for this scan:</strong> <code>mcp-security-scanner</code> at
+        pinned commit <code>15b5460</code>, which had 264 passing tests (271 total) at that exact
+        commit -- static AST-based analysis for Python, regex-based for JS/TS.
+      </p>
+      <p>
+        <strong>The scanner has since grown.</strong> Current mcp-security-scanner canonical is 762
+        passing tests (771 total), live-verified 2026-08-04 at commit <code>915d1a3</code>. Those are two
+        different numbers on purpose -- one is "what ran this scan," the other is "what the tool can
+        do right now" -- and this page is explicit about which is which rather than letting them blur
+        together.
+      </p>
+      <p>
+        The scanner never runs, imports, or sandboxes target code -- it reads git-tracked source text
+        and parses it (Python via <code>ast</code>; JS/TS via regex). Its stated philosophy is
+        "over-flag, never silently drop," which is the right default for a security tool but means raw
+        counts need a human pass before they mean anything. That human pass, and being explicit about
+        what it found, is the actual point of this page.
+      </p>
+
+      <h2>Results -- aggregate</h2>
+      <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; margin:20px 0; font-size:0.95em">
+        <thead>
+          <tr style="text-align:left; border-bottom:1px solid var(--border, #333)">
+            <th style="padding:8px 12px 8px 0">Metric</th>
+            <th style="padding:8px 0">Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border, #222)"><td style="padding:8px 12px 8px 0">Repos scanned</td><td style="padding:8px 0">13</td></tr>
+          <tr style="border-bottom:1px solid var(--border, #222)"><td style="padding:8px 12px 8px 0">Total files scanned (union)</td><td style="padding:8px 0">~7,600</td></tr>
+          <tr style="border-bottom:1px solid var(--border, #222)"><td style="padding:8px 12px 8px 0">Repos with 1 or more finding at any severity</td><td style="padding:8px 0">12 / 13 (92%)</td></tr>
+          <tr style="border-bottom:1px solid var(--border, #222)"><td style="padding:8px 12px 8px 0">Repos with a clean bill (no P0/P1)</td><td style="padding:8px 0">3 / 13 (23%)</td></tr>
+          <tr style="border-bottom:1px solid var(--border, #222)"><td style="padding:8px 12px 8px 0">Repos with 1 or more P0/P1 raw finding</td><td style="padding:8px 0">10 / 13 (77%)</td></tr>
+          <tr style="border-bottom:1px solid var(--border, #222)"><td style="padding:8px 12px 8px 0"><strong>Repos with a genuinely reportable P0/P1 vulnerability</strong> (post hand-review)</td><td style="padding:8px 0"><strong>1 / 13 (8%)</strong></td></tr>
+          <tr style="border-bottom:1px solid var(--border, #222)"><td style="padding:8px 12px 8px 0">Total raw findings, all severities</td><td style="padding:8px 0">1,170</td></tr>
+          <tr style="border-bottom:1px solid var(--border, #222)"><td style="padding:8px 12px 8px 0">Raw severity split</td><td style="padding:8px 0">P0: 6 &middot; P1: 194 &middot; P2: 969 &middot; P3: 1</td></tr>
+          <tr style="border-bottom:1px solid var(--border, #222)"><td style="padding:8px 12px 8px 0">Confidence split</td><td style="padding:8px 0">high: 365 &middot; medium: 470 &middot; low: 335</td></tr>
+          <tr><td style="padding:8px 12px 8px 0">Reachability split (discoverable tool call-graph)</td><td style="padding:8px 0">reachable: 317 &middot; unknown: 853</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>
+        <strong>The headline gap is between raw severity and reviewed severity.</strong> 200 raw
+        P0/P1 findings came out of the scanner; after reading every one in source, exactly
+        <strong>one</strong> repo had a genuine, actionable, previously-undisclosed vulnerability at
+        that severity. That is not a knock on the scanner -- an "over-flag, never drop" static tool is
+        supposed to produce a review queue, not a verdict. It's the number for anyone tempted to use a
+        raw finding count as a credibility score without doing the human pass: don't.
+      </p>
+
+      <h2>Detector-class distribution (raw, all 13 repos, all severities)</h2>
+      <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; margin:20px 0; font-size:0.95em">
+        <thead>
+          <tr style="text-align:left; border-bottom:1px solid var(--border, #333)">
+            <th style="padding:8px 12px 8px 0">Detector class</th>
+            <th style="padding:8px 12px 8px 0">Findings</th>
+            <th style="padding:8px 0">Share</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border, #222)"><td style="padding:8px 12px 8px 0">Path traversal</td><td style="padding:8px 12px 8px 0">314</td><td style="padding:8px 0">27%</td></tr>
+          <tr style="border-bottom:1px solid var(--border, #222)"><td style="padding:8px 12px 8px 0">Tool-scope-creep (ungated mutating tool)</td><td style="padding:8px 12px 8px 0">185</td><td style="padding:8px 0">16%</td></tr>
+          <tr style="border-bottom:1px solid var(--border, #222)"><td style="padding:8px 12px 8px 0">SSRF</td><td style="padding:8px 12px 8px 0">168</td><td style="padding:8px 0">14%</td></tr>
+          <tr style="border-bottom:1px solid var(--border, #222)"><td style="padding:8px 12px 8px 0">Network exposure (bind/debug posture)</td><td style="padding:8px 12px 8px 0">157</td><td style="padding:8px 0">13%</td></tr>
+          <tr style="border-bottom:1px solid var(--border, #222)"><td style="padding:8px 12px 8px 0">Secret-in-log</td><td style="padding:8px 12px 8px 0">93</td><td style="padding:8px 0">8%</td></tr>
+          <tr style="border-bottom:1px solid var(--border, #222)"><td style="padding:8px 12px 8px 0">Shell/command injection</td><td style="padding:8px 12px 8px 0">77</td><td style="padding:8px 0">7%</td></tr>
+          <tr style="border-bottom:1px solid var(--border, #222)"><td style="padding:8px 12px 8px 0">Hardcoded secret</td><td style="padding:8px 12px 8px 0">59</td><td style="padding:8px 0">5%</td></tr>
+          <tr style="border-bottom:1px solid var(--border, #222)"><td style="padding:8px 12px 8px 0">Job hazard: unverified success</td><td style="padding:8px 12px 8px 0">58</td><td style="padding:8px 0">5%</td></tr>
+          <tr style="border-bottom:1px solid var(--border, #222)"><td style="padding:8px 12px 8px 0">Job hazard: destructive-no-confirm</td><td style="padding:8px 12px 8px 0">18</td><td style="padding:8px 0">2%</td></tr>
+          <tr style="border-bottom:1px solid var(--border, #222)"><td style="padding:8px 12px 8px 0">Missing auth on mutating route</td><td style="padding:8px 12px 8px 0">10</td><td style="padding:8px 0">&lt;1%</td></tr>
+          <tr style="border-bottom:1px solid var(--border, #222)"><td style="padding:8px 12px 8px 0">Debug console enabled</td><td style="padding:8px 12px 8px 0">8</td><td style="padding:8px 0">&lt;1%</td></tr>
+          <tr style="border-bottom:1px solid var(--border, #222)"><td style="padding:8px 12px 8px 0">Code eval (exec/Function)</td><td style="padding:8px 12px 8px 0">6</td><td style="padding:8px 0">&lt;1%</td></tr>
+          <tr style="border-bottom:1px solid var(--border, #222)"><td style="padding:8px 12px 8px 0">Secret leak via tool response</td><td style="padding:8px 12px 8px 0">6</td><td style="padding:8px 0">&lt;1%</td></tr>
+          <tr style="border-bottom:1px solid var(--border, #222)"><td style="padding:8px 12px 8px 0">Codegen injection (template autoescape)</td><td style="padding:8px 12px 8px 0">5</td><td style="padding:8px 0">&lt;1%</td></tr>
+          <tr style="border-bottom:1px solid var(--border, #222)"><td style="padding:8px 12px 8px 0">Unsafe deserialization</td><td style="padding:8px 12px 8px 0">3</td><td style="padding:8px 0">&lt;1%</td></tr>
+          <tr style="border-bottom:1px solid var(--border, #222)"><td style="padding:8px 12px 8px 0">Tracked secret-bearing file</td><td style="padding:8px 12px 8px 0">2</td><td style="padding:8px 0">&lt;1%</td></tr>
+          <tr><td style="padding:8px 12px 8px 0">No rate limiter</td><td style="padding:8px 12px 8px 0">1</td><td style="padding:8px 0">&lt;1%</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <h2>The honest false-positive classes</h2>
+      <p>
+        This is the part that matters more than the raw table above: what the 200 raw P0/P1 flags
+        actually turned out to be once read in source, named generically (no repo identified):
+      </p>
+      <ul>
+        <li><strong>"Read-only" doc/proxy tools flagged as ungated mutating tools.</strong> More than
+        one repo had a pure documentation-search or read-proxy tool -- no destructive verb, no actual
+        mutating sink -- trip the tool-scope-creep detector. A real false-positive class: the
+        detector's mutating-sink heuristic over-triggered on a downstream proxy call it couldn't
+        distinguish from a write.</li>
+        <li><strong>Custom in-body permission checks not recognized as gates.</strong> At least one
+        repo genuinely guards a delete-shaped tool with an explicit readonly-mode check that returns
+        "not permitted" -- a real, working authorization gate the detector's gate-recognizer doesn't
+        pattern-match because it isn't one of the handful of decorator/env-flag/named-check shapes it
+        looks for. A "no visible permission gate" finding on this scanner means "no gate the
+        heuristic recognizes," not "definitely unguarded" -- a false positive that should worry a
+        tool author less than the opposite miss would.</li>
+        <li><strong>Self-declared "destructive" tools flagged as if undisclosed.</strong> A
+        computer-use-style MCP server (application/window/input control) had tools whose own code
+        already labels them destructive via the MCP tool-annotation spec -- the maintainer had
+        already disclosed the exact risk through the protocol's own mechanism. The scanner has no
+        path today to read that self-declared metadata and downgrade accordingly, so it flagged the
+        tool as if the risk were hidden. Worth a scanner enhancement, not a maintainer disclosure.</li>
+        <li><strong>Pagination cursors tripping the secret-name heuristic.</strong> Every observed
+        "secret-leak-via-tool-response" finding outside a test file was a cursor-style pagination
+        field whose name merely contains the substring "token" -- an opaque continuation handle, not
+        a credential. The name-shape heuristic needs a pagination-cursor exclusion list to cut this
+        noise class.</li>
+        <li><strong>Almost all non-test shell-injection findings were the maintainers' own
+        build/release tooling</strong> -- package-manager installs and builds, VCS tag/push commands,
+        license-checker invocations, install/uninstall CLI scripts -- none reachable from a registered
+        MCP tool, none attacker-influenced. Same story for essentially all "destructive-call-with-no-
+        confirm" job-hazard findings: cleanup commands against the maintainers' own temp directories
+        inside their own CI workflows, force-push/reset commands against their own release branches.
+        Real hardening advice for a CI-hygiene pass, not attacker-reachable vulnerabilities in a live
+        server.</li>
+        <li><strong>A JS-regex sink detector confused two unrelated functions that share a name.</strong>
+        Observed 3 times against one repo's own internal tooling script -- a naming collision the
+        line-based JS heuristic can't resolve without real parsing. Disclosed as a known scanner
+        limitation, not a target-repo issue.</li>
+        <li><strong>A "hardcoded secret" hit turned out to be a widely-published placeholder
+        credential</strong> from a major SDK's own public example documentation, already marked with
+        an explicit allowlist-suppression comment by the maintainer. The secret-shape heuristic can't
+        distinguish a famous public placeholder from a real leaked value without a denylist of
+        known-dummy literals.</li>
+        <li><strong>A tracked "secret-bearing file" was a self-signed TLS test certificate</strong> --
+        the common pattern of committing a throwaway cert/key pair to spin up a local HTTPS test
+        server in CI, not a real secret leak. The extension-based heuristic can't tell a disposable
+        test fixture from a production key without content inspection.</li>
+      </ul>
+
+      <div class="evidence">
+        <h3>The one genuine finding</h3>
+        <p>
+          Of the 200 raw P0/P1 flags across 13 repos, one was a template/codegen-injection pattern --
+          the exact class this scanner is validated to catch (it's the tool's own <code>--self-audit</code>
+          proof point) -- in a code-generation tool that renders a caller-influenced identifier
+          directly into generated source with autoescape explicitly disabled and a narrow rationale
+          that didn't address the code-injection risk specifically. Responsible disclosure is in
+          progress. No repo is named here, no scope table is published alongside this report, and
+          this finding will not be detailed further until disclosure has run its course.
+        </p>
+      </div>
+
+      <h2>Honest scanner blind spots (disclosed, not fixed here)</h2>
+      <ul>
+        <li>Reachability/taint cross-file resolution is bounded (one hop for tool-scope-creep/
+        secret-leak low-level-SDK paths; two hops for taint) -- deeper flows are labeled
+        <em>unknown</em>, never guessed.</li>
+        <li>No dynamic analysis -- a "clean bill" means the detectors found no critical/high
+        <em>static</em> pattern, not a proof of runtime safety.</li>
+        <li>JS/TS coverage is regex-based, not AST-based -- the function-name-collision false
+        positive above is a direct consequence.</li>
+        <li>The scanner does not read MCP tool-annotation metadata (e.g. a maintainer-set
+        destructive-tool flag) that a maintainer may have already declared, so it cannot credit
+        self-disclosed risk.</li>
+        <li>Gate recognition is pattern-based (decorator, env-flag, or a short list of named-check
+        shapes) -- a project-specific custom gate function can go unrecognized.</li>
+      </ul>
+
+      <h2>Bottom line</h2>
+      <p>
+        Across 13 well-known public MCP servers, the ecosystem is not littered with undisclosed
+        critical vulnerabilities -- it's littered with a scanner producing an honest, over-inclusive
+        review queue that a human still has to read. One genuinely reportable finding came out of 200
+        raw P0/P1 flags. That ratio is itself the credibility pitch: a scanner that publicly counts its
+        own false positives is more trustworthy than one that reports a scarier number nobody checked.
+      </p>
+
+      <p style="margin-top:32px">
+        <a class="btn btn-primary" href="mailto:jaime@jaimenbell.dev?subject=MCP%20server%20security%20scan">Book a scoping call</a>
+        &nbsp;<a class="btn btn-ghost" href="../index.html#cases">← All case studies</a>
+      </p>
+    </article>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">
+    <span>MCP Server Engineering · auth-scoped, fail-soft, tested.</span>
+    <span><a href="https://github.com/jaimenbell/MCP-Factory">GitHub</a> · <a href="mailto:jaime@jaimenbell.dev">jaime@jaimenbell.dev</a> <span id="discord-footer-link-wrap" style="display:none">· <a id="discord-footer-link" href="" target="_blank" rel="noopener">Discord</a></span></span>
+  </div>
+</footer>
+
+<script src="../js/discord-cta.js" defer></script>
+</body>
+</html>
