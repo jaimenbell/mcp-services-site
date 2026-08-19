@@ -82,8 +82,9 @@
           <li>Repo: <a href="https://github.com/jaimenbell/mcp-security-scanner">github.com/jaimenbell/mcp-security-scanner</a></li>
           <li>Tests: <code>python -m pytest -q</code> → <code>762 passed, 9 skipped</code> (771 total; the 9 skips are the dogfood self-audit tests, which need <code>MCP_SCANNER_FLEET_ROOT</code> pointed at real repos and skip cleanly in a fresh clone).</li>
           <li>Every detector ships a matched pair of fixtures — a vulnerable one it must catch, a clean one it must not flag — so the false-positive floor is a tested invariant, not a hope.</li>
-          <li>The dogfood proof (<code>--self-audit</code>, <code>tests/test_self_audit.py</code>): the scanner runs against eight of my own in-production MCP servers. Six get a clean bill; two (github-mcp, discord-mcp) show a low-confidence P1 — the scanner honestly flagging their own obviously-fake test-fixture tokens rather than hiding them, exactly the "demote confidence, never suppress visibility" rule the tool is built on. The test asserts no high/medium-confidence P0/P1 on the clean set, and it passes.</li>
-          <li><strong>See a real sample report:</strong> <a href="sample-report-rag-mcp.html">the actual generated deliverable</a>, run against my own <code>rag-mcp</code> server — one low-confidence P2 hardening finding, a clean P0/P1 bill, and the honest capability boundary printed on every report.</li>
+          <li><strong>The measurement that matters — and it is not flattering.</strong> On 2026-07-29 I measured this scanner blind against five third-party MCP servers (notion, neon, qdrant, firecrawl, airtable), with ground truth frozen to disk by five independent audits <em>before</em> the first scan. It returned <strong>0 true positives across 58 findings</strong>, and <strong>recall 0/69</strong> — <strong>0/7</strong> even restricted to the three classes it implements. Its best case, <code>mcp-server-qdrant</code>, found <strong>0 of 9</strong> real issues including a path traversal a blind auditor reproduced live; on firecrawl it flagged twelve fake test-fixture secrets and missed the one real credential. <strong>I pulled the paid audit tier that same day and blocked every outreach draft from citing a finding.</strong> Recall fixes the next day raised it to <strong>2 findings that survive a hand audit</strong> — by my own README's accounting, <strong>1</strong> of real-world consequence. <strong>Pooled recall has not been re-scored since, so I make no claim about a current number.</strong> That is the whole record, including the part that improved.</li>
+          <li><strong>Why it is still public:</strong> the detector engine is honest about what it cannot do — every finding carries a graded confidence, a report says which findings were never graded, and the false-positive floor is a tested invariant. That machinery is real and reusable. Its <em>detection recall</em> is what came back zero, and nothing on this page asks you to take that on faith.</li>
+          <li><strong>See a real sample report:</strong> <a href="sample-report-rag-mcp.html">the actual generated deliverable</a>, run against my own <code>rag-mcp</code> server — shown so you can judge the <em>report format and the capability boundary it prints</em>. Read it as a sample of the deliverable, not as a security assurance: given the recall above, a clean bill from this tool carries no information.</li>
         </ul>
       </div>
 
@@ -116,9 +117,11 @@
       <p>
         An over-flagging scanner is easy; a <em>trustworthy</em> one is the actual engineering. The whole
         design bends toward honesty — never drop a finding, grade its confidence with a real call-graph
-        and taint pass, prove the false-positive floor with paired fixtures, and dogfood the thing against
-        my own production servers where a miss would be visible. That's the same standard I'd bring to
-        auditing your fleet.
+        and taint pass, and prove the false-positive floor with paired fixtures. I also ran it against my own
+        servers — but the blind third-party measurement above is what actually settled the question,
+        and it settled it against the tool. <strong>Running it on your own code tells you very little;
+        measuring it against ground truth you fixed in advance tells you everything.</strong> Learning
+        that about my own work, and publishing it, is the standard I'd bring to auditing your fleet.
       </p>
 
       <p style="margin-top:32px">
