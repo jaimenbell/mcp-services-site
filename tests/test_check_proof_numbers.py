@@ -773,7 +773,14 @@ def _build_temp_hook_repo(
     """Build a minimal git repo with the REAL .githooks/pre-commit and the
     REAL scripts/check_proof_numbers.py wired up, so the shell-script-level
     fixes (findings 4 and 5) are exercised end-to-end rather than only
-    unit-tested at the Python level. Never touches the real repo's checkout."""
+    unit-tested at the Python level. Never touches the real repo's checkout.
+
+    Also copies the REAL scripts/check_beacon_coverage.py (2026-08-20,
+    beacon-coverage lane): the real hook now runs it unconditionally as gate
+    2, right after gate 1. Every caller whose fixture reaches gate 2 (i.e.
+    doesn't already block/crash in gate 1 first) must give its index.html a
+    data-goatcounter tag or gate 2 will fail the "clean" case too -- see
+    test_hook_allows_clean_commit_with_no_blocked_message."""
     repo = tmp_path / "hookrepo"
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
@@ -790,6 +797,7 @@ def _build_temp_hook_repo(
         (repo / "scripts" / "check_proof_numbers.py").write_text(
             checker_override, encoding="utf-8", newline="\n"
         )
+    shutil.copy2(REPO_ROOT / "scripts" / "check_beacon_coverage.py", repo / "scripts" / "check_beacon_coverage.py")
     (repo / ".githooks").mkdir()
     shutil.copy2(REPO_ROOT / ".githooks" / "pre-commit", repo / ".githooks" / "pre-commit")
 
@@ -848,10 +856,20 @@ def test_hook_blocked_message_survives_set_e(tmp_path):
 def test_hook_allows_clean_commit_with_no_blocked_message(tmp_path):
     """Sanity companion to the set-e regression: the same real hook, run
     against a fixture where the proof number is correct, exits 0 and never
-    prints the BLOCKED guidance."""
+    prints the BLOCKED guidance.
+
+    index.html also carries a data-goatcounter tag (2026-08-20,
+    beacon-coverage lane): the real hook now runs gate 2
+    (check_beacon_coverage.py) unconditionally after gate 1, using its
+    default globs, which include index.html -- a "clean" fixture must satisfy
+    both gates to actually exit 0, not just gate 1."""
     bash = _bash_path()
     manifest_toml_text = '["mcp-factory"]\nvalue = 187\nsource_cmd = "pytest -q"\n'
-    clean_index = "<p>mcp-factory: 187 passing tests</p>\n"
+    clean_index = (
+        '<html><head><script data-goatcounter="https://jaimenbell.goatcounter.com/count" '
+        'async src="//gc.zgo.at/count.js"></script></head><body>'
+        "<p>mcp-factory: 187 passing tests</p></body></html>\n"
+    )
     repo = _build_temp_hook_repo(tmp_path, manifest_toml_text, clean_index)
 
     result = subprocess.run([bash, ".githooks/pre-commit"], cwd=repo, capture_output=True, text=True)

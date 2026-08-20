@@ -1,9 +1,14 @@
 #!/bin/sh
-# pre-commit -- proof-number gate.
+# pre-commit -- proof-number gate + beacon-coverage gate.
 #
-# Blocks a commit if any cited proof number (test count, etc.) in committed
-# site content contradicts proof-manifest.toml. See scripts/check_proof_numbers.py
-# for the full matching/association rule set.
+# Gate 1 blocks a commit if any cited proof number (test count, etc.) in
+# committed site content contradicts proof-manifest.toml. See
+# scripts/check_proof_numbers.py for the full matching/association rule set.
+#
+# Gate 2 blocks a commit if any user-facing page loses its GoatCounter
+# analytics beacon (or gains a duplicate one), including the scoreboard.html
+# generator template. See scripts/check_beacon_coverage.py and
+# docs/INSTRUMENTATION-SETUP.md's "Coverage rule" section.
 #
 # This hook is wired up via:
 #   git config core.hooksPath .githooks
@@ -79,6 +84,39 @@ if [ "$STATUS" -ne 0 ]; then
     echo "This is a fault in the gate itself, NOT a finding about your commit."
     echo "See the traceback above; the commit is blocked until the gate runs."
     exit "$STATUS"
+fi
+
+# Gate 2: beacon-coverage. Reuses PYTHON_BIN validated above (it can import
+# tomllib, so it's on 3.11+ and has every stdlib module this checker needs
+# too -- no separate probe required). Same set-e-survival pattern as gate 1:
+# the checker call is the `if` condition itself, not a bare command, so the
+# STATUS2/message branch below always runs even on a non-zero exit (see the
+# comment on gate 1's `if` above for why a bare command would be skipped).
+if "$PYTHON_BIN" scripts/check_beacon_coverage.py; then
+    STATUS2=0
+else
+    STATUS2=$?
+fi
+
+# Same crash-vs-verdict distinction as gate 1's STATUS branch: 0 = clean,
+# 2 = one or more pages have lost (or duplicated) their beacon, anything
+# else = the gate itself faulted before reaching a verdict.
+if [ "$STATUS2" -eq 2 ]; then
+    echo ""
+    echo "pre-commit: BLOCKED -- one or more user-facing pages have lost (or"
+    echo "duplicated) their data-goatcounter analytics beacon. See"
+    echo "docs/INSTRUMENTATION-SETUP.md's Coverage rule section, fix the"
+    echo "page(s) named above, and re-commit."
+    exit "$STATUS2"
+fi
+
+if [ "$STATUS2" -ne 0 ]; then
+    echo ""
+    echo "pre-commit: CANNOT RUN -- the beacon-coverage checker exited $STATUS2"
+    echo "without reaching a verdict (expected 0 = clean or 2 = coverage gap)."
+    echo "This is a fault in the gate itself, NOT a finding about your commit."
+    echo "See the traceback above; the commit is blocked until the gate runs."
+    exit "$STATUS2"
 fi
 
 exit 0

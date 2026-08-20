@@ -49,6 +49,15 @@ the important ones: every one. Deliberate exclusions, and the only ones:
 generator's `<head>` template, not only in the output file. Editing `scoreboard.html` by hand is
 silently reverted on the next generator run — change the producer, then regenerate.
 
+**Enforced (2026-08-20) by `scripts/check_beacon_coverage.py`,** wired into `.githooks/pre-commit`
+as a second gate right after the proof-number gate. It scans the same explicit population this
+section describes (root-level pages plus `articles/*.html` and `case-studies/*.html` — see the
+`DEFAULT_TARGET_GLOBS` constant in that script for the literal glob list) and fails the commit
+(exit 2) if any in-scope page carries zero or more than one `data-goatcounter` tag. It also checks
+`scripts/generate-scoreboard.mjs`'s own `<head>` template directly, so the generator losing its
+beacon fails the commit even while the (soon to be silently reverted) `scoreboard.html` output still
+carries one — the exact class of gap this rule exists to close.
+
 ### Why the rule is stated this way
 
 On 2026-08-20 the tag covered 16 of 26 user-facing pages. The gap included
@@ -61,7 +70,9 @@ The original gap was not carelessness: three flagship case studies were authored
 branch (`lane/flagship-coverage`) than the instrumentation (`lane/site-instrumentation`), so they
 were never in the instrumenting branch's base. `404.html` and `scoreboard.html` were consciously
 skipped. The lesson is that a coverage rule with no enforcement decays at every branch merge — so
-state the scope with the pattern, and check it.
+state the scope with the pattern, and check it. **That enforcement gap itself sat unaddressed until
+the same day** (this section described an unwired check for several hours before
+`check_beacon_coverage.py` shipped) — the fix above closes it.
 
 ## Verifying instrumentation honestly
 
