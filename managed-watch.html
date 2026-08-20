@@ -184,6 +184,26 @@
         </p>
       </div>
 
+      <div class="honest">
+        <p>
+          <strong>What the scanner scored when I measured it, stated once, in full:</strong> on
+          <strong>2026-07-29</strong> I ran it blind against five pinned third-party MCP servers,
+          with ground truth frozen to disk by five independent audits <em>before</em> the first
+          scan. It returned <strong>0 true positives across 58 findings</strong>, and pooled recall
+          of <strong>0/69</strong>. I pulled the $250&ndash;750 one-shot audit tier that same day
+          rather than sell it. A recall fix the next morning &mdash; the tool-registry regex was
+          only matching the deprecated <code>server.tool()</code> API, so most of each server was
+          never read &mdash; took the same five targets to <strong>88 findings, 2 of which survived
+          a hand audit, 1 of real-world consequence</strong>. Pooled recall has not been re-scored
+          against that frozen set since, so I quote no current recall number at all: both figures
+          above are dated, and the <a href="case-studies/mcp-security-scanner.html">case study</a>
+          carries the working. This is precisely why the page above sells a <strong>monthly human
+          verdict</strong> and not a detector's. Silence from a detector whose recall you have not
+          established tells you nothing &mdash; so what you are paying for here is the triage, and
+          the CI gate underneath it stays free either way.
+        </p>
+      </div>
+
       <h2>Pricing</h2>
       <div class="proposed">
         <strong>Pricing shown below is PROPOSED, not final.</strong> Confirm the number on a
