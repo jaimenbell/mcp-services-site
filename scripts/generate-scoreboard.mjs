@@ -265,6 +265,9 @@ const html = `<!DOCTYPE html>
     .sb-legend { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
     .sb-freshness { margin: 22px 0; }
   </style>
+
+<!-- Privacy-light, cookie-less analytics (GoatCounter). No cookies, no consent banner, no cross-site tracking. -->
+<script data-goatcounter="https://jaimenbell.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
 

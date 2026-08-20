@@ -1,80 +1,88 @@
 ---
 title: Site Instrumentation Setup
-status: staged — awaiting operator wiring
+status: wired — analytics and booking both live as of 2026-08-20
 created: 2026-07-22
+updated: 2026-08-20
 tags: [site, analytics, booking, instrumentation]
 ---
 
 # Site Instrumentation Setup
 
-> [!important] Two placeholders to fill, then deploy
-> The `lane/site-instrumentation` branch adds privacy-light analytics and a booking-call
-> CTA to every page. Both ship **inert** — they degrade gracefully until you wire your own
-> accounts. Fill the two placeholders below, then merge + deploy as usual.
+> [!important] Both placeholders are filled. This doc is now a record, not a to-do.
+> Analytics (GoatCounter) and the booking CTA (cal.com) are both wired and deployed.
+> What follows documents what is wired, the coverage rule new pages must follow, and how to
+> verify instrumentation honestly. If you are adding a page, read **Coverage rule** below.
 
-## Placeholder 1 — Analytics (GoatCounter)
+## Analytics — GoatCounter (wired 2026-08-20)
 
 **Why GoatCounter:** free hosted, **no cookies**, no consent banner required, no cross-site
-tracking, single async `<script>` tag, **$0 infra** (nothing to self-host). Plausible was the
-alternative but its hosted tier is paid and self-hosting needs a server — GoatCounter fits the
-privacy-conscious + $0-infra constraint better.
+tracking, single async `<script>` tag, **$0 infra**. Plausible was the alternative but its hosted
+tier is paid and self-hosting needs a server.
 
-**Fill this:** create a free site at https://www.goatcounter.com — you pick a code like
-`jaimenbell`. Then replace `YOURCODE` in every page:
+**Site code:** `jaimenbell` → dashboard at `https://jaimenbell.goatcounter.com`.
 
-```
-data-goatcounter="https://YOURCODE.goatcounter.com/count"
-```
+Every user-facing page carries this tag immediately before `</head>`:
 
-Every instrumented page (`index.html`, all `case-studies/*.html`, all `articles/*.html`) carries
-the same tag right before `</head>`, marked with `<!-- OPERATOR: replace YOURCODE -->`. Find +
-replace `YOURCODE` across the repo in one pass.
-
-**Until you replace it:** the beacon request 404s silently. No JS error, no console noise, no
-page impact — the tag is safe to ship un-wired.
-
-**Verify post-deploy:** open the live site, then check your GoatCounter dashboard at
-`https://YOURCODE.goatcounter.com` — a pageview should appear within seconds. Or open DevTools →
-Network and confirm a `200` request to `YOURCODE.goatcounter.com/count` on page load.
-
-## Placeholder 2 — Booking call (cal.com)
-
-**Why cal.com:** open-source, free tier, self-host optional — the $0 / open option vs Calendly.
-
-**Fill this:** claim your handle at https://cal.com (e.g. `jaimenbell`), then replace
-`YOUR-HANDLE` in the "Book a scoping call" buttons:
-
-```
-href="https://cal.com/YOUR-HANDLE"
+```html
+<script data-goatcounter="https://jaimenbell.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 ```
 
-Two buttons carry it, both marked `<!-- OPERATOR: replace YOUR-HANDLE -->`:
-- the hero `.btn-row` (top of `index.html`)
-- the final contact CTA box (`#contact` section, bottom of `index.html`)
+## Booking — cal.com (wired)
 
-The existing `mailto:jaime@jaimenbell.dev` primary buttons are **kept as the no-tooling
-fallback** — booking is additive, not a replacement. Styling reuses the existing `.btn .btn-ghost`
-classes, so no CSS change was needed.
+**Handle:** `jaimen-bell-ioj5i8` → `https://cal.com/jaimen-bell-ioj5i8`.
 
-**Verify post-deploy:** click "Book a scoping call" on the live site → it should open your
-cal.com booking page. If the handle is wrong you'll get cal.com's 404, not a broken site.
+Note the handle is **not** a tidy vanity string; do not retype it from memory, copy it. The
+"Book a scoping call" buttons carry it. The existing `mailto:jaime@jaimenbell.dev` primary buttons
+are **kept as the no-tooling fallback** — booking is additive, not a replacement.
+
+## Coverage rule — read this before adding a page
+
+**Every user-facing `.html` page carries exactly one `data-goatcounter` tag.** Not most pages, not
+the important ones: every one. Deliberate exclusions, and the only ones:
+
+| Path | Why excluded |
+|---|---|
+| `scripts/og-card.html` | generator template, never served to a visitor |
+| `.claude/worktrees/**` | throwaway worktrees, not the deployed site |
+
+⚠ **`scoreboard.html` is GENERATED** by `scripts/generate-scoreboard.mjs`. Its beacon lives in the
+generator's `<head>` template, not only in the output file. Editing `scoreboard.html` by hand is
+silently reverted on the next generator run — change the producer, then regenerate.
+
+### Why the rule is stated this way
+
+On 2026-08-20 the tag covered 16 of 26 user-facing pages. The gap included
+`case-studies/mcp-security-scanner.html` — the landing page the published LinkedIn piece links to.
+The analytics install was green and working, and **structurally incapable of measuring the one page
+traffic was being driven to.** A zero would have read as "nobody clicked" when it actually meant
+"nothing was ever counted."
+
+The original gap was not carelessness: three flagship case studies were authored on a different
+branch (`lane/flagship-coverage`) than the instrumentation (`lane/site-instrumentation`), so they
+were never in the instrumenting branch's base. `404.html` and `scoreboard.html` were consciously
+skipped. The lesson is that a coverage rule with no enforcement decays at every branch merge — so
+state the scope with the pattern, and check it.
+
+## Verifying instrumentation honestly
+
+**A 200 from the beacon request is send-side bookkeeping. It does not prove a hit was recorded.**
+Verify from the receiving end:
+
+1. Load a page on the live site.
+2. Confirm the pageview appears at `https://jaimenbell.goatcounter.com` within seconds.
+
+Until a hit is visible in the dashboard, the instrumentation is unproven — a wrong site code fails
+**silently**: the beacon 404s with no JS error, no console noise, and no page impact, so the site
+looks perfectly healthy while recording nothing.
+
+⚠ When verifying a fresh deploy, use `curl` with a cache-buster rather than a caching fetcher — a
+15-minute URL cache will serve the pre-deploy page and look like a failed deploy.
+
+For booking: click "Book a scoping call" on the live site → it should open the cal.com page. A wrong
+handle gives cal.com's 404, not a broken site.
 
 ## CSP note
 
 No Content-Security-Policy is set on this site (no CSP `<meta>` tag; GitHub Pages sets no CSP
-header) — so **no allowlist edit is needed** for the analytics script to run. If you ever add a
-CSP later, allowlist: `script-src //gc.zgo.at` and `img-src`/`connect-src https://*.goatcounter.com`.
-
-## Scope notes
-
-- Analytics + booking added on top of `main` (commit `0bd753c`): `index.html` + 8
-  `case-studies/*.html` + 7 `articles/*.html` = 15 instrumented pages.
-- **Gap to close on converge:** the three flagship case studies added on a *different* branch —
-  `case-studies/rails-mcp.html`, `case-studies/vllm-ops-mcp.html`,
-  `case-studies/mcp-security-scanner.html` (from `lane/flagship-coverage`) — are **not** in this
-  branch's base, so they do **not** carry the analytics tag. After both branches merge, re-run the
-  same snippet-injection on those three pages (or merge `lane/flagship-coverage` first, then
-  rebase this branch onto it).
-- `404.html` and `scoreboard.html` were left untouched. `scoreboard.html` is generated by
-  `scripts/generate-scoreboard.mjs`, so add the tag to that generator (not the output file) if you
-  want it tracked.
+header) — so **no allowlist edit is needed** for the analytics script to run. If you ever add a CSP,
+allowlist: `script-src //gc.zgo.at` and `img-src`/`connect-src https://*.goatcounter.com`.
