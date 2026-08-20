@@ -611,6 +611,11 @@
     border: 1px solid var(--line-2); color: var(--text); transition: all .2s ease;
   }
   .tier.feature .tcta { background: var(--accent); color: #062b27; border-color: transparent; }
+  .tier .tcta-alt {
+    text-align: center; margin-top: 9px; font-size: 13px; color: var(--faint);
+    font-family: var(--mono); text-decoration: none; transition: color .2s ease;
+  }
+  .tier .tcta-alt:hover { color: var(--muted); text-decoration: underline; }
   .tier .tcta:hover { transform: translateY(-2px); border-color: var(--faint); }
   .tier.feature .tcta:hover { border-color: transparent; box-shadow: 0 10px 30px rgba(94,234,212,0.25); }
   .price-note {
@@ -1269,7 +1274,10 @@
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg> Or a working read-only spike, same price</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg> <strong style="color:var(--text)">Fully credited</strong> toward a sprint</li>
         </ul>
-        <a href="mailto:jaime@jaimenbell.dev?subject=MCP%20Readiness%20Audit" class="tcta">Start with an audit</a>
+        <a href="https://cal.com/jaimen-bell-ioj5i8" class="tcta">Start with an audit</a>
+        <!-- Live booking page is the primary action. The mailto below stays as the
+             no-tooling fallback AND is what carries per-tier attribution. -->
+        <a href="mailto:jaime@jaimenbell.dev?subject=MCP%20Readiness%20Audit" class="tcta-alt">or email instead</a>
       </div>
 
       <div class="tier feature reveal">
@@ -1283,7 +1291,10 @@
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg> 1–2 weeks · 50% / 50% terms</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg> 14-day support window</li>
         </ul>
-        <a href="mailto:jaime@jaimenbell.dev?subject=MCP%20Integration%20Sprint" class="tcta">Scope this build</a>
+        <a href="https://cal.com/jaimen-bell-ioj5i8" class="tcta">Scope this build</a>
+        <!-- Live booking page is the primary action. The mailto below stays as the
+             no-tooling fallback AND is what carries per-tier attribution. -->
+        <a href="mailto:jaime@jaimenbell.dev?subject=MCP%20Integration%20Sprint" class="tcta-alt">or email instead</a>
       </div>
 
       <div class="tier reveal">
@@ -1295,7 +1306,10 @@
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg> Scoped as its own engagement</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg> <a href="#retainer" style="color:var(--text); text-decoration:underline;">Reliability retainer</a> available after</li>
         </ul>
-        <a href="mailto:jaime@jaimenbell.dev?subject=Multi-Source%20or%20Retainer" class="tcta">Talk through scope</a>
+        <a href="https://cal.com/jaimen-bell-ioj5i8" class="tcta">Talk through scope</a>
+        <!-- Live booking page is the primary action. The mailto below stays as the
+             no-tooling fallback AND is what carries per-tier attribution. -->
+        <a href="mailto:jaime@jaimenbell.dev?subject=Multi-Source%20or%20Retainer" class="tcta-alt">or email instead</a>
       </div>
     </div>
     <div class="price-note reveal">
@@ -1322,7 +1336,10 @@
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg> Delivered as a repo with a live, running pass/fail count</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg> Single-agent builds start near $5k; multi-agent / eval-pipeline builds scope to $50k+</li>
         </ul>
-        <a href="mailto:jaime@jaimenbell.dev?subject=AI%20Agent%20Reliability%20Retainer%20—%20Build" class="tcta">Scope a harness build</a>
+        <a href="https://cal.com/jaimen-bell-ioj5i8" class="tcta">Scope a harness build</a>
+        <!-- Live booking page is the primary action. The mailto below stays as the
+             no-tooling fallback AND is what carries per-tier attribution. -->
+        <a href="mailto:jaime@jaimenbell.dev?subject=AI%20Agent%20Reliability%20Retainer%20—%20Build" class="tcta-alt">or email instead</a>
       </div>
 
       <div class="tier reveal">
@@ -1335,7 +1352,10 @@
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg> Monthly written report — pass/fail counts, not vibes</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg> Running MCP servers specifically? See <a href="managed-watch.html" style="color:var(--text); text-decoration:underline;">Managed MCP Watch</a></li>
         </ul>
-        <a href="mailto:jaime@jaimenbell.dev?subject=AI%20Agent%20Reliability%20Retainer%20—%20Monitor" class="tcta">Talk through monitoring</a>
+        <a href="https://cal.com/jaimen-bell-ioj5i8" class="tcta">Talk through monitoring</a>
+        <!-- Live booking page is the primary action. The mailto below stays as the
+             no-tooling fallback AND is what carries per-tier attribution. -->
+        <a href="mailto:jaime@jaimenbell.dev?subject=AI%20Agent%20Reliability%20Retainer%20—%20Monitor" class="tcta-alt">or email instead</a>
       </div>
     </div>
     <div class="price-note reveal">
