@@ -87,6 +87,68 @@ GENERATED_PAGES = {
     "scoreboard.html": "scripts/generate-scoreboard.mjs",
 }
 
+# Documented exclusions from docs/INSTRUMENTATION-SETUP.md's exclusion table.
+# These are the ONLY *.html files allowed to exist outside DEFAULT_TARGET_GLOBS.
+# Listing them POSITIVELY (rather than relying on omission) is what lets the
+# orphan check below tell "deliberately excluded" apart from "nobody noticed".
+EXCLUDED_HTML = [
+    "scripts/og-card.html",   # generator template, never served to a visitor
+]
+
+# Directories that are not the deployed site at all. Unlike EXCLUDED_HTML these
+# are not pages-with-a-reason, they are simply not the site.
+NON_SITE_DIRS = (".claude", ".git", "drafts", "node_modules")
+
+
+def find_unclassified_pages(
+    root: Path,
+    patterns: list[str],
+    excluded: list[str] | None = None,
+) -> list["Finding"]:
+    """Fail on any *.html file that is neither in scope NOR explicitly excluded.
+
+    WHY THIS EXISTS -- it closes the gate's own blind spot. DEFAULT_TARGET_GLOBS
+    names three top-level pages LITERALLY (404/index/managed-watch/scoreboard),
+    so without this check a newly added top-level page -- say pricing.html --
+    would be out of scope BY OMISSION: the gate would print OK while an
+    uninstrumented page shipped. Verified adversarially 2026-08-20 before this
+    function existed: dropping a beacon-less pricing.html into the tree left the
+    gate reporting "OK (26 page(s) checked)", exit 0.
+
+    That is precisely the failure this whole gate was built to prevent. The
+    16-of-26 incident happened because case-study pages landed on one branch
+    while instrumentation landed on another and nothing reconciled them; a
+    hardcoded list re-opens exactly that hole for root-level pages.
+
+    docs/INSTRUMENTATION-SETUP.md's rule is "every user-facing .html page", not
+    "the pages someone remembered to list". So every *.html under the site tree
+    must be classified as either IN SCOPE (covered by a glob) or EXCLUDED (named
+    in EXCLUDED_HTML with a reason) -- and an unclassified page is a FAIL that
+    names the choice, rather than silence that hides it.
+
+    An empty result and a flood are the same smell: a coverage checker that
+    cannot see a file is not passing it, it is missing it.
+    """
+    excluded_rel = set(excluded if excluded is not None else EXCLUDED_HTML)
+    in_scope = {p.resolve() for p in resolve_targets(root, patterns)}
+
+    findings: list[Finding] = []
+    for path in sorted(root.rglob("*.html")):
+        if not path.is_file():
+            continue
+        try:
+            rel = path.relative_to(root)
+        except ValueError:  # pragma: no cover -- rglob cannot escape root
+            continue
+        if any(part in NON_SITE_DIRS for part in rel.parts):
+            continue
+        if rel.as_posix() in excluded_rel:
+            continue
+        if path.resolve() in in_scope:
+            continue
+        findings.append(Finding(path, 0, "unclassified"))
+    return findings
+
 
 class Finding:
     """One coverage violation: either a scanned page with the wrong beacon
@@ -95,11 +157,18 @@ class Finding:
     def __init__(self, path: Path, count: int, kind: str):
         self.path = path
         self.count = count
-        # "missing" | "duplicate" | "missing-generator"
+        # "missing" | "duplicate" | "missing-generator" | "unclassified"
         self.kind = kind
 
     def format(self) -> str:
         rel = self.path
+        if self.kind == "unclassified":
+            return (
+                f"FAIL {rel}: this page is neither in DEFAULT_TARGET_GLOBS nor "
+                f"in EXCLUDED_HTML, so the beacon rule silently skips it. Add it "
+                f"to one or the other in scripts/check_beacon_coverage.py -- "
+                f"being unlisted is not the same as being exempt"
+            )
         if self.kind == "missing-generator":
             return (
                 f"FAIL {rel}: generator template not found on disk -- the "
@@ -194,6 +263,7 @@ def run(
         if f is not None:
             findings.append(f)
     findings.extend(check_generated_pairs(root, pairs))
+    findings.extend(find_unclassified_pages(root, patterns))
 
     for finding in findings:
         print(finding.format())

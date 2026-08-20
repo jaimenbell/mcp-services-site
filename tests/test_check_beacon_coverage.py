@@ -377,3 +377,77 @@ def test_hook_reports_beacon_gate_fault_as_cannot_run_not_a_verdict(tmp_path):
     assert result.returncode != 0
     assert "CANNOT RUN" in result.stdout
     assert "BLOCKED" not in result.stdout
+
+
+# ---------------------------------------------------------------------------
+# The gate's OWN blind spot: a page that is neither in scope nor excluded.
+#
+# DEFAULT_TARGET_GLOBS names the top-level pages LITERALLY, so before
+# find_unclassified_pages() existed a newly added root-level page was out of
+# scope BY OMISSION -- the gate printed "OK (26 page(s) checked)" and exited 0
+# with an uninstrumented page sitting in the tree. Verified adversarially
+# against the real repo on 2026-08-20 before the fix.
+#
+# That is the same shape as the original 16-of-26 incident: pages landed on one
+# branch, instrumentation on another, nothing reconciled them. The rule in
+# docs/INSTRUMENTATION-SETUP.md is "every user-facing .html page", not "the
+# pages someone remembered to list" -- so being unlisted must not read as being
+# exempt.
+# ---------------------------------------------------------------------------
+
+
+def test_unclassified_page_FIRES_even_though_it_is_outside_the_globs(tmp_path):
+    """The regression guard for the gate's own blind spot: a new top-level page
+    that no glob covers and no exclusion names must FAIL, not pass silently."""
+    site = tmp_path / "site"
+    write(site, "index.html", f"<html><head>{BEACON_TAG}</head><body>ok</body></html>\n")
+    write(site, "pricing.html", "<html><head></head><body>brand new page</body></html>\n")
+
+    exit_code = cbc.run(
+        root=site,
+        target_patterns=["index.html"],
+        generated_pairs={},
+    )
+
+    assert exit_code == 2, (
+        "an unlisted *.html page must FAIL as unclassified -- if this passes, "
+        "the gate has regressed to enforcing a hardcoded list instead of the "
+        "documented 'every user-facing page' rule"
+    )
+
+
+def test_unclassified_page_fires_even_when_it_DOES_carry_a_beacon(tmp_path):
+    """Classification is the point, not the beacon. A page nobody classified is
+    a hole in the scope even when it happens to be instrumented today -- the
+    next edit to it has no guard."""
+    site = tmp_path / "site"
+    write(site, "index.html", f"<html><head>{BEACON_TAG}</head><body>ok</body></html>\n")
+    write(site, "pricing.html", f"<html><head>{BEACON_TAG}</head><body>ok</body></html>\n")
+
+    assert cbc.run(root=site, target_patterns=["index.html"], generated_pairs={}) == 2
+
+
+def test_explicitly_excluded_page_STAYS_SILENT(tmp_path):
+    """Direction 2 of the control: a page named in the exclusion list is exempt
+    and must NOT fail, even carrying zero beacons -- this is what keeps the
+    orphan check from being a permanent false positive on og-card.html."""
+    site = tmp_path / "site"
+    write(site, "index.html", f"<html><head>{BEACON_TAG}</head><body>ok</body></html>\n")
+    write(site, "scripts/og-card.html", "<html><body>generator template</body></html>\n")
+
+    findings = cbc.find_unclassified_pages(
+        site, ["index.html"], excluded=["scripts/og-card.html"]
+    )
+
+    assert findings == []
+
+
+def test_non_site_directories_are_not_scanned_for_orphans(tmp_path):
+    """.claude/worktrees/** is throwaway, not the deployed site. Scanning it
+    would make the gate fire on every worktree -- a permanent false positive,
+    which trains people to ignore the whole tool."""
+    site = tmp_path / "site"
+    write(site, "index.html", f"<html><head>{BEACON_TAG}</head><body>ok</body></html>\n")
+    write(site, ".claude/worktrees/scratch/index.html", "<html><body>throwaway</body></html>\n")
+
+    assert cbc.find_unclassified_pages(site, ["index.html"]) == []

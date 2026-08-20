@@ -58,6 +58,14 @@ section describes (root-level pages plus `articles/*.html` and `case-studies/*.h
 beacon fails the commit even while the (soon to be silently reverted) `scoreboard.html` output still
 carries one — the exact class of gap this rule exists to close.
 
+**The glob list polices itself.** A literal glob list has its own blind spot: a new *top-level* page
+(`pricing.html`, say) would be out of scope *by omission*, and the gate would print `OK` while an
+uninstrumented page shipped — the same branch-divergence shape as the 16-of-26 gap. Verified
+adversarially before the fix: a beacon-less `pricing.html` left the gate reporting
+`OK (26 page(s) checked)`, exit 0. So the checker also fails on any `*.html` that is **neither in
+`DEFAULT_TARGET_GLOBS` nor named in `EXCLUDED_HTML`**. Adding a page therefore forces a choice —
+instrument it, or exclude it with a reason. **Being unlisted is not the same as being exempt.**
+
 ### Why the rule is stated this way
 
 On 2026-08-20 the tag covered 16 of 26 user-facing pages. The gap included
