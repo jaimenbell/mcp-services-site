@@ -126,6 +126,13 @@ DEFAULT_TARGET_GLOBS = [
     "articles/*.html",
     "scoreboard.html",
     "404.html",
+    # managed-watch.html was OUTSIDE this list until 2026-08-20 -- the only
+    # root-level page carrying a live price AND a capability claim was the one
+    # page the gate never read. It cited no test count at the time, so widening
+    # the scope changed no verdict; it closes the gap before a future edit puts
+    # a stale count on the offer page, which is exactly how a stale count once
+    # reached a live product listing.
+    "managed-watch.html",
 ]
 
 TRIGGER_RE = re.compile(r"\b(?:tests?|passing|passed)\b", re.IGNORECASE)
