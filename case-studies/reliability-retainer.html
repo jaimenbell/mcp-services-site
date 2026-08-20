@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Case study: the AI Agent Reliability Retainer — the audit that catches the lie your dashboard can't</title>
-  <meta name="description" content="The methodology behind the AI Agent Reliability Retainer: a portable Week-1 audit tool (6 universal hazard principles, 4 platform appendices), a zero-effector rail that's test-enforced not just promised, and the self-dogfooded proof — 348 self-verified passing tests (private repo, not independently checkable), a real sample audit report, and the fleet-reliability-day incidents that motivated it.">
+  <meta name="description" content="The methodology behind the AI Agent Reliability Retainer: a portable Week-1 audit tool (6 universal hazard principles, 4 platform appendices), a zero-effector rail that's test-enforced not just promised, and the failure mode I found on my own fleet first — 348 self-verified passing tests (private repo, not independently checkable), a real sample audit report, and the fleet-reliability-day incidents that motivated it.">
   <link rel="canonical" href="https://jaimenbell.dev/case-studies/reliability-retainer.html">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="MCP Integration Sprint">
   <meta property="og:title" content="Case study: the AI Agent Reliability Retainer">
-  <meta property="og:description" content="A portable Week-1 audit tool (6 universal hazard principles, 4 platform appendices), a zero-effector rail that's test-enforced not just promised, and the self-dogfooded proof behind the offer — 348 self-verified passing tests (private repo), a real sample audit report, no fabricated client.">
+  <meta property="og:description" content="A portable Week-1 audit tool (6 universal hazard principles, 4 platform appendices), a zero-effector rail that's test-enforced not just promised, and the failure mode behind the offer, found on my own fleet first — 348 self-verified passing tests (private repo), a real sample audit report, no fabricated client.">
   <meta property="og:url" content="https://jaimenbell.dev/case-studies/reliability-retainer.html">
   <meta property="og:image" content="https://jaimenbell.dev/img/og-card.png">
   <meta property="og:image:width" content="1200">
@@ -17,7 +17,7 @@
   <meta property="og:image:alt" content="jaimenbell.dev — Production MCP servers for AI agents">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Case study: the AI Agent Reliability Retainer">
-  <meta name="twitter:description" content="The methodology + self-dogfood proof behind the Reliability Retainer's Week-1 Audit: a portable hazard-catalog tool, a zero-effector rail, 348 self-verified passing tests (private repo). No fabricated client.">
+  <meta name="twitter:description" content="The methodology + the failure mode I found on my own fleet, behind the Reliability Retainer's Week-1 Audit: a portable hazard-catalog tool, a zero-effector rail, 348 self-verified passing tests (private repo). No fabricated client.">
   <meta name="twitter:image" content="https://jaimenbell.dev/img/og-card.png">
   <link rel="stylesheet" href="../css/style.css">
 
@@ -44,7 +44,7 @@
     <article class="cs">
       <a class="back" href="../index.html#cases">← All case studies</a>
       <h1>The AI Agent Reliability Retainer — the audit that catches the lie your dashboard can't</h1>
-      <div class="meta">// methodology + self-dogfood proof · no client story (yet) · every claim below is a file you can open</div>
+      <div class="meta">// methodology + the failure mode I found on my own fleet · no client story (yet) · every claim below is a file you can open</div>
 
       <span class="pill">portable Week-1 audit tool</span>
       <span class="pill">6 hazard principles, 4 platform appendices</span>
@@ -124,8 +124,8 @@
           <li><code>lying_wrapper.bat:34</code> — <strong>HIGH</strong>, HZ-8: a history/heartbeat write with
             no gating <code>if</code> in the preceding lines — looks unconditional on merely reaching this
             line, not gated on positive payload evidence.</li>
-          <li><code>honest_wrapper.bat</code> and <code>payload_worker.bat</code>: zero findings, confirming
-            the tool doesn't just flag everything.</li>
+          <li><code>honest_wrapper.bat</code> and <code>payload_worker.bat</code>: zero findings on both — the negative control
+            for a detector built to over-flag.</li>
         </ul>
         <p>
           Verify it yourself: <code>python tools/audit_report_gen.py --target demo --out
@@ -133,7 +133,7 @@
         </p>
       </div>
 
-      <h2>The self-dogfood proof: I found this failure mode on my own fleet first</h2>
+      <h2>I found this failure mode on my own fleet first</h2>
       <p>
         This offer didn't start as a market hypothesis — it started as an incident. The
         <a href="fleet-reliability-day.html">fleet-reliability-day case study</a> walks through the same
