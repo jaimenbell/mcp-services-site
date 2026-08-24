@@ -1,0 +1,38 @@
+# wrangler.toml.example -- Cloudflare Worker config for click-beacon-worker.example.js.
+#
+# NOT USED by any build step in this repo -- Workers deploy is entirely
+# outside this static GitHub Pages site's pipeline. This file exists so
+# deploying scripts/click-beacon-worker.example.js is a copy-and-fill-in
+# step, not a from-scratch wrangler.toml to author.
+#
+# Usage (see scripts/click-beacon-DEPLOY.md for the full walkthrough):
+#   1. Copy this file to a SEPARATE directory outside this repo (or any
+#      scratch directory) as `wrangler.toml`, next to a copy of
+#      click-beacon-worker.example.js renamed to the `main` value below.
+#   2. Fill in the KV namespace `id` after running `wrangler kv namespace
+#      create CLICKS` (step 2 in the runbook).
+#   3. `wrangler deploy` from that directory.
+#
+# name: the Worker's name -- becomes part of its *.workers.dev URL
+#   (https://click-beacon.<your-subdomain>.workers.dev).
+name = "click-beacon"
+
+# main: path to the worker script, relative to this file's location once you
+# copy click-beacon-worker.example.js alongside it.
+main = "click-beacon-worker.js"
+
+# compatibility_date: pin to the date you first deploy this -- Workers uses
+# it to lock in runtime behavior so a later Cloudflare platform change can't
+# silently alter this worker. Update it only if you deliberately opt into
+# newer runtime behavior later.
+compatibility_date = "2026-08-23"
+
+# KV binding -- must be named CLICKS to match `env.CLICKS` in
+# click-beacon-worker.example.js. Get the `id` from:
+#   wrangler kv namespace create CLICKS
+# which prints a line like:
+#   { binding = "CLICKS", id = "abcd1234..." }
+# Paste that whole line's `id` value below.
+[[kv_namespaces]]
+binding = "CLICKS"
+id = "REPLACE_WITH_KV_NAMESPACE_ID_FROM_WRANGLER_OUTPUT"
