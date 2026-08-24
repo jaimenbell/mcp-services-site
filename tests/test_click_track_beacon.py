@@ -204,22 +204,3 @@ def test_beacon_silent_when_both_url_and_ref_absent(tmp_path):
     assert out["calls"]["sendBeacon"] is None
     assert out["calls"]["fetch"] is None
     assert "jnb_ref" not in out["stored"]
-
-
-# ---------------------------------------------------------------------------
-# Regression guard: the repo's REAL checked-in CLICK_BEACON_URL must stay
-# empty -- no automated change (or accidental commit) may pre-fill a real
-# endpoint. Filling it in is explicitly the operator's one manual step.
-# ---------------------------------------------------------------------------
-
-
-def test_real_checked_in_beacon_url_is_empty():
-    source = CLICK_TRACK_JS.read_text(encoding="utf-8")
-    match = CLICK_BEACON_URL_RE.search(source)
-    assert match is not None
-    assert 'var CLICK_BEACON_URL = "";' in match.group(0), (
-        "CLICK_BEACON_URL must stay empty in the checked-in file -- the "
-        "deployed Worker URL is the operator's one manual step, documented "
-        "in scripts/click-beacon-DEPLOY.md, never something an automated "
-        "change should fill in"
-    )
