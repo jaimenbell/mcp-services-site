@@ -1046,6 +1046,68 @@ def test_manifest_without_source_timeout_defaults_to_none(tmp_path):
     assert entries["mcp-factory"].source_timeout is None
 
 
+def test_manifest_historical_pin_loads_and_validates(tmp_path):
+    """historical_pin loads as a bool; a non-bool value fails the whole load
+    loudly (same philosophy as visibility/source_timeout)."""
+    good = tmp_path / "good.toml"
+    good.write_text(
+        '["15b5460"]\n'
+        'value = 264\n'
+        'source_cmd = "python -m pytest -q"\n'
+        'historical_pin = true\n',
+        encoding="utf-8",
+    )
+    entries = cpn.load_manifest_entries(good)
+    assert entries["15b5460"].historical_pin is True
+
+    bad = tmp_path / "bad.toml"
+    bad.write_text(
+        '["15b5460"]\n'
+        'value = 264\n'
+        'source_cmd = "python -m pytest -q"\n'
+        'historical_pin = "true"\n',
+        encoding="utf-8",
+    )
+    with pytest.raises(cpn.ManifestValidationError) as exc:
+        cpn.load_manifest_entries(bad)
+    assert "historical_pin" in str(exc.value)
+
+
+def test_manifest_without_historical_pin_defaults_to_false(tmp_path):
+    """An entry that omits historical_pin must load as False -- no
+    behaviour change for every entry that doesn't set it."""
+    good = tmp_path / "good.toml"
+    good.write_text(
+        '["mcp-factory"]\n'
+        'value = 222\n'
+        'source_cmd = "python -m pytest -q"\n',
+        encoding="utf-8",
+    )
+    entries = cpn.load_manifest_entries(good)
+    assert entries["mcp-factory"].historical_pin is False
+
+
+def test_manifest_historical_pin_with_public_identity_raises(tmp_path):
+    """An entry cannot both be a frozen historical pin (deliberately never
+    live-checked) AND carry a source_repo_public identity (which is what
+    tells live_verify_manifest an entry IS meant to be live-checked) --
+    those two claims contradict each other, so the load must fail closed
+    rather than silently pick one."""
+    bad = tmp_path / "bad.toml"
+    bad.write_text(
+        '["15b5460"]\n'
+        'value = 264\n'
+        'source_cmd = "python -m pytest -q"\n'
+        'source_repo_public = "jaimenbell/mcp-security-scanner"\n'
+        'historical_pin = true\n',
+        encoding="utf-8",
+    )
+    with pytest.raises(cpn.ManifestValidationError) as exc:
+        cpn.load_manifest_entries(bad)
+    assert "historical_pin" in str(exc.value)
+    assert "source_repo_public" in str(exc.value)
+
+
 def test_live_check_source_timeout_overrides_global_default(tmp_path):
     """A manifest entry may carry a source_timeout that overrides the global
     default passed to live_verify_manifest -- a suite that would time out
@@ -1523,18 +1585,49 @@ def test_real_tracked_manifest_has_no_windows_paths():
     )
 
 
+def _assert_entry_carries_identity_or_historical_pin(key: str, entry: "cpn.ManifestEntry") -> None:
+    """Shared invariant for the real tracked manifest: any entry with a
+    source_cmd must be EITHER meant to be live-checked (source_repo_public
+    set) OR an explicitly declared frozen historical pin (historical_pin =
+    true) -- never neither. Factored out so the real-manifest test and the
+    synthetic positive/negative controls below exercise the exact same
+    check, not two copies that can drift apart."""
+    assert entry.source_repo is None, (
+        f"{key}: tracked manifest must not carry source_repo (found "
+        f"{entry.source_repo!r}) -- only proof-manifest.local.toml should"
+    )
+    if entry.source_cmd:
+        assert entry.source_repo_public or entry.historical_pin, (
+            f"{key}: has a source_cmd (meant to be live-checked) but no "
+            f"source_repo_public identity and is not marked historical_pin "
+            f"for the tracked manifest"
+        )
+
+
 def test_real_tracked_manifest_entries_carry_public_identity_not_local_path():
     entries = cpn.load_manifest_entries(cpn.MANIFEST_PATH, local_overrides=None)
     for key, entry in entries.items():
-        assert entry.source_repo is None, (
-            f"{key}: tracked manifest must not carry source_repo (found "
-            f"{entry.source_repo!r}) -- only proof-manifest.local.toml should"
-        )
-        if entry.source_cmd:
-            assert entry.source_repo_public, (
-                f"{key}: has a source_cmd (meant to be live-checked) but no "
-                f"source_repo_public identity for the tracked manifest"
-            )
+        _assert_entry_carries_identity_or_historical_pin(key, entry)
+
+
+def test_manifest_entry_with_source_cmd_and_no_identity_or_pin_still_fails():
+    """Positive control: an entry that is neither live-checked
+    (source_repo_public) nor a declared historical pin must still FAIL the
+    tightened real-tracked-manifest check -- proves the check can discriminate,
+    not just pass."""
+    entry = cpn.ManifestEntry(key="fake", value=1, source_cmd="pytest -q")
+    with pytest.raises(AssertionError):
+        _assert_entry_carries_identity_or_historical_pin("fake", entry)
+
+
+def test_manifest_entry_with_historical_pin_and_no_public_identity_stays_silent():
+    """Negative control (silent side of the same check): a declared
+    historical pin with no source_repo_public must NOT fail -- this is the
+    exact shape of the real ["15b5460"] entry."""
+    entry = cpn.ManifestEntry(
+        key="fake", value=1, source_cmd="pytest -q", historical_pin=True,
+    )
+    _assert_entry_carries_identity_or_historical_pin("fake", entry)  # no raise
 
 
 def test_real_gitignore_excludes_local_override_but_not_example():

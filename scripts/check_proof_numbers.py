@@ -695,6 +695,21 @@ class ManifestEntry:
     entry only. Unlike source_repo/source_env it is not a local filesystem
     path, so it needs no path-hardening overlay treatment -- it is set
     directly on the tracked manifest.
+
+    `historical_pin` is an OPTIONAL boolean (default False) marking an entry
+    as a deliberately frozen citation of a past commit rather than a
+    live-checkable moving HEAD -- e.g. ["15b5460"], which exists purely so a
+    historical article's citation (tied to that literal commit-hash token)
+    resolves against the count AS IT WAS at that pinned commit, not the
+    current canonical count. Such an entry carries a source_cmd (documenting
+    how the frozen value WAS originally verified) but must never carry
+    source_repo_public (that would tell live_verify_manifest it's meant to
+    be checked against a moving repo, which contradicts being pinned) --
+    load_manifest_entries rejects that combination outright. It exists so
+    the tracked-manifest hardening test can tell "meant to be live-checked
+    but the public identity is missing" (a real defect) apart from
+    "deliberately exempt from live-checking by design" (this), instead of
+    the exemption living only as prose in a note field.
     """
 
     def __init__(self, key: str, value: int, source_cmd: str | None = None,
@@ -702,7 +717,8 @@ class ManifestEntry:
                  source_env: dict[str, str] | None = None,
                  source_repo_public: str | None = None,
                  visibility: str = "public",
-                 source_timeout: int | None = None):
+                 source_timeout: int | None = None,
+                 historical_pin: bool = False):
         self.key = key
         self.value = value
         self.source_cmd = source_cmd
@@ -711,6 +727,7 @@ class ManifestEntry:
         self.source_repo_public = source_repo_public
         self.visibility = visibility
         self.source_timeout = source_timeout
+        self.historical_pin = historical_pin
 
 
 def load_local_overrides(path: Path = LOCAL_MANIFEST_PATH) -> dict[str, dict]:
@@ -822,6 +839,20 @@ def load_manifest_entries(
                     f"must be a positive integer (seconds); got: "
                     f"{source_timeout!r}"
                 )
+        historical_pin = entry.get("historical_pin", False)
+        if not isinstance(historical_pin, bool):
+            raise ManifestValidationError(
+                f'proof-manifest.toml: entry ["{key}"]\'s "historical_pin" '
+                f"must be a boolean; got: {historical_pin!r}"
+            )
+        source_repo_public = entry.get("source_repo_public")
+        if historical_pin and source_repo_public:
+            raise ManifestValidationError(
+                f'proof-manifest.toml: entry ["{key}"] sets both '
+                f'"historical_pin" = true and "source_repo_public" -- an '
+                f"entry cannot be both a frozen historical pin (never "
+                f"live-checked) and a live-checked public identity"
+            )
         source_repo = entry.get("source_repo")
         # Local overlay (untracked proof-manifest.local.toml) wins over
         # whatever the tracked manifest carries -- on the real repo the
@@ -841,9 +872,10 @@ def load_manifest_entries(
             source_cmd=entry.get("source_cmd"),
             source_repo=source_repo,
             source_env=source_env,
-            source_repo_public=entry.get("source_repo_public"),
+            source_repo_public=source_repo_public,
             visibility=visibility,
             source_timeout=source_timeout,
+            historical_pin=historical_pin,
         )
     return manifest
 

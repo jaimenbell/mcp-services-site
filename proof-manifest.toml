@@ -173,6 +173,7 @@ source_cmd = "python -m pytest -q --tb=no (historical -- pinned to commit 15b546
 tail_line = "264 passed, 7 skipped (271 total) -- the exact count at the commit mcp-security-scanner was pinned to when the 2026-07-23 13-repo ecosystem scan ran"
 verified_utc = "2026-07-23T15:25:00+00:00"
 status = "verified"
+historical_pin = true
 note = "Historical, deliberately untracked-by-live-check sibling of the ['mcp-security-scanner'] entry above: mcp-security-scanner's suite has since grown to 762 passing / 771 total @ 915d1a3 (see that entry), but articles/mcp-ecosystem-scan-2026-07.html correctly cites the count AS IT WAS at the pinned scan commit 15b5460, not the current canonical count -- so this entry exists purely so that historical citation (associated by the literal commit-hash token '15b5460' appearing next to it, never the bare repo name) resolves to a value that matches instead of tripping the by-value-fallback FAIL path. No source_repo on purpose: this pins a specific past commit, not the live moving HEAD, so it is intentionally skipped by live_verify_manifest (which only live-checks entries carrying a source_repo). Cherry-picked from the original 2026-07-23 ecoscan-article branch (which also carried a now-superseded 278/285 resync of the LIVE mcp-security-scanner entry — that part was deliberately NOT brought over, since main's canonical number had already moved on to 762/771 by the time this article was cherry-picked in, 2026-08-10)."
 
 ["day-trader"]
