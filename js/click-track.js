@@ -54,13 +54,12 @@ var CLICK_BEACON_URL = ""; // e.g. https://click-beacon.<you>.workers.dev -- set
     // on the floor. Silence here is what let this read as "attribution is
     // wired" for weeks -- an instrument that looks live and sends nowhere is
     // worse than no instrument, because it stops anyone from looking.
+    // Deliberately says nothing about the visitor, their ref, or this repo's
+    // internals -- a prospect is exactly who arrives on a ?ref= link, and this
+    // is a public commercial site. The audience for this line is whoever next
+    // reads the source, and the pointer for them lives in the header comment.
     if (window.console && console.warn) {
-      console.warn(
-        "[click-track] INERT: received ?ref=" + ref + " but CLICK_BEACON_URL " +
-        "is empty, so this visit was NOT attributed and nothing was sent. " +
-        "Deploy scripts/click-beacon-worker.example.js and set CLICK_BEACON_URL. " +
-        "GoatCounter pageviews do NOT cover this -- they carry no ?ref."
-      );
+      console.warn("[click-track] link attribution is not configured; nothing was sent.");
     }
     return;
   }
