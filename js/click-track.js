@@ -11,12 +11,30 @@
    docs/INSTRUMENTATION-SETUP.md). GoatCounter gives PAGEVIEWS. It does NOT
    give per-prospect `?ref=` attribution — that is what this file would do if
    it had an endpoint, and the two are not substitutes.
+   (2026-08-28: that last sentence is itself corrected below.)
+
+   CORRECTION (2026-08-28): "the two are not substitutes" above is now
+   FALSE as stated. Operator end-to-end verification (2026-08-28, ~10:31
+   local) showed GoatCounter's referrer stats DO capture a `?ref=` link:
+   with no real Referer header (the normal case for a click from an email
+   client), count.js falls back to the raw query string, so the ref token
+   surfaces under the Top Referrers widget. sales-reps now ships
+   sales_reps/linkstats.py (commits 0044157 + 9c9dc29), which reads
+   GoatCounter's /api/v0/stats/toprefs and joins referrer names against
+   linktrack.resolve_ref for per-prospect attribution. CAVEAT: that
+   verification used a ref-ONLY URL; production links carry BOTH campaign=
+   and ref=, and how GoatCounter buckets the two-param shape is UNVERIFIED
+   (linkstats.py ships a query-string parser fallback covering both shapes
+   -- see its docstring). The Cloudflare Worker path below is therefore
+   optional redundancy now, not the only route to attribution.
 
    Still true: this is static GitHub Pages with no server-side logs, and
    GitHub's repo Traffic API only covers github.com views of the REPO page,
    not this custom-domain Pages site, so it observes nothing here either.
-   A `?ref=` tag on a URL is therefore inert on arrival — nothing records the
-   attribution — until CLICK_BEACON_URL below points at a real endpoint.
+   No longer true (corrected 2026-08-28): "a `?ref=` tag is inert on
+   arrival". GoatCounter records the hit -- see the CORRECTION above. What
+   THIS FILE does is still nothing, until CLICK_BEACON_URL below points at
+   a real endpoint.
 
    Cheapest real fix once you're ready to wire it: a free Cloudflare Worker
    (Workers free tier, no card required for this volume) that accepts a POST
