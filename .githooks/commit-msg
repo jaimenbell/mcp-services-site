@@ -1,0 +1,71 @@
+#!/bin/sh
+# commit-msg: reject the Claude-Session: trailer, then chain.
+#
+# WHAT IT BLOCKS
+#   A line beginning with  Claude-Session:  in the commit message.
+#
+# WHAT IT DOES NOT BLOCK
+#   Co-Authored-By:  -- explicitly fine, and tested as a control.
+#   Any mention of the trailer in prose, PROVIDED it is written inside
+#   backticks. The match is anchored to start-of-line and case-sensitive, so
+#   `Claude-Session:` in backticks cannot match. That convention is the whole
+#   false-positive defense, and it matters because the commits of the arc that
+#   created this hook discuss the trailer by name.
+#
+# WHY A HOOK AND NOT A RULE
+#   The ban is a CLAUDE.md rule and it worked: 568 trailers -> 0 across five
+#   weeks and ~1,030 commits. It then regressed to 21 commits across 6 repos in
+#   two days when a system-reminder began injecting the opposite instruction. A
+#   rule that can be overridden by whatever text arrives in the prompt needs a
+#   mechanism underneath it that fires whether or not anyone remembers the rule.
+#
+# WHY IT LOGS
+#   A check with no firing record cannot be distinguished from a check that
+#   never fires. If trailers stop appearing, that is equally consistent with
+#   "the hook works" and "the instruction stopped being injected" -- so a zero
+#   rejection count means UNPROVEN, not success. The log is the discriminator.
+#
+# BLIND SPOTS (this hook cannot see these)
+#   - `git rebase` reusing an existing message does not run commit-msg.
+#   - `git commit --no-verify` bypasses it entirely. Never use it to get past
+#     this hook; if the hook misfires, fix the hook.
+
+MSG_FILE="$1"
+[ -n "$MSG_FILE" ] && [ -f "$MSG_FILE" ] || exit 0
+
+# Strip comment lines first: git's cleanup pass relative to this hook is not
+# guaranteed, so a commented-out template line must not trip the check.
+offending=$(grep -v '^#' -- "$MSG_FILE" | grep -m1 '^Claude-Session:')
+
+if [ -n "$offending" ]; then
+    LOG_DIR=${CLAUDE_GITHOOKS_LOG_DIR:-C:/Users/jaime/.claude/githooks}
+    if [ -d "$LOG_DIR" ]; then
+        printf '%s\t%s\t%s\n' \
+            "$(date '+%Y-%m-%dT%H:%M:%S%z')" \
+            "$(git rev-parse --show-toplevel 2>/dev/null || echo '?')" \
+            "$offending" >> "$LOG_DIR/rejections.log" 2>/dev/null
+    fi
+
+    echo "commit-msg: REJECTED -- the commit message carries a Claude-Session: trailer." >&2
+    echo "" >&2
+    echo "  offending line: $offending" >&2
+    echo "" >&2
+    echo "  Fix: delete that line from the message and commit again." >&2
+    echo "  Co-Authored-By: is fine and is not affected." >&2
+    echo "  To mention the trailer in prose, wrap it in backticks." >&2
+    echo "" >&2
+    echo "  Do NOT use --no-verify. If this hook is wrong, fix the hook:" >&2
+    echo "  C:/Users/jaime/.claude/githooks/commit-msg" >&2
+    exit 1
+fi
+
+# ---- chain to the repository's own commit-msg hook, if it has one ----
+# See _chain for why this uses --git-common-dir and not --git-path.
+common=$(git rev-parse --git-common-dir 2>/dev/null) || exit 0
+[ -n "$common" ] || exit 0
+local_hook="$common/hooks/commit-msg"
+[ -f "$local_hook" ] || exit 0
+self_dir=$(CDPATH= cd -- "$(dirname -- "$0")" 2>/dev/null && pwd -P) || exit 0
+hook_dir=$(CDPATH= cd -- "$(dirname -- "$local_hook")" 2>/dev/null && pwd -P) || exit 0
+[ "$self_dir" = "$hook_dir" ] && exit 0
+exec "$local_hook" "$@"
