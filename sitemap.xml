@@ -133,6 +133,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://jaimenbell.dev/articles/cve-2026-85654-scanner-that-misses.html</loc>
+    <lastmod>2026-09-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://jaimenbell.dev/articles/mcp-integration-cost.html</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>monthly</changefreq>
