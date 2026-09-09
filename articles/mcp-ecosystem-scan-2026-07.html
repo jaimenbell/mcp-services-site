@@ -251,6 +251,18 @@
         own false positives is more trustworthy than one that reports a scarier number nobody checked.
       </p>
 
+      <p>
+        <strong>What happened after this scan, and it is worse than this page.</strong> On
+        2026-07-29 the same scanner was measured blind against five pinned third-party MCP servers,
+        with ground truth frozen to disk by independent audits before the first scan ran. Pooled
+        recall came out at <strong>0 of 69</strong>. Separately, outside that frozen corpus, one
+        detector flagged a real code injection defect in an AWS MCP server, now CVE-2026-85654.
+        Both results are written up together in
+        <a href="cve-2026-85654-scanner-that-misses.html">I found a CVE with a scanner that misses
+        almost everything</a>, which leads with the recall number, because the recall number is the
+        one that should change how you read this page.
+      </p>
+
       <p style="margin-top:32px">
         <a class="btn btn-primary" href="https://cal.com/jaimen-bell-ioj5i8">Book a scoping call</a>
         &nbsp;<a class="btn btn-ghost" href="../index.html#cases">← All case studies</a>
