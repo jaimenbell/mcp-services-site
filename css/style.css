@@ -153,7 +153,11 @@ footer.site a { color: var(--muted); }
 /* ---- case study article pages ---- */
 article.cs { max-width: 760px; }
 article.cs .back { font-size: 0.9rem; color: var(--muted); }
-article.cs h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); line-height: var(--lh-display); letter-spacing: -0.02em; margin: 18px 0 6px; }
+article.cs h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); line-height: var(--lh-display); letter-spacing: -0.02em;
+  /* 6px worked only because the old 1.65 leading padded the gap below the last
+     headline line. Tightening to 1.08 removed that, leaving .meta cramped
+     against the title -- so the space it was relying on is now explicit. */
+  margin: 18px 0 14px; }
 article.cs .meta { color: var(--faint); font-family: var(--mono); font-size: 0.85rem; margin-bottom: 28px; }
 article.cs h2 { font-size: clamp(1.25rem, 2.2vw, 1.5rem); line-height: var(--lh-heading); letter-spacing: -0.01em; margin: 36px 0 10px; border: 0; padding: 0; }
 article.cs p, article.cs li { color: var(--muted); }
