@@ -54,6 +54,29 @@
 
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
+
+  /* ---- accessibility utilities ---- */
+  /* Standard clip-rect pattern -- stays in the a11y tree, readable by screen
+     readers, but takes no visual space and isn't tabbable. Never display:none
+     / visibility:hidden here, that hides it from assistive tech too. */
+  .visually-hidden {
+    position: absolute !important;
+    width: 1px !important; height: 1px !important;
+    padding: 0 !important; margin: -1px !important;
+    overflow: hidden !important; clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important; border: 0 !important;
+  }
+  /* Skip-to-content link (WCAG 2.4.1). Off-screen until focused. z-index must
+     clear every layered element on this page -- sticky nav is z-index:50
+     (see NAV rules below) -- so this sits well above it. */
+  .skip-link {
+    position: absolute; left: -9999px; top: 0; z-index: 999;
+    background: var(--accent); color: var(--bg);
+    padding: 12px 20px; border-radius: 0 0 8px 0;
+    font-weight: 700; font-size: 0.95rem;
+  }
+  .skip-link:focus, .skip-link:focus-visible { left: 0; }
+
   body {
     margin: 0;
     background: var(--bg);
@@ -351,6 +374,38 @@
     .split.right .rail { order: -1; }
   }
   .rail .sec-lede { margin-top: 4px; }
+
+  /* #process (WCAG 1.3.1 fix, 2026-09-09): the <h2> in .rail was moved
+     before .timeline's <h3>s in DOM order for correct heading hierarchy.
+     .split.right's implicit grid auto-placement follows DOM order, so
+     without this the swap would ALSO flip the desktop visual layout (.rail
+     into the wide 1.18fr column, .steps-col into the narrow 0.82fr sticky
+     one) -- pinning each side to its original column keeps desktop
+     pixel-identical to before the DOM swap.
+     grid-row:1 on BOTH is required too, not just grid-column: grid
+     auto-placement uses sparse packing, which does not backtrack to an
+     earlier row once the placement cursor has advanced past it. .rail
+     (now DOM-first) auto-places into row 1; without an explicit row,
+     .steps-col (column 1 fixed, row auto) then gets pushed into a NEW row
+     2 instead of sharing row 1, stacking the two columns vertically
+     instead of side-by-side -- confirmed via computed gridTemplateRows
+     (returned two row tracks instead of one) before this line was added.
+     Verified pixel-identical via before/after screenshot + getBoundingClientRect
+     diff at 1440px after adding grid-row. */
+  #process .split.right > .rail { grid-column: 2; grid-row: 1; }
+  #process .split.right > .steps-col { grid-column: 1; grid-row: 1; }
+  @media (max-width: 920px) {
+    /* Single-column stack at this breakpoint (see the shared .split rule
+       above) -- without resetting these, the leftover grid-column/row
+       would open a phantom second column/row next to the intended stack
+       instead of letting .rail sit above .steps-col. order:-1 above
+       already keeps .rail first here; after the DOM swap it's now
+       redundant for #process specifically (rail is already first) but
+       still required for #problem's unchanged .split.right, so it stays
+       as-is. */
+    #process .split.right > .rail,
+    #process .split.right > .steps-col { grid-column: 1; grid-row: auto; }
+  }
 
   /* ---------- PROBLEM ---------- */
   .pain-list { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 0; padding: 0; list-style: none; }
@@ -689,6 +744,7 @@
 <script data-goatcounter="https://jaimenbell.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 <canvas id="bgfx" aria-hidden="true"></canvas>
 
 <!-- NAV -->
@@ -716,10 +772,11 @@
   </div>
 </nav>
 
+<main id="main">
 <!-- HERO -->
 <header id="top">
-  <span class="deco" style="top:120px; left:max(18px, calc(50% - 760px));">{<br>&nbsp;&nbsp;"<span class="k">tool</span>": "<span class="s">refund</span>",<br>&nbsp;&nbsp;"<span class="k">scope</span>": "<span class="s">billing:write</span>",<br>&nbsp;&nbsp;"<span class="k">retry</span>": <span class="n">true</span><br>}</span>
-  <span class="deco" style="bottom:60px; right:max(18px, calc(50% - 740px));">$ <span class="s">mcp</span> serve --pin<br><span class="n">✓</span> deps locked<br><span class="n">✓</span> api-version pinned</span>
+  <span class="deco" aria-hidden="true" style="top:120px; left:max(18px, calc(50% - 760px));">{<br>&nbsp;&nbsp;"<span class="k">tool</span>": "<span class="s">refund</span>",<br>&nbsp;&nbsp;"<span class="k">scope</span>": "<span class="s">billing:write</span>",<br>&nbsp;&nbsp;"<span class="k">retry</span>": <span class="n">true</span><br>}</span>
+  <span class="deco" aria-hidden="true" style="bottom:60px; right:max(18px, calc(50% - 740px));">$ <span class="s">mcp</span> serve --pin<br><span class="n">✓</span> deps locked<br><span class="n">✓</span> api-version pinned</span>
   <div class="wrap">
     <div class="hero-grid">
       <div class="hero-copy">
@@ -806,7 +863,7 @@
 
 <!-- PROBLEM -->
 <section id="problem" class="band band--dark">
-  <span class="deco" style="top:90px; right:max(18px, calc(50% - 770px));">try:<br>&nbsp;&nbsp;<span class="s">refund</span>(order)<br>except:<br>&nbsp;&nbsp;<span class="k">crash</span> 💥</span>
+  <span class="deco" aria-hidden="true" style="top:90px; right:max(18px, calc(50% - 770px));">try:<br>&nbsp;&nbsp;<span class="s">refund</span>(order)<br>except:<br>&nbsp;&nbsp;<span class="k">crash</span> 💥</span>
   <div class="wrap">
     <div class="split right">
       <div>
@@ -929,7 +986,7 @@
 
 <!-- PROOF -->
 <section id="proof" class="band band--dark">
-  <span class="deco" style="bottom:80px; left:max(18px, calc(50% - 770px));"><span class="n">✓</span> 348 passing<!-- mcp-factory --><br><span class="n">✓</span> 97 tests<!-- github-mcp --><br><span class="n">✓</span> 139 tests<!-- desktop-mcp --></span>
+  <span class="deco" aria-hidden="true" style="bottom:80px; left:max(18px, calc(50% - 770px));"><span class="n">✓</span> 348 passing<!-- mcp-factory --><br><span class="n">✓</span> 97 tests<!-- github-mcp --><br><span class="n">✓</span> 139 tests<!-- desktop-mcp --></span>
   <div class="wrap">
     <div class="split left">
       <div class="rail reveal">
@@ -1207,10 +1264,25 @@
 
 <!-- PROCESS -->
 <section id="process">
-  <span class="deco" style="top:120px; right:max(18px, calc(50% - 760px));"><span class="k">scope</span> →<br><span class="k">build</span> →<br><span class="k">harden</span> →<br><span class="k">handoff</span></span>
+  <span class="deco" aria-hidden="true" style="top:120px; right:max(18px, calc(50% - 760px));"><span class="k">scope</span> →<br><span class="k">build</span> →<br><span class="k">harden</span> →<br><span class="k">handoff</span></span>
   <div class="wrap">
     <div class="split right">
-      <div>
+      <!-- DOM order intentionally swapped vs. the visual/grid order: .rail's
+           <h2> must precede the .timeline's <h3>s in source order (WCAG
+           1.3.1 heading hierarchy). Desktop visual position is restored via
+           the explicit #process grid-column rules below -- see css comment
+           there for why DOM order alone would otherwise relocate columns. -->
+      <div class="rail reveal">
+        <div class="sec-tag">The sprint</div>
+        <h2>Day 0 to handoff, without improvising.</h2>
+        <p class="sec-lede">A repeatable flow: <strong>scope → build → harden → handoff.</strong> Fixed scope, an explicit Definition of Done, and a 2-day buffer held for the inevitable auth or edge-case surprise.</p>
+        <div class="clock-note reveal">
+          <span class="ci" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+          <div><b>The clock starts at access.</b> The 1–2 week window is calendar time — dominated by access latency and your team's review availability, not 10 days of coding. A documented API is a focused 1–2 day build; protecting the auth/access long-pole is what keeps the sprint clean.</div>
+        </div>
+      </div>
+
+      <div class="steps-col">
         <div class="timeline reveal">
           <div class="step">
             <div class="node">0</div>
@@ -1247,16 +1319,6 @@
               <p>Setup docs, a live walkthrough, and acceptance against the Definition of Done — then a 14-day support window on delivered scope.</p>
             </div>
           </div>
-        </div>
-      </div>
-
-      <div class="rail reveal">
-        <div class="sec-tag">The sprint</div>
-        <h2>Day 0 to handoff, without improvising.</h2>
-        <p class="sec-lede">A repeatable flow: <strong>scope → build → harden → handoff.</strong> Fixed scope, an explicit Definition of Done, and a 2-day buffer held for the inevitable auth or edge-case surprise.</p>
-        <div class="clock-note reveal">
-          <span class="ci" aria-hidden="true"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
-          <div><b>The clock starts at access.</b> The 1–2 week window is calendar time — dominated by access latency and your team's review availability, not 10 days of coding. A documented API is a focused 1–2 day build; protecting the auth/access long-pole is what keeps the sprint clean.</div>
         </div>
       </div>
     </div>
@@ -1502,6 +1564,7 @@
     </div>
   </div>
 </section>
+</main>
 
 <!-- FOOTER -->
 <footer>

@@ -32,6 +32,14 @@
     table.sb td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text); }
     table.sb tr:last-child td { border-bottom: none; }
     table.sb tr:hover td { background: rgba(255,255,255,0.02); }
+    /* Row headers (<th scope="row"> on .sb-name, added for WCAG 1.3.1) must
+       render exactly like the <td> they replaced. table.sb th above styles
+       *column* headers (uppercase, muted, bold) -- override all of that back
+       to the td look for the row-header cells specifically. */
+    table.sb th.sb-name { background: transparent; color: var(--text); font-weight: 400;
+      font-size: inherit; text-transform: none; letter-spacing: normal; text-align: left; vertical-align: top; }
+    table.sb tr:last-child th.sb-name { border-bottom: none; }
+    table.sb tr:hover th.sb-name { background: rgba(255,255,255,0.02); }
     .sb-name code { font-family: var(--mono); color: var(--accent-2); font-size: 0.86em; }
     .sb-bot { color: var(--faint); font-size: 0.78rem; margin-top: 2px; }
     .sb-badge { display: inline-block; font-family: var(--mono); font-size: 0.72rem; font-weight: 700;
@@ -56,6 +64,7 @@
 <script data-goatcounter="https://jaimenbell.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 
 <header class="site">
   <div class="wrap">
@@ -70,6 +79,7 @@
   </div>
 </header>
 
+<main id="main">
 <section style="border-bottom:0">
   <div class="wrap">
     <article class="cs">
@@ -126,19 +136,20 @@
 
       <div class="sb-wrap">
         <table class="sb">
+          <caption class="visually-hidden">Every tracked signal, its validation status, sample size, out-of-sample window, and notes</caption>
           <thead>
             <tr>
-              <th>Signal</th>
-              <th>Status</th>
-              <th>N</th>
-              <th>OOS / wave progress</th>
-              <th>Notes</th>
+              <th scope="col">Signal</th>
+              <th scope="col">Status</th>
+              <th scope="col">N</th>
+              <th scope="col">OOS / wave progress</th>
+              <th scope="col">Notes</th>
             </tr>
           </thead>
           <tbody>
         <tr>
           <!-- source: internal signal-validation dataset, section "Pre-classified — VALIDATED" -->
-          <td class="sb-name"><code>whale-tracker.confluence</code><div class="sb-bot">whale-tracker</div></td>
+          <th scope="row" class="sb-name"><code>whale-tracker.confluence</code><div class="sb-bot">whale-tracker</div></th>
           <td><span class="sb-badge sb-pending">UNVALIDATED — PENDING REPRO</span><div class="sb-override-tag">live-reverified</div></td>
           <td class="sb-n">127</td>
           <td class="sb-oos">OOS BLOCKED — 44 calendar days of ticker-scoped signal history (2026-04-07→2026-05-21) vs 90-day minimum; embargo (14d) consumes the entire 30% OOS window</td>
@@ -147,7 +158,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Pre-classified — VALIDATED" -->
-          <td class="sb-name"><code>cross-platform-arb.tte_filter</code><div class="sb-bot">cross-platform-arb</div></td>
+          <th scope="row" class="sb-name"><code>cross-platform-arb.tte_filter</code><div class="sb-bot">cross-platform-arb</div></th>
           <td><span class="sb-badge sb-validated">VALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -156,7 +167,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Pre-classified — VALIDATED" -->
-          <td class="sb-name"><code>solana-sniper.safety_bundle</code><div class="sb-bot">solana-sniper-bot</div></td>
+          <th scope="row" class="sb-name"><code>solana-sniper.safety_bundle</code><div class="sb-bot">solana-sniper-bot</div></th>
           <td><span class="sb-badge sb-validated">VALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -165,7 +176,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Pre-classified — ANTI-PREDICTIVE" -->
-          <td class="sb-name"><code>whale-tracker.insider_cluster</code><div class="sb-bot">whale-tracker</div></td>
+          <th scope="row" class="sb-name"><code>whale-tracker.insider_cluster</code><div class="sb-bot">whale-tracker</div></th>
           <td><span class="sb-badge sb-removed">REMOVED (anti-edge)</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -174,7 +185,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Pre-classified — ANTI-PREDICTIVE" -->
-          <td class="sb-name"><code>kronos.edge_pct</code><div class="sb-bot">day-trader</div></td>
+          <th scope="row" class="sb-name"><code>kronos.edge_pct</code><div class="sb-bot">day-trader</div></th>
           <td><span class="sb-badge sb-removed">REMOVED (anti-edge)</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -183,7 +194,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Pre-classified — THIN-EDGE" -->
-          <td class="sb-name"><code>funding-rate-arb.funding_rate</code><div class="sb-bot">funding-rate-arb</div></td>
+          <th scope="row" class="sb-name"><code>funding-rate-arb.funding_rate</code><div class="sb-bot">funding-rate-arb</div></th>
           <td><span class="sb-badge sb-thin">THIN-EDGE (capped)</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">parallel-track — scope decision pending, not a backtest</td>
@@ -192,7 +203,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 1 — Whale-tracker remaining tags + Elections scanner" -->
-          <td class="sb-name"><code>whale-tracker.congressional</code><div class="sb-bot">whale-tracker</div></td>
+          <th scope="row" class="sb-name"><code>whale-tracker.congressional</code><div class="sb-bot">whale-tracker</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -201,7 +212,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 1 — Whale-tracker remaining tags + Elections scanner" -->
-          <td class="sb-name"><code>whale-tracker.institutional</code><div class="sb-bot">whale-tracker</div></td>
+          <th scope="row" class="sb-name"><code>whale-tracker.institutional</code><div class="sb-bot">whale-tracker</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -210,7 +221,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 1 — Whale-tracker remaining tags + Elections scanner" -->
-          <td class="sb-name"><code>whale-tracker.options_flow</code><div class="sb-bot">whale-tracker</div></td>
+          <th scope="row" class="sb-name"><code>whale-tracker.options_flow</code><div class="sb-bot">whale-tracker</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -219,7 +230,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 1 — Whale-tracker remaining tags + Elections scanner" -->
-          <td class="sb-name"><code>whale-tracker.kronos_edge_pct</code><div class="sb-bot">whale-tracker</div></td>
+          <th scope="row" class="sb-name"><code>whale-tracker.kronos_edge_pct</code><div class="sb-bot">whale-tracker</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -228,7 +239,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 1 — Whale-tracker remaining tags + Elections scanner" -->
-          <td class="sb-name"><code>prediction-trader.elections</code><div class="sb-bot">prediction_trader</div></td>
+          <th scope="row" class="sb-name"><code>prediction-trader.elections</code><div class="sb-bot">prediction_trader</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -237,7 +248,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 2 — Options-bot TA core + AI/Tech scanner" -->
-          <td class="sb-name"><code>options-bot.connors_rsi</code><div class="sb-bot">options-bot</div></td>
+          <th scope="row" class="sb-name"><code>options-bot.connors_rsi</code><div class="sb-bot">options-bot</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -246,7 +257,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 2 — Options-bot TA core + AI/Tech scanner" -->
-          <td class="sb-name"><code>options-bot.rsi_14</code><div class="sb-bot">options-bot</div></td>
+          <th scope="row" class="sb-name"><code>options-bot.rsi_14</code><div class="sb-bot">options-bot</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -255,7 +266,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 2 — Options-bot TA core + AI/Tech scanner" -->
-          <td class="sb-name"><code>options-bot.macd_cross</code><div class="sb-bot">options-bot</div></td>
+          <th scope="row" class="sb-name"><code>options-bot.macd_cross</code><div class="sb-bot">options-bot</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -264,7 +275,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 2 — Options-bot TA core + AI/Tech scanner" -->
-          <td class="sb-name"><code>options-bot.bb_squeeze_breakout</code><div class="sb-bot">options-bot</div></td>
+          <th scope="row" class="sb-name"><code>options-bot.bb_squeeze_breakout</code><div class="sb-bot">options-bot</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -273,7 +284,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 2 — Options-bot TA core + AI/Tech scanner" -->
-          <td class="sb-name"><code>options-bot.volume_spike</code><div class="sb-bot">options-bot</div></td>
+          <th scope="row" class="sb-name"><code>options-bot.volume_spike</code><div class="sb-bot">options-bot</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -282,7 +293,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 2 — Options-bot TA core + AI/Tech scanner" -->
-          <td class="sb-name"><code>prediction-trader.ai_tech</code><div class="sb-bot">prediction_trader</div></td>
+          <th scope="row" class="sb-name"><code>prediction-trader.ai_tech</code><div class="sb-bot">prediction_trader</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -291,7 +302,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 3 — Options-bot vol/flow + Weather scanner" -->
-          <td class="sb-name"><code>options-bot.iv_rank</code><div class="sb-bot">options-bot</div></td>
+          <th scope="row" class="sb-name"><code>options-bot.iv_rank</code><div class="sb-bot">options-bot</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -300,7 +311,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 3 — Options-bot vol/flow + Weather scanner" -->
-          <td class="sb-name"><code>options-bot.vix_rank</code><div class="sb-bot">options-bot</div></td>
+          <th scope="row" class="sb-name"><code>options-bot.vix_rank</code><div class="sb-bot">options-bot</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -309,7 +320,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 3 — Options-bot vol/flow + Weather scanner" -->
-          <td class="sb-name"><code>options-bot.voi_sweep</code><div class="sb-bot">options-bot</div></td>
+          <th scope="row" class="sb-name"><code>options-bot.voi_sweep</code><div class="sb-bot">options-bot</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -318,7 +329,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 3 — Options-bot vol/flow + Weather scanner" -->
-          <td class="sb-name"><code>options-bot.put_call_iv_skew</code><div class="sb-bot">options-bot</div></td>
+          <th scope="row" class="sb-name"><code>options-bot.put_call_iv_skew</code><div class="sb-bot">options-bot</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -327,7 +338,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 3 — Options-bot vol/flow + Weather scanner" -->
-          <td class="sb-name"><code>options-bot.earnings_0_7d_bonus</code><div class="sb-bot">options-bot</div></td>
+          <th scope="row" class="sb-name"><code>options-bot.earnings_0_7d_bonus</code><div class="sb-bot">options-bot</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -336,7 +347,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 3 — Options-bot vol/flow + Weather scanner" -->
-          <td class="sb-name"><code>prediction-trader.weather</code><div class="sb-bot">prediction_trader</div></td>
+          <th scope="row" class="sb-name"><code>prediction-trader.weather</code><div class="sb-bot">prediction_trader</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -345,7 +356,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 4 — Grid-trading regime classifier + Econ scanner" -->
-          <td class="sb-name"><code>grid-trading.adx</code><div class="sb-bot">grid-trading-bot</div></td>
+          <th scope="row" class="sb-name"><code>grid-trading.adx</code><div class="sb-bot">grid-trading-bot</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -354,7 +365,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 4 — Grid-trading regime classifier + Econ scanner" -->
-          <td class="sb-name"><code>grid-trading.bb_width</code><div class="sb-bot">grid-trading-bot</div></td>
+          <th scope="row" class="sb-name"><code>grid-trading.bb_width</code><div class="sb-bot">grid-trading-bot</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -363,7 +374,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 4 — Grid-trading regime classifier + Econ scanner" -->
-          <td class="sb-name"><code>grid-trading.grid_score</code><div class="sb-bot">grid-trading-bot</div></td>
+          <th scope="row" class="sb-name"><code>grid-trading.grid_score</code><div class="sb-bot">grid-trading-bot</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -372,7 +383,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 4 — Grid-trading regime classifier + Econ scanner" -->
-          <td class="sb-name"><code>prediction-trader.econ</code><div class="sb-bot">prediction_trader</div></td>
+          <th scope="row" class="sb-name"><code>prediction-trader.econ</code><div class="sb-bot">prediction_trader</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -381,7 +392,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 5 — Solana-sniper quality stack + MiroFish scanner" -->
-          <td class="sb-name"><code>solana-sniper.m1_momentum</code><div class="sb-bot">solana-sniper-bot</div></td>
+          <th scope="row" class="sb-name"><code>solana-sniper.m1_momentum</code><div class="sb-bot">solana-sniper-bot</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -390,7 +401,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 5 — Solana-sniper quality stack + MiroFish scanner" -->
-          <td class="sb-name"><code>solana-sniper.buy_sell_ratio</code><div class="sb-bot">solana-sniper-bot</div></td>
+          <th scope="row" class="sb-name"><code>solana-sniper.buy_sell_ratio</code><div class="sb-bot">solana-sniper-bot</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -399,7 +410,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 5 — Solana-sniper quality stack + MiroFish scanner" -->
-          <td class="sb-name"><code>solana-sniper.bonding_curve_position</code><div class="sb-bot">solana-sniper-bot</div></td>
+          <th scope="row" class="sb-name"><code>solana-sniper.bonding_curve_position</code><div class="sb-bot">solana-sniper-bot</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -408,7 +419,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 5 — Solana-sniper quality stack + MiroFish scanner" -->
-          <td class="sb-name"><code>solana-sniper.creator_wallet_age_tier</code><div class="sb-bot">solana-sniper-bot</div></td>
+          <th scope="row" class="sb-name"><code>solana-sniper.creator_wallet_age_tier</code><div class="sb-bot">solana-sniper-bot</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -417,7 +428,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 5 — Solana-sniper quality stack + MiroFish scanner" -->
-          <td class="sb-name"><code>solana-sniper.price_dump_penalty</code><div class="sb-bot">solana-sniper-bot</div></td>
+          <th scope="row" class="sb-name"><code>solana-sniper.price_dump_penalty</code><div class="sb-bot">solana-sniper-bot</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -426,7 +437,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 5 — Solana-sniper quality stack + MiroFish scanner" -->
-          <td class="sb-name"><code>solana-sniper.volume_spike_ratio_h1_h24</code><div class="sb-bot">solana-sniper-bot</div></td>
+          <th scope="row" class="sb-name"><code>solana-sniper.volume_spike_ratio_h1_h24</code><div class="sb-bot">solana-sniper-bot</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -435,7 +446,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 5 — Solana-sniper quality stack + MiroFish scanner" -->
-          <td class="sb-name"><code>prediction-trader.mirofish</code><div class="sb-bot">prediction_trader</div></td>
+          <th scope="row" class="sb-name"><code>prediction-trader.mirofish</code><div class="sb-bot">prediction_trader</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -444,7 +455,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 6 — Cross-platform-arb thesis + NewsSentiment scanner" -->
-          <td class="sb-name"><code>cross-platform-arb.polymarket_leads_kalshi</code><div class="sb-bot">cross-platform-arb</div></td>
+          <th scope="row" class="sb-name"><code>cross-platform-arb.polymarket_leads_kalshi</code><div class="sb-bot">cross-platform-arb</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -453,7 +464,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 6 — Cross-platform-arb thesis + NewsSentiment scanner" -->
-          <td class="sb-name"><code>cross-platform-arb.manifold_agreement_boost</code><div class="sb-bot">cross-platform-arb</div></td>
+          <th scope="row" class="sb-name"><code>cross-platform-arb.manifold_agreement_boost</code><div class="sb-bot">cross-platform-arb</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -462,7 +473,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 6 — Cross-platform-arb thesis + NewsSentiment scanner" -->
-          <td class="sb-name"><code>cross-platform-arb.polymarket_volume_confidence_tiers</code><div class="sb-bot">cross-platform-arb</div></td>
+          <th scope="row" class="sb-name"><code>cross-platform-arb.polymarket_volume_confidence_tiers</code><div class="sb-bot">cross-platform-arb</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -471,7 +482,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 6 — Cross-platform-arb thesis + NewsSentiment scanner" -->
-          <td class="sb-name"><code>cross-platform-arb.fuzzy_match_confidence</code><div class="sb-bot">cross-platform-arb</div></td>
+          <th scope="row" class="sb-name"><code>cross-platform-arb.fuzzy_match_confidence</code><div class="sb-bot">cross-platform-arb</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -480,7 +491,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 6 — Cross-platform-arb thesis + NewsSentiment scanner" -->
-          <td class="sb-name"><code>prediction-trader.news_sentiment</code><div class="sb-bot">prediction_trader</div></td>
+          <th scope="row" class="sb-name"><code>prediction-trader.news_sentiment</code><div class="sb-bot">prediction_trader</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -489,7 +500,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 7 — Data-accrual-gated re-tests" -->
-          <td class="sb-name"><code>news-bot.market_regime_fng</code><div class="sb-bot">news-bot</div></td>
+          <th scope="row" class="sb-name"><code>news-bot.market_regime_fng</code><div class="sb-bot">news-bot</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">2</td>
           <td class="sb-oos">INSUFFICIENT-DATA on 2026-05-20 backtest (N = 2 defensive days)</td>
@@ -498,7 +509,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 7 — Data-accrual-gated re-tests" -->
-          <td class="sb-name"><code>news-bot.alerts_high</code><div class="sb-bot">news-bot</div></td>
+          <th scope="row" class="sb-name"><code>news-bot.alerts_high</code><div class="sb-bot">news-bot</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -507,7 +518,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 7 — Data-accrual-gated re-tests" -->
-          <td class="sb-name"><code>news-bot.news_veto</code><div class="sb-bot">news-bot</div></td>
+          <th scope="row" class="sb-name"><code>news-bot.news_veto</code><div class="sb-bot">news-bot</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -516,7 +527,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 7 — Data-accrual-gated re-tests" -->
-          <td class="sb-name"><code>options-bot.wheel_csp_iv_rank</code><div class="sb-bot">options-bot</div></td>
+          <th scope="row" class="sb-name"><code>options-bot.wheel_csp_iv_rank</code><div class="sb-bot">options-bot</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -525,7 +536,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 7 — Data-accrual-gated re-tests" -->
-          <td class="sb-name"><code>options-bot.cross_bot_sweep_bus</code><div class="sb-bot">options-bot</div></td>
+          <th scope="row" class="sb-name"><code>options-bot.cross_bot_sweep_bus</code><div class="sb-bot">options-bot</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -534,7 +545,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 8 — sage-bot LLM analysts (90-day clock gated)" -->
-          <td class="sb-name"><code>sage-bot.core_analysts</code><div class="sb-bot">sage-bot</div></td>
+          <th scope="row" class="sb-name"><code>sage-bot.core_analysts</code><div class="sb-bot">sage-bot</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -543,7 +554,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Wave 8 — sage-bot LLM analysts (90-day clock gated)" -->
-          <td class="sb-name"><code>sage-bot.full_roster</code><div class="sb-bot">sage-bot</div></td>
+          <th scope="row" class="sb-name"><code>sage-bot.full_roster</code><div class="sb-bot">sage-bot</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">90-day clock</td>
@@ -552,7 +563,7 @@
 
         <tr>
           <!-- source: internal signal-validation dataset, section "Deferred — Wave 9 / post-campaign" -->
-          <td class="sb-name"><code>day-trader.deerflow_scorer</code><div class="sb-bot">day-trader</div></td>
+          <th scope="row" class="sb-name"><code>day-trader.deerflow_scorer</code><div class="sb-bot">day-trader</div></th>
           <td><span class="sb-badge sb-unvalidated">UNVALIDATED</span></td>
           <td class="sb-n">—</td>
           <td class="sb-oos">—</td>
@@ -576,6 +587,7 @@
     </article>
   </div>
 </section>
+</main>
 
 <footer class="site">
   <div class="wrap">
