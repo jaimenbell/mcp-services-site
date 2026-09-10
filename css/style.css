@@ -251,3 +251,49 @@ article.cs .cta-box { text-align: center; background: var(--card); border: 1px s
   border-radius: var(--radius); padding: 32px 28px; margin: 40px 0 8px; }
 article.cs .cta-box h3 { margin: 0 0 8px; font-size: 1.2rem; }
 article.cs .cta-box p { color: var(--muted); max-width: 540px; margin: 0 auto 20px; }
+
+/* ---- inline diagrams (articles/*.html, case-studies/*.html) ---- */
+/* Added 2026-09-09. A diagram is wide content: like <pre>, .evidence and
+   .cta-box it deliberately keeps the full 760px article.cs container instead
+   of the 60ch running-text measure, so prose stays narrow and the one
+   diagram on the page is the wide element. The figcaption goes back to
+   --measure, because a caption is running text and wants a readable line.
+   Browsers default <figure> to `margin: 1em 40px` -- the inline margin is
+   reset here, not inherited.
+   Colors: every stroke and label inside these SVGs comes from a palette
+   token, never a hex literal, so the diagram tracks the theme.
+   tests/test_article_figures.py enforces that (and the labelling rules)
+   because tests/test_a11y_contrast.py reads only css/style.css +
+   index.html and is structurally unable to see an SVG fill attribute. */
+article.cs figure.diagram {
+  margin: 28px 0;
+  padding: 20px 22px 16px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  /* Same escape hatch <pre> already uses. Below the min-width floor the
+     DIAGRAM scrolls inside its own box; the page body never scrolls
+     horizontally. */
+  overflow-x: auto;
+}
+article.cs figure.diagram svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* Legibility floor. The SVG scales with the container, so labels shrink
+     with it -- below ~440px the smallest label stops being readable, and
+     internal scroll is the honest trade against unreadable type. */
+  min-width: 440px;
+}
+/* Labels are mono to match .meta/.pill and the code blocks they sit beside:
+   these are data labels in a page whose type system already reads mono as
+   "this is a literal value". */
+article.cs figure.diagram text { font-family: var(--mono); }
+article.cs figure.diagram figcaption {
+  margin-top: 14px;
+  max-width: var(--measure);
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.65;
+}
+article.cs figure.diagram figcaption b { color: var(--text); font-weight: 600; }

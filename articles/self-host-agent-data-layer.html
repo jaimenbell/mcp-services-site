@@ -14,7 +14,7 @@
   <meta property="og:image" content="https://jaimenbell.dev/img/og-card.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="jaimenbell.dev — Production MCP servers for AI agents">
+  <meta property="og:image:alt" content="jaimenbell.dev · Production MCP servers for AI agents">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Should You Self-Host Your AI Agent's Data Layer?">
   <meta name="twitter:description" content="What data sovereignty actually buys you, what it costs in ongoing engineering, and how to decide.">
@@ -80,6 +80,59 @@
         Most teams don't need that — they need to know which of the three actually matters for
         their specific compliance or trust requirement, because each one has a very different cost.
       </p>
+
+      <figure class="diagram">
+        <svg role="img" aria-labelledby="fig-perimeter-title" viewBox="-1 -1 642 260">
+          <title id="fig-perimeter-title">Three arrangements of the same three layers, model
+            endpoint, control layer, and data and logs, against a dashed boundary marked inside
+            your control. Under a managed service all three layers sit above the boundary and it
+            holds nothing. Under a hybrid split the model endpoint stays above it while the control
+            layer and the data and logs move inside. Under a fully sovereign setup all three sit
+            inside. The layers are the same in every case; only which side of the boundary they
+            fall on changes.</title>
+
+          <text x="0" y="14" font-size="12" fill="var(--text)">Managed service</text>
+          <rect x="10" y="30" width="166" height="26" rx="4" fill="var(--card)" stroke="var(--border)"/>
+          <text x="20" y="47" font-size="11" fill="var(--muted)">model endpoint</text>
+          <rect x="10" y="60" width="166" height="26" rx="4" fill="var(--card)" stroke="var(--border)"/>
+          <text x="20" y="77" font-size="11" fill="var(--muted)">control layer</text>
+          <rect x="10" y="90" width="166" height="26" rx="4" fill="var(--card)" stroke="var(--border)"/>
+          <text x="20" y="107" font-size="11" fill="var(--muted)">data and logs</text>
+          <rect x="0" y="126" width="186" height="124" rx="6" fill="none" stroke="var(--accent)"
+                stroke-width="1" stroke-dasharray="5 4"/>
+          <text x="10" y="146" font-size="10" fill="var(--accent)">inside your control</text>
+          <text x="20" y="176" font-size="11" fill="var(--faint)">nothing you run</text>
+
+          <text x="227" y="14" font-size="12" fill="var(--text)">Hybrid split</text>
+          <rect x="237" y="30" width="166" height="26" rx="4" fill="var(--card)" stroke="var(--border)"/>
+          <text x="247" y="47" font-size="11" fill="var(--muted)">model endpoint</text>
+          <rect x="227" y="126" width="186" height="124" rx="6" fill="none" stroke="var(--accent)"
+                stroke-width="1" stroke-dasharray="5 4"/>
+          <text x="237" y="146" font-size="10" fill="var(--accent)">inside your control</text>
+          <rect x="237" y="156" width="166" height="26" rx="4" fill="var(--card)" stroke="var(--border)"/>
+          <text x="247" y="173" font-size="11" fill="var(--muted)">control layer</text>
+          <rect x="237" y="186" width="166" height="26" rx="4" fill="var(--card)" stroke="var(--border)"/>
+          <text x="247" y="203" font-size="11" fill="var(--muted)">data and logs</text>
+
+          <text x="454" y="14" font-size="12" fill="var(--text)">Fully sovereign</text>
+          <rect x="454" y="126" width="186" height="124" rx="6" fill="none" stroke="var(--accent)"
+                stroke-width="1" stroke-dasharray="5 4"/>
+          <text x="464" y="146" font-size="10" fill="var(--accent)">inside your control</text>
+          <rect x="464" y="156" width="166" height="26" rx="4" fill="var(--card)" stroke="var(--border)"/>
+          <text x="474" y="173" font-size="11" fill="var(--muted)">model endpoint</text>
+          <rect x="464" y="186" width="166" height="26" rx="4" fill="var(--card)" stroke="var(--border)"/>
+          <text x="474" y="203" font-size="11" fill="var(--muted)">control layer</text>
+          <rect x="464" y="216" width="166" height="26" rx="4" fill="var(--card)" stroke="var(--border)"/>
+          <text x="474" y="233" font-size="11" fill="var(--muted)">data and logs</text>
+        </svg>
+        <figcaption>
+          The three layers are identical in all three cases. The only thing that moves is the
+          boundary, which is why "should we self-host" is not one decision: it is a
+          <b>cut position</b>, and the hybrid split is a real rung rather than a compromise. A
+          contract that demands data residency moves the bottom layer inside without saying
+          anything about the two above it.
+        </figcaption>
+      </figure>
 
       <h2>What self-hosting actually buys you</h2>
       <p>

@@ -14,7 +14,7 @@
   <meta property="og:image" content="https://jaimenbell.dev/img/og-card.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="jaimenbell.dev — Production MCP servers for AI agents">
+  <meta property="og:image:alt" content="jaimenbell.dev · Production MCP servers for AI agents">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="MCP Server Security: Auth-Scoping Patterns That Actually Hold">
   <meta name="twitter:description" content="The auth-scoping pattern that survives a compromised call instead of handing it the whole blast radius.">
@@ -71,6 +71,92 @@
         multi-step chain, or a single malformed input doesn't get contained to "the tool it happened
         in." It inherits the blast radius of whatever that credential can touch.
       </p>
+
+      <figure class="diagram">
+        <svg role="img" aria-labelledby="fig-reach-title" viewBox="-1 -1 642 334">
+          <title id="fig-reach-title">Two stacked panels over the same four upstream billing
+            actions. In the top panel, three tools route through one shared credential called
+            BILLING_MASTER_KEY, and the dashed boundary marking what a single compromised call can
+            reach encloses all four actions, including billing:delete, which no tool needs. In the
+            bottom panel each tool holds its own scoped key, so three separate boundaries each
+            enclose one action, and billing:delete falls outside every boundary and is reachable by
+            nothing.</title>
+
+          <text x="0" y="12" font-size="13" fill="var(--text)">One shared credential</text>
+
+          <rect x="0" y="36" width="126" height="26" rx="4" fill="var(--card)" stroke="var(--border)"/>
+          <text x="10" y="53" font-size="12" fill="var(--muted)">lookup_order</text>
+          <rect x="0" y="64" width="126" height="26" rx="4" fill="var(--card)" stroke="var(--border)"/>
+          <text x="10" y="81" font-size="12" fill="var(--muted)">refund</text>
+          <rect x="0" y="92" width="126" height="26" rx="4" fill="var(--card)" stroke="var(--border)"/>
+          <text x="10" y="109" font-size="12" fill="var(--muted)">export_report</text>
+
+          <path d="M126 49 H151 V77 H176" fill="none" stroke="var(--muted)" stroke-width="1"/>
+          <path d="M126 77 H176" fill="none" stroke="var(--muted)" stroke-width="1"/>
+          <path d="M126 105 H151 V77 H176" fill="none" stroke="var(--muted)" stroke-width="1"/>
+
+          <rect x="176" y="64" width="148" height="26" rx="4" fill="var(--card)" stroke="var(--warn)"/>
+          <text x="186" y="81" font-size="12" fill="var(--warn)">BILLING_MASTER_KEY</text>
+
+          <path d="M324 77 H364" fill="none" stroke="var(--warn)" stroke-width="1"/>
+
+          <text x="364" y="30" font-size="11" fill="var(--warn)">what one compromised call can reach</text>
+          <rect x="364" y="36" width="182" height="116" rx="6" fill="none" stroke="var(--warn)"
+                stroke-width="1" stroke-dasharray="4 3"/>
+          <text x="376" y="53" font-size="12" fill="var(--text)">orders:read</text>
+          <text x="376" y="81" font-size="12" fill="var(--text)">billing:refund</text>
+          <text x="376" y="109" font-size="12" fill="var(--text)">billing:export</text>
+          <text x="376" y="137" font-size="12" fill="var(--text)">billing:delete</text>
+
+          <line x1="0" y1="170" x2="640" y2="170" stroke="var(--border)" stroke-width="1"/>
+
+          <text x="0" y="192" font-size="13" fill="var(--text)">One credential per tool</text>
+
+          <rect x="0" y="216" width="126" height="26" rx="4" fill="var(--card)" stroke="var(--border)"/>
+          <text x="10" y="233" font-size="12" fill="var(--muted)">lookup_order</text>
+          <rect x="0" y="244" width="126" height="26" rx="4" fill="var(--card)" stroke="var(--border)"/>
+          <text x="10" y="261" font-size="12" fill="var(--muted)">refund</text>
+          <rect x="0" y="272" width="126" height="26" rx="4" fill="var(--card)" stroke="var(--border)"/>
+          <text x="10" y="289" font-size="12" fill="var(--muted)">export_report</text>
+
+          <path d="M126 229 H176" fill="none" stroke="var(--muted)" stroke-width="1"/>
+          <path d="M126 257 H176" fill="none" stroke="var(--muted)" stroke-width="1"/>
+          <path d="M126 285 H176" fill="none" stroke="var(--muted)" stroke-width="1"/>
+
+          <rect x="176" y="216" width="148" height="26" rx="4" fill="var(--card)" stroke="var(--accent-2)"/>
+          <text x="186" y="233" font-size="12" fill="var(--accent-2)">key:orders:read</text>
+          <rect x="176" y="244" width="148" height="26" rx="4" fill="var(--card)" stroke="var(--accent-2)"/>
+          <text x="186" y="261" font-size="12" fill="var(--accent-2)">key:billing:refund</text>
+          <rect x="176" y="272" width="148" height="26" rx="4" fill="var(--card)" stroke="var(--accent-2)"/>
+          <text x="186" y="289" font-size="12" fill="var(--accent-2)">key:billing:export</text>
+
+          <path d="M324 229 H364" fill="none" stroke="var(--accent-2)" stroke-width="1"/>
+          <path d="M324 257 H364" fill="none" stroke="var(--accent-2)" stroke-width="1"/>
+          <path d="M324 285 H364" fill="none" stroke="var(--accent-2)" stroke-width="1"/>
+
+          <text x="364" y="210" font-size="11" fill="var(--accent-2)">what one compromised call can reach</text>
+          <rect x="364" y="216" width="182" height="26" rx="6" fill="none" stroke="var(--accent-2)"
+                stroke-width="1" stroke-dasharray="4 3"/>
+          <text x="376" y="233" font-size="12" fill="var(--text)">orders:read</text>
+          <rect x="364" y="244" width="182" height="26" rx="6" fill="none" stroke="var(--accent-2)"
+                stroke-width="1" stroke-dasharray="4 3"/>
+          <text x="376" y="261" font-size="12" fill="var(--text)">billing:refund</text>
+          <rect x="364" y="272" width="182" height="26" rx="6" fill="none" stroke="var(--accent-2)"
+                stroke-width="1" stroke-dasharray="4 3"/>
+          <text x="376" y="289" font-size="12" fill="var(--text)">billing:export</text>
+
+          <text x="376" y="317" font-size="12" fill="var(--faint)">billing:delete</text>
+          <text x="482" y="317" font-size="11" fill="var(--faint)">reachable by nothing</text>
+        </svg>
+        <figcaption>
+          The upstream system offers the same four actions in both panels. What changes is the
+          boundary. One shared key puts <b>every</b> action inside the reach of <b>any</b> call,
+          including <code>billing:delete</code>, which no tool here needs. Per-tool keys shrink
+          each boundary to a single action and leave <code>billing:delete</code> outside all of
+          them. Nothing in the tool code differs between the two panels.
+        </figcaption>
+      </figure>
+
       <p>
         This isn't hypothetical risk. Security researchers at Knostic scanned nearly 2,000 publicly
         accessible MCP servers and found that <strong>every single verified instance</strong> granted

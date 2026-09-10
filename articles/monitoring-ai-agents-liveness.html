@@ -14,7 +14,7 @@
   <meta property="og:image" content="https://jaimenbell.dev/img/og-card.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="jaimenbell.dev — Production MCP servers for AI agents">
+  <meta property="og:image:alt" content="jaimenbell.dev · Production MCP servers for AI agents">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Monitoring AI Agents in Production: Liveness Beyond Uptime">
   <meta name="twitter:description" content="A process being up isn't the same as an agent being alive. A real false-PASS incident, and the liveness discipline that catches it.">
@@ -71,6 +71,51 @@
         state — rather than treating "the process didn't crash" as sufficient. A live process with a
         dead task inside it is the failure mode uptime monitoring is structurally blind to.
       </p>
+
+      <figure class="diagram">
+        <svg role="img" aria-labelledby="fig-probe-title" viewBox="-1 -1 642 250">
+          <title id="fig-probe-title">A diagram of two checks against the same failing system. A
+            process box reports its state as running, while the scheduled work drawn inside it has
+            stopped silently. The link from that work to the output artifact below is broken. An
+            uptime check arrow enters from the left and terminates at the outer process boundary,
+            reporting healthy. An evidence check arrow travels past it and terminates at the output
+            artifact itself, where the last write is stale.</title>
+
+          <rect x="250" y="30" width="390" height="130" rx="6" fill="var(--card)" stroke="var(--border)"/>
+          <text x="262" y="52" font-size="12" fill="var(--muted)">process</text>
+          <text x="262" y="70" font-size="11" fill="var(--accent-2)">state: running</text>
+
+          <rect x="262" y="84" width="366" height="60" rx="4" fill="none" stroke="var(--faint)"
+                stroke-width="1" stroke-dasharray="4 3"/>
+          <text x="274" y="106" font-size="11" fill="var(--faint)">the scheduled work</text>
+          <text x="274" y="126" font-size="11" fill="var(--faint)">stopped, silently</text>
+
+          <path d="M400 144 V162" fill="none" stroke="var(--faint)" stroke-width="1"/>
+          <path d="M394 164 L406 176" fill="none" stroke="var(--warn)" stroke-width="1.5"/>
+          <path d="M406 164 L394 176" fill="none" stroke="var(--warn)" stroke-width="1.5"/>
+          <path d="M400 178 V186" fill="none" stroke="var(--faint)" stroke-width="1"/>
+
+          <rect x="330" y="186" width="310" height="50" rx="4" fill="var(--card)" stroke="var(--border)"/>
+          <text x="342" y="206" font-size="11" fill="var(--muted)">output artifact</text>
+          <text x="342" y="224" font-size="11" fill="var(--warn)">last write: stale</text>
+
+          <text x="0" y="78" font-size="12" fill="var(--text)">uptime check</text>
+          <path d="M0 96 H242" fill="none" stroke="var(--muted)" stroke-width="1"/>
+          <path d="M243 92 L250 96 L243 100 Z" fill="var(--muted)"/>
+          <text x="0" y="116" font-size="11" fill="var(--accent-2)">reports healthy</text>
+
+          <text x="0" y="196" font-size="12" fill="var(--text)">evidence check</text>
+          <path d="M0 211 H322" fill="none" stroke="var(--muted)" stroke-width="1"/>
+          <path d="M323 207 L330 211 L323 215 Z" fill="var(--muted)"/>
+          <text x="0" y="232" font-size="11" fill="var(--warn)">reports stale</text>
+        </svg>
+        <figcaption>
+          The two checks disagree because of <b>where they stop</b>, not because one is better
+          written. The uptime probe terminates at the process boundary, so the only fact it can
+          return is that a process exists. The evidence probe terminates at the artifact the work
+          was supposed to produce, which is the first place the broken link is visible at all.
+        </figcaption>
+      </figure>
 
       <h2>A real incident: the dashboard that couldn't show death</h2>
       <p>

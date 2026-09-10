@@ -133,6 +133,18 @@ DEFAULT_TARGET_GLOBS = [
     # a stale count on the offer page, which is exactly how a stale count once
     # reached a live product listing.
     "managed-watch.html",
+    # scripts/og-card.html was OUTSIDE this list until 2026-09-09 -- the SAME
+    # class of gap as managed-watch.html above, found by a lane doing unrelated
+    # work. It is a render source rather than a served page, which is exactly why
+    # it was skipped: it is not in `articles/` or `case-studies/`, and it is not
+    # a root-level page. But it hardcodes "348 passing tests" into the social
+    # preview card that every shared link renders, so the number reaches more
+    # readers than most of the pages the gate does check. A number the gate
+    # cannot SEE is a number that rots silently -- that is how mcp-factory's
+    # count went 152 -> 156 -> 179 -> 187 while every guarded surface stayed
+    # green. Widening the scope changed no verdict on the day it was added
+    # (the 348 was correct); it closes the gap before the next drift.
+    "scripts/og-card.html",
 ]
 
 TRIGGER_RE = re.compile(r"\b(?:tests?|passing|passed)\b", re.IGNORECASE)
