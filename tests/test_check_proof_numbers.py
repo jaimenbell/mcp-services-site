@@ -5,6 +5,7 @@ Uses only temp fixtures (tmp_path) -- never touches the real site content files
 tests must not mutate real site files.
 """
 
+import os
 import re
 import shutil
 import subprocess
@@ -780,7 +781,15 @@ def _build_temp_hook_repo(
     2, right after gate 1. Every caller whose fixture reaches gate 2 (i.e.
     doesn't already block/crash in gate 1 first) must give its index.html a
     data-goatcounter tag or gate 2 will fail the "clean" case too -- see
-    test_hook_allows_clean_commit_with_no_blocked_message."""
+    test_hook_allows_clean_commit_with_no_blocked_message.
+
+    Writes an empty proof-manifest.local.toml at the repo root too
+    (2026-09-09, worktree-overlay lane): these tests exercise gate 1's
+    citation-verdict / crash-vs-verdict behavior specifically, not the
+    separate no-overlay gate main() now runs first -- an empty overlay file
+    satisfies that gate (see SILENT-1) without asserting anything about
+    live-repo verification, which none of these fixtures' manifests need
+    (no source_repo_public entries)."""
     repo = tmp_path / "hookrepo"
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
@@ -802,6 +811,7 @@ def _build_temp_hook_repo(
     shutil.copy2(REPO_ROOT / ".githooks" / "pre-commit", repo / ".githooks" / "pre-commit")
 
     (repo / "proof-manifest.toml").write_text(manifest_toml_text, encoding="utf-8", newline="\n")
+    (repo / "proof-manifest.local.toml").write_text("", encoding="utf-8", newline="\n")
     (repo / "index.html").write_text(index_html_text, encoding="utf-8", newline="\n")
     return repo
 
@@ -1560,6 +1570,165 @@ def test_run_without_local_override_file_warns_and_still_exits_0(tmp_path, capsy
     assert exit_code == 0
     out = capsys.readouterr().out
     assert "local override" in out.lower()
+
+
+# --- resolve_local_manifest_path() / main()'s no-overlay gate
+# (worktree-overlay lane, 2026-09-09): from ANY worktree, REPO_ROOT
+# (Path(__file__)...) is the worktree's own root, which never holds the
+# gitignored overlay -- every live check silently degraded to WARN and the
+# gate could never FAIL, even on a genuinely stale count (observed
+# 2026-09-09, handoff v137: a real commit went through with 14 WARNs and
+# zero live verification). These controls prove both halves fixed:
+# resolve_local_manifest_path() finds the overlay via the main checkout when
+# run from a worktree (the WORKTREE control), and main() now fails loudly
+# instead of silently WARNing when NEITHER candidate has an overlay and
+# neither CI nor the explicit skip var excuses it (FIRES), while every
+# pre-existing honest-WARN shape is unchanged (SILENT-1/2/3). Real
+# subprocess + real git throughout -- git is never mocked. ---
+
+def _build_temp_checker_repo(tmp_path: Path, subdir: str,
+                              manifest_toml_text: str = "",
+                              index_html_text: str = "<p>nothing to see here</p>\n") -> Path:
+    """A minimal, REAL git repo carrying a real copy of
+    scripts/check_proof_numbers.py, so its REPO_ROOT (computed from
+    __file__ at import time) resolves to THIS tmp repo, not the real site
+    checkout. One commit so `git worktree add` (used by the FIRES control
+    below) has a valid commit-ish to branch from."""
+    repo = tmp_path / subdir
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.name", "Test"], cwd=repo, check=True)
+    (repo / "scripts").mkdir()
+    shutil.copy2(REPO_ROOT / "scripts" / "check_proof_numbers.py", repo / "scripts" / "check_proof_numbers.py")
+    (repo / "proof-manifest.toml").write_text(manifest_toml_text, encoding="utf-8", newline="\n")
+    (repo / "index.html").write_text(index_html_text, encoding="utf-8", newline="\n")
+    subprocess.run(["git", "add", "-A"], cwd=repo, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "init"], cwd=repo, check=True)
+    return repo
+
+
+def _run_checker_main(repo: Path, extra_env: dict[str, str] | None = None) -> subprocess.CompletedProcess:
+    """Invoke the REAL scripts/check_proof_numbers.py exactly as the
+    pre-commit hook does (no argv), as a genuine subprocess -- so its own
+    `git rev-parse --git-common-dir` call runs against real git, never
+    mocked. Strips CI / the skip env var from the inherited environment by
+    default so each test controls them explicitly rather than depending on
+    whatever happens to be set in the machine running the suite."""
+    env = dict(os.environ)
+    env.pop("CI", None)
+    env.pop(cpn.SKIP_LIVE_CHECK_ENV_VAR, None)
+    if extra_env:
+        env.update(extra_env)
+    return subprocess.run(
+        [sys.executable, "scripts/check_proof_numbers.py"],
+        cwd=repo, capture_output=True, text=True, env=env,
+    )
+
+
+def test_main_fires_with_no_overlay_anywhere_and_no_ci(tmp_path):
+    """FIRES: a main checkout + linked worktree, NEITHER carrying
+    proof-manifest.local.toml, CI and the skip var both absent -- the
+    no-overlay gate must fire before any scanning work, exit 2, and name TWO
+    distinct candidate paths it tried (the worktree proves they're distinct:
+    a bare non-worktree repo's two candidates would collapse to one)."""
+    main_repo = _build_temp_checker_repo(tmp_path, "mainrepo")
+    worktree = tmp_path / "wt"
+    subprocess.run(
+        ["git", "worktree", "add", "-b", "lane/x", str(worktree), "HEAD"],
+        cwd=main_repo, check=True,
+    )
+
+    result = _run_checker_main(worktree)
+
+    assert result.returncode == 2, f"stdout={result.stdout!r} stderr={result.stderr!r}"
+    assert "FATAL" in result.stdout
+    assert "no proof-manifest.local.toml overlay found" in result.stdout
+    assert "proof-manifest.local.toml.example" in result.stdout
+    assert cpn.SKIP_LIVE_CHECK_ENV_VAR in result.stdout
+    tried_lines = [line.strip() for line in result.stdout.splitlines() if line.strip().startswith("- ")]
+    assert len(tried_lines) == 2, f"expected 2 distinct candidates tried, got: {tried_lines}"
+    assert tried_lines[0] != tried_lines[1]
+    assert all(line.endswith("proof-manifest.local.toml") for line in tried_lines)
+
+
+def test_main_silent_1_overlay_present_at_repo_root_proceeds(tmp_path):
+    """SILENT-1: overlay present at REPO_ROOT itself (the plain,
+    non-worktree case) -- the no-overlay gate does not fire, and a clean run
+    (no citations, no manifest entries) exits 0."""
+    repo = _build_temp_checker_repo(tmp_path, "repo1")
+    (repo / "proof-manifest.local.toml").write_text("", encoding="utf-8")
+
+    result = _run_checker_main(repo)
+
+    assert result.returncode == 0, f"stdout={result.stdout!r} stderr={result.stderr!r}"
+    assert "FATAL" not in result.stdout
+
+
+def test_main_silent_2_ci_set_no_overlay_warns_and_exits_0(tmp_path):
+    """SILENT-2: no overlay anywhere, but CI=1 -- today's behaviour
+    preserved exactly: the no-overlay gate never fires, the entry with a
+    public identity but no local override degrades to a visible WARN, and
+    the run still exits 0."""
+    manifest = (
+        '["mcp-factory"]\n'
+        "value = 5\n"
+        'source_cmd = "python -c \\"print(1)\\""\n'
+        'source_repo_public = "jaimenbell/mcp-factory"\n'
+    )
+    repo = _build_temp_checker_repo(tmp_path, "repo2", manifest_toml_text=manifest)
+
+    result = _run_checker_main(repo, extra_env={"CI": "1"})
+
+    assert result.returncode == 0, f"stdout={result.stdout!r} stderr={result.stderr!r}"
+    assert "FATAL" not in result.stdout
+    assert "WARN" in result.stdout
+    assert "mcp-factory" in result.stdout
+
+
+def test_main_silent_3_skip_env_set_no_overlay_warns_and_exits_0(tmp_path):
+    """SILENT-3: no overlay anywhere, PROOF_NUMBERS_SKIP_LIVE_CHECK=1 set --
+    the no-overlay gate never fires (this IS the explicit opt-in its own fix
+    message names), and the existing 'skipping live-repo verification' line
+    still prints exactly as before."""
+    repo = _build_temp_checker_repo(tmp_path, "repo3")
+
+    result = _run_checker_main(repo, extra_env={cpn.SKIP_LIVE_CHECK_ENV_VAR: "1"})
+
+    assert result.returncode == 0, f"stdout={result.stdout!r} stderr={result.stderr!r}"
+    assert "FATAL" not in result.stdout
+    assert "skipping live-repo verification" in result.stdout
+
+
+def test_resolve_local_manifest_path_worktree_finds_main_checkout_overlay(tmp_path):
+    """WORKTREE: overlay present ONLY at the main checkout's root (never
+    copied into the worktree -- gitignored files never travel with
+    `git worktree add`) -- resolve_local_manifest_path(), called with the
+    worktree as repo_root, must return the MAIN checkout's copy via a real
+    `git rev-parse --git-common-dir` call. Built with a real `git init` +
+    `git worktree add`; git is never mocked."""
+    main_repo = tmp_path / "main"
+    main_repo.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=main_repo, check=True)
+    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=main_repo, check=True)
+    subprocess.run(["git", "config", "user.name", "Test"], cwd=main_repo, check=True)
+    (main_repo / "README.md").write_text("x\n", encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], cwd=main_repo, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "init"], cwd=main_repo, check=True)
+
+    overlay = main_repo / "proof-manifest.local.toml"
+    overlay.write_text('["mcp-factory"]\nsource_repo = "C:\\\\fake\\\\mcp-factory"\n', encoding="utf-8")
+
+    worktree = tmp_path / "wt"
+    subprocess.run(
+        ["git", "worktree", "add", "-b", "lane/y", str(worktree), "HEAD"],
+        cwd=main_repo, check=True,
+    )
+
+    resolved = cpn.resolve_local_manifest_path(repo_root=worktree)
+
+    assert resolved is not None
+    assert resolved.resolve() == overlay.resolve()
 
 
 # --- real tracked-manifest hardening gates (the actual acceptance bar for

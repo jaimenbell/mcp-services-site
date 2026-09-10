@@ -319,8 +319,14 @@ def _build_temp_hook_repo(tmp_path: Path, index_html_text: str,
     shutil.copy2(REPO_ROOT / ".githooks" / "pre-commit", repo / ".githooks" / "pre-commit")
 
     # Empty manifest + no trigger words in index.html -- the proof-numbers
-    # gate has nothing to scan/associate and passes clean.
+    # gate has nothing to scan/associate and passes clean. Empty
+    # proof-manifest.local.toml too (2026-09-09, worktree-overlay lane):
+    # satisfies check_proof_numbers.py's separate no-overlay gate (main()
+    # now fails loudly with no overlay and no CI) so these beacon-focused
+    # fixtures reach gate 2 as before, without asserting anything about
+    # live-repo verification.
     (repo / "proof-manifest.toml").write_text("", encoding="utf-8", newline="\n")
+    (repo / "proof-manifest.local.toml").write_text("", encoding="utf-8", newline="\n")
     (repo / "index.html").write_text(index_html_text, encoding="utf-8", newline="\n")
     if scoreboard_html_text is not None:
         (repo / "scoreboard.html").write_text(scoreboard_html_text, encoding="utf-8", newline="\n")

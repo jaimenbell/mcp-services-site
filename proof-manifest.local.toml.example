@@ -13,13 +13,27 @@
 # a public-safe "source_repo_public" identity (a github slug) per entry; the
 # real local path lives here instead.
 #
+# WHERE TO PUT IT (2026-09-09, worktree-overlay lane): copy it to your MAIN
+# checkout's root, e.g. mcp-services-site/proof-manifest.local.toml -- not
+# inside a `.claude/worktrees/<lane>/` linked worktree. The checker's
+# resolve_local_manifest_path() looks there first, then (via `git rev-parse
+# --git-common-dir`) automatically falls back to the main checkout, so a
+# single copy at the main checkout root covers every worktree too. If NEITHER
+# location has this file, and neither CI nor PROOF_NUMBERS_SKIP_LIVE_CHECK=1
+# is set, the checker now FAILS LOUDLY (exit 2) instead of silently
+# degrading every live check to a WARN -- create this file (or set
+# PROOF_NUMBERS_SKIP_LIVE_CHECK=1 to explicitly accept skipping) to clear it.
+#
 # Each top-level table below may carry:
 #   source_repo = "<absolute path to the sibling repo checkout>"
 #   source_env  = { VAR_NAME = "<value, itself often a local path>" }
-# Both are optional per-entry -- omit an entry entirely (or the whole file)
-# and that repo's live-check degrades to an honest WARN, never a FAIL (see
-# proof-manifest.toml's own header comment, and
-# scripts/check_proof_numbers.py's live_verify_manifest()).
+# Both are optional per-entry -- omit an entry within an existing overlay
+# file and that repo's live-check degrades to an honest WARN, never a FAIL
+# (see proof-manifest.toml's own header comment, and
+# scripts/check_proof_numbers.py's live_verify_manifest()). Omitting the
+# WHOLE file is different: on CI, or with PROOF_NUMBERS_SKIP_LIVE_CHECK=1,
+# it is still an honest WARN as before; without either of those, it is now
+# the FATAL described above.
 #
 # TOML strings escape backslashes: on Windows, write your absolute path as
 # "C:\\path\\to\\projects\\mcp-factory" (double backslash); on Linux/macOS,
