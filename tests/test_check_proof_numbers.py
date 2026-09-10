@@ -363,11 +363,17 @@ def test_manifest_typo_field_run_exits_2(tmp_path):
     assert exit_code == 2
 
 
-def test_default_target_globs_cover_articles_scoreboard_404(tmp_path):
+def test_default_target_globs_cover_articles_scoreboard_404(tmp_path, monkeypatch):
     """Reviewer finding 6 repro: the pre-commit hook invokes this script with
     no argv, so it relies entirely on DEFAULT_TARGET_GLOBS. That list omitted
     articles/*.html, scoreboard.html, and 404.html -- a stale proof number
     committed in any of those files would never be scanned at all."""
+    # This test's manifest carries no source_repo_public (it exercises the
+    # citation-scan glob coverage, not live-check behavior) -- explicitly
+    # skip live checks so the outcome-keyed no-live-check gate (2026-09-09,
+    # review-fixes lane) doesn't intercept the run before the citation scan
+    # this test is actually about ever gets a chance to fail it.
+    monkeypatch.setenv(cpn.SKIP_LIVE_CHECK_ENV_VAR, "1")
     manifest_toml = tmp_path / "proof-manifest.toml"
     manifest_toml.write_text(
         '["mcp-factory"]\nvalue = 187\nsource_cmd = "pytest -q"\n',
@@ -404,8 +410,12 @@ def test_verb_usage_of_tests_is_not_a_proof_number_citation(tmp_path):
     assert findings == [], f"'Wave 7 tests whether...' must not be flagged at all: {[x.format() for x in findings]}"
 
 
-def test_run_end_to_end_exit_codes(tmp_path):
+def test_run_end_to_end_exit_codes(tmp_path, monkeypatch):
     """run() against a tmp root: clean fixture -> exit 0, stale fixture -> exit 2."""
+    # No source_repo_public on this manifest -- citation-scan test, not a
+    # live-check one; see test_default_target_globs_cover_articles_scoreboard_404's
+    # comment for why this must opt out of the no-live-check gate explicitly.
+    monkeypatch.setenv(cpn.SKIP_LIVE_CHECK_ENV_VAR, "1")
     manifest_toml = tmp_path / "proof-manifest.toml"
     manifest_toml.write_text(
         '["mcp-factory"]\nvalue = 187\nsource_cmd = "pytest -q"\n',
@@ -792,9 +802,10 @@ def _build_temp_hook_repo(
     (no source_repo_public entries)."""
     repo = tmp_path / "hookrepo"
     repo.mkdir()
-    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
-    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
-    subprocess.run(["git", "config", "user.name", "Test"], cwd=repo, check=True)
+    _env = _git_clean_env()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True, env=_env)
+    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True, env=_env)
+    subprocess.run(["git", "config", "user.name", "Test"], cwd=repo, check=True, env=_env)
 
     (repo / "scripts").mkdir()
     if checker_override is None:
@@ -843,7 +854,13 @@ def test_hook_blocked_message_survives_set_e(tmp_path):
     stale_index = "<p>mcp-factory: 179 passing tests</p>\n"
     repo = _build_temp_hook_repo(tmp_path, manifest_toml_text, stale_index)
 
-    result = subprocess.run([bash, ".githooks/pre-commit"], cwd=repo, capture_output=True, text=True)
+    # This fixture's manifest carries no source_repo_public -- it exercises
+    # the set-e/verdict-message shell behavior, not live-check outcomes.
+    # Explicit skip env keeps the outcome-keyed no-live-check gate
+    # (2026-09-09, review-fixes lane) from intercepting the run before the
+    # citation-verdict path this test is actually about.
+    env = {**os.environ, cpn.SKIP_LIVE_CHECK_ENV_VAR: "1"}
+    result = subprocess.run([bash, ".githooks/pre-commit"], cwd=repo, capture_output=True, text=True, env=env)
 
     assert result.returncode == 2, (
         f"stale commit must be blocked with the checker's VERDICT code (2), not an "
@@ -882,7 +899,11 @@ def test_hook_allows_clean_commit_with_no_blocked_message(tmp_path):
     )
     repo = _build_temp_hook_repo(tmp_path, manifest_toml_text, clean_index)
 
-    result = subprocess.run([bash, ".githooks/pre-commit"], cwd=repo, capture_output=True, text=True)
+    # See test_hook_blocked_message_survives_set_e's comment: no
+    # source_repo_public here either, so explicitly skip live checks rather
+    # than let the no-live-check gate intercept this shell-behavior test.
+    env = {**os.environ, cpn.SKIP_LIVE_CHECK_ENV_VAR: "1"}
+    result = subprocess.run([bash, ".githooks/pre-commit"], cwd=repo, capture_output=True, text=True, env=env)
 
     assert result.returncode == 0, f"clean commit must pass: {result.stdout}\n{result.stderr}"
     assert "BLOCKED" not in result.stdout
@@ -1549,11 +1570,41 @@ def test_run_auto_discovers_sibling_local_override_file(tmp_path):
     assert exit_code == 0
 
 
-def test_run_without_local_override_file_warns_and_still_exits_0(tmp_path, capsys):
-    """The public-clone / CI scenario: manifest carries source_repo_public
-    only, no proof-manifest.local.toml anywhere -- run() must still exit 0
-    (citations agree with the manifest value; the live-check degrades to
-    WARN, not FAIL) and the WARN must be visible in the printed output."""
+def test_run_without_local_override_file_and_without_ci_now_fatals(tmp_path, monkeypatch):
+    """Finding 8 -- new contract: manifest carries source_repo_public only,
+    no proof-manifest.local.toml anywhere, and CI/skip are both unset. This
+    used to exit 0 (the old file-existence gate lived only in main(), not
+    run(), so run() had NO defence at all). Under the outcome-keyed gate
+    (finding 1, wired into run() too) this is exactly the "every
+    live-checkable entry silently WARNs forever" shape -- it must now FATAL
+    (exit 3), never silently pass."""
+    monkeypatch.delenv("CI", raising=False)
+    monkeypatch.delenv(cpn.SKIP_LIVE_CHECK_ENV_VAR, raising=False)
+    manifest_toml = tmp_path / "proof-manifest.toml"
+    manifest_toml.write_text(
+        '["mcp-factory"]\n'
+        "value = 222\n"
+        'source_cmd = "python -m pytest -q"\n'
+        'source_repo_public = "jaimenbell/mcp-factory"\n',
+        encoding="utf-8",
+    )
+    site_dir = tmp_path / "site"
+    site_dir.mkdir()
+    write(site_dir, "index.html", "<p>mcp-factory: 222 passing tests</p>\n")
+
+    exit_code = cpn.run(root=site_dir, manifest_path=manifest_toml, target_patterns=["*.html"])
+    assert exit_code == 3
+
+
+def test_run_without_local_override_file_but_ci_set_warns_and_still_exits_0(tmp_path, capsys, monkeypatch):
+    """The public-clone / CI scenario (finding 8's old contract, now gated
+    behind an EXPLICIT CI=1 rather than being the ambient default): manifest
+    carries source_repo_public only, no proof-manifest.local.toml anywhere,
+    but CI=1 -- run() must still exit 0 (citations agree with the manifest
+    value; the live-check degrades to WARN, not FAIL, and the outcome-keyed
+    gate takes the CI bypass) and the WARN must be visible in the printed
+    output."""
+    monkeypatch.setenv("CI", "1")
     manifest_toml = tmp_path / "proof-manifest.toml"
     manifest_toml.write_text(
         '["mcp-factory"]\n'
@@ -1586,6 +1637,46 @@ def test_run_without_local_override_file_warns_and_still_exits_0(tmp_path, capsy
 # pre-existing honest-WARN shape is unchanged (SILENT-1/2/3). Real
 # subprocess + real git throughout -- git is never mocked. ---
 
+def _git_clean_env(extra: dict[str, str] | None = None) -> dict[str, str]:
+    """A subprocess env with every GIT_* var stripped (finding 10). Git
+    exports GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE (and friends) to its own
+    hook's subprocess environment -- if this test module's git-spawning
+    helpers ever run FROM inside a git hook (e.g. this very repo's own
+    pre-commit, or a live_verify_manifest() invocation from ANOTHER repo's
+    hook that targets this repo's test suite as a source_cmd) and inherit
+    those vars unscrubbed, a `git init`/`git worktree add`/`git commit` in a
+    tmp fixture repo would silently target the OUTER repo's git internals
+    instead of the tmp repo it's meant to operate on -- see
+    check_proof_numbers.py's own `clean_env` comment in
+    live_verify_manifest() for the production-code sibling of this exact
+    fix. `extra` merges additional/overriding entries on top."""
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    if extra:
+        env.update(extra)
+    return env
+
+
+def test_git_clean_env_strips_git_star_vars_fires_and_stays_silent(monkeypatch):
+    """Finding 10, positive control: with GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE
+    set in the ambient environment (the shape git exports to a hook's own
+    subprocess), _git_clean_env() must drop all of them (FIRES on their
+    presence) while leaving an unrelated var untouched (SILENT on the
+    non-GIT_ shape)."""
+    monkeypatch.setenv("GIT_DIR", r"C:\outer-repo\.git")
+    monkeypatch.setenv("GIT_WORK_TREE", r"C:\outer-repo")
+    monkeypatch.setenv("GIT_INDEX_FILE", r"C:\outer-repo\.git\index")
+    monkeypatch.setenv("UNRELATED_VAR", "kept")
+
+    env = _git_clean_env()
+
+    assert not any(k.startswith("GIT_") for k in env), f"GIT_* leaked: {[k for k in env if k.startswith('GIT_')]}"
+    assert env.get("UNRELATED_VAR") == "kept"
+
+    env_with_extra = _git_clean_env(extra={"PROOF_NUMBERS_SKIP_LIVE_CHECK": "1"})
+    assert env_with_extra["PROOF_NUMBERS_SKIP_LIVE_CHECK"] == "1"
+    assert not any(k.startswith("GIT_") for k in env_with_extra)
+
+
 def _build_temp_checker_repo(tmp_path: Path, subdir: str,
                               manifest_toml_text: str = "",
                               index_html_text: str = "<p>nothing to see here</p>\n") -> Path:
@@ -1596,26 +1687,28 @@ def _build_temp_checker_repo(tmp_path: Path, subdir: str,
     below) has a valid commit-ish to branch from."""
     repo = tmp_path / subdir
     repo.mkdir()
-    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
-    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
-    subprocess.run(["git", "config", "user.name", "Test"], cwd=repo, check=True)
+    env = _git_clean_env()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True, env=env)
+    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True, env=env)
+    subprocess.run(["git", "config", "user.name", "Test"], cwd=repo, check=True, env=env)
     (repo / "scripts").mkdir()
     shutil.copy2(REPO_ROOT / "scripts" / "check_proof_numbers.py", repo / "scripts" / "check_proof_numbers.py")
     (repo / "proof-manifest.toml").write_text(manifest_toml_text, encoding="utf-8", newline="\n")
     (repo / "index.html").write_text(index_html_text, encoding="utf-8", newline="\n")
-    subprocess.run(["git", "add", "-A"], cwd=repo, check=True)
-    subprocess.run(["git", "commit", "-q", "-m", "init"], cwd=repo, check=True)
+    subprocess.run(["git", "add", "-A"], cwd=repo, check=True, env=env)
+    subprocess.run(["git", "commit", "-q", "-m", "init"], cwd=repo, check=True, env=env)
     return repo
 
 
 def _run_checker_main(repo: Path, extra_env: dict[str, str] | None = None) -> subprocess.CompletedProcess:
     """Invoke the REAL scripts/check_proof_numbers.py exactly as the
     pre-commit hook does (no argv), as a genuine subprocess -- so its own
-    `git rev-parse --git-common-dir` call runs against real git, never
-    mocked. Strips CI / the skip env var from the inherited environment by
-    default so each test controls them explicitly rather than depending on
-    whatever happens to be set in the machine running the suite."""
-    env = dict(os.environ)
+    git calls run against real git, never mocked. Strips CI / the skip env
+    var (each test controls them explicitly rather than depending on
+    whatever happens to be set in the machine running the suite) AND every
+    GIT_* var (finding 10 -- see _git_clean_env) from the inherited
+    environment by default."""
+    env = _git_clean_env()
     env.pop("CI", None)
     env.pop(cpn.SKIP_LIVE_CHECK_ENV_VAR, None)
     if extra_env:
@@ -1629,19 +1722,20 @@ def _run_checker_main(repo: Path, extra_env: dict[str, str] | None = None) -> su
 def test_main_fires_with_no_overlay_anywhere_and_no_ci(tmp_path):
     """FIRES: a main checkout + linked worktree, NEITHER carrying
     proof-manifest.local.toml, CI and the skip var both absent -- the
-    no-overlay gate must fire before any scanning work, exit 2, and name TWO
-    distinct candidate paths it tried (the worktree proves they're distinct:
-    a bare non-worktree repo's two candidates would collapse to one)."""
+    no-live-check gate must fire, exit 3 (finding 3 -- "gate not configured",
+    distinct from 2 = citation disagreement), and name TWO distinct
+    candidate paths it tried (the worktree proves they're distinct: a bare
+    non-worktree repo's two candidates would collapse to one)."""
     main_repo = _build_temp_checker_repo(tmp_path, "mainrepo")
     worktree = tmp_path / "wt"
     subprocess.run(
         ["git", "worktree", "add", "-b", "lane/x", str(worktree), "HEAD"],
-        cwd=main_repo, check=True,
+        cwd=main_repo, check=True, env=_git_clean_env(),
     )
 
     result = _run_checker_main(worktree)
 
-    assert result.returncode == 2, f"stdout={result.stdout!r} stderr={result.stderr!r}"
+    assert result.returncode == 3, f"stdout={result.stdout!r} stderr={result.stderr!r}"
     assert "FATAL" in result.stdout
     assert "no proof-manifest.local.toml overlay found" in result.stdout
     assert "proof-manifest.local.toml.example" in result.stdout
@@ -1654,10 +1748,31 @@ def test_main_fires_with_no_overlay_anywhere_and_no_ci(tmp_path):
 
 def test_main_silent_1_overlay_present_at_repo_root_proceeds(tmp_path):
     """SILENT-1: overlay present at REPO_ROOT itself (the plain,
-    non-worktree case) -- the no-overlay gate does not fire, and a clean run
-    (no citations, no manifest entries) exits 0."""
+    non-worktree case) AND it actually resolves a live-checkable entry to an
+    OK -- the outcome-keyed no-live-check gate does not fire, and the run
+    exits 0.
+
+    2026-09-09 (finding 1): an EARLIER version of this fixture wrote an
+    EMPTY overlay file and asserted exit 0 for it -- exactly the bypass
+    finding 1 is about (file existence alone satisfying a gate that produces
+    zero real verification). Under the outcome-keyed gate an empty overlay
+    with nothing to resolve now correctly FATALs (there is nothing here for
+    it to prove clean), so this fixture was changed to provide an overlay
+    that resolves a real entry instead of weakening the gate to keep the old
+    fixture green."""
     repo = _build_temp_checker_repo(tmp_path, "repo1")
-    (repo / "proof-manifest.local.toml").write_text("", encoding="utf-8")
+    fake_repo_dir = tmp_path / "fake-mcp-factory"
+    _write_fake_runner(fake_repo_dir, passed_count=222)
+    (repo / "proof-manifest.toml").write_text(
+        '["mcp-factory"]\n'
+        "value = 222\n"
+        f'source_cmd = "{Path(sys.executable).as_posix()} fake_runner.py"\n'
+        'source_repo_public = "jaimenbell/mcp-factory"\n',
+        encoding="utf-8",
+    )
+    (repo / "proof-manifest.local.toml").write_text(
+        f'["mcp-factory"]\nsource_repo = "{fake_repo_dir.as_posix()}"\n', encoding="utf-8",
+    )
 
     result = _run_checker_main(repo)
 
@@ -1684,6 +1799,51 @@ def test_main_silent_2_ci_set_no_overlay_warns_and_exits_0(tmp_path):
     assert "FATAL" not in result.stdout
     assert "WARN" in result.stdout
     assert "mcp-factory" in result.stdout
+    # Finding 6: the CI bypass must be visible, not silent, mirroring the
+    # skip-env line printed by _live_check_findings().
+    assert "CI set -- live checks skipped by policy" in result.stdout
+
+
+def test_is_ci_set_treats_falsy_spellings_as_not_set(monkeypatch):
+    """Finding 6 FIRES (unit level): the OLD gate condition was
+    `not os.environ.get("CI")` -- a non-empty string is truthy in Python, so
+    `not "0"` and `not "false"` both evaluate to False, which made the OLD
+    code treat CI="0"/CI="false" as CI being SET (bypassing the gate),
+    exactly backwards from what those values conventionally mean. A runner
+    that happens to export CI=false/CI=0 for some unrelated reason would
+    have silently bypassed the whole live-check gate. _is_ci_set() must
+    treat every falsy spelling -- and CI being absent entirely -- as NOT
+    set."""
+    for falsy in ("0", "false", "False", "FALSE", "", "no", "No"):
+        monkeypatch.setenv("CI", falsy)
+        assert cpn._is_ci_set() is False, f"CI={falsy!r} must read as NOT set"
+    monkeypatch.delenv("CI", raising=False)
+    assert cpn._is_ci_set() is False, "CI absent entirely must read as NOT set"
+
+
+def test_is_ci_set_treats_truthy_spellings_as_set(monkeypatch):
+    """SILENT companion (unit level): both "1" and CI's own conventional
+    "true" must count as set."""
+    for truthy in ("1", "true", "True", "yes"):
+        monkeypatch.setenv("CI", truthy)
+        assert cpn._is_ci_set() is True, f"CI={truthy!r} must read as set"
+
+
+def test_ci_falsy_value_does_not_bypass_the_no_live_check_gate(tmp_path):
+    """Finding 6 FIRES (integration level, the concrete example from the
+    finding): CI="0" must NOT bypass the gate -- the gate still fires
+    (exit 3), and the "CI set" bypass line is never printed."""
+    manifest = (
+        '["mcp-factory"]\n'
+        "value = 5\n"
+        'source_cmd = "python -c \\"print(1)\\""\n'
+        'source_repo_public = "jaimenbell/mcp-factory"\n'
+    )
+    repo = _build_temp_checker_repo(tmp_path, "repo-ci-falsy", manifest_toml_text=manifest)
+    result = _run_checker_main(repo, extra_env={"CI": "0"})
+    assert result.returncode == 3, f"stdout={result.stdout!r} stderr={result.stderr!r}"
+    assert "FATAL" in result.stdout
+    assert "CI set" not in result.stdout
 
 
 def test_main_silent_3_skip_env_set_no_overlay_warns_and_exits_0(tmp_path):
@@ -1705,16 +1865,17 @@ def test_resolve_local_manifest_path_worktree_finds_main_checkout_overlay(tmp_pa
     copied into the worktree -- gitignored files never travel with
     `git worktree add`) -- resolve_local_manifest_path(), called with the
     worktree as repo_root, must return the MAIN checkout's copy via a real
-    `git rev-parse --git-common-dir` call. Built with a real `git init` +
+    `git worktree list --porcelain` call. Built with a real `git init` +
     `git worktree add`; git is never mocked."""
     main_repo = tmp_path / "main"
     main_repo.mkdir()
-    subprocess.run(["git", "init", "-q"], cwd=main_repo, check=True)
-    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=main_repo, check=True)
-    subprocess.run(["git", "config", "user.name", "Test"], cwd=main_repo, check=True)
+    env = _git_clean_env()
+    subprocess.run(["git", "init", "-q"], cwd=main_repo, check=True, env=env)
+    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=main_repo, check=True, env=env)
+    subprocess.run(["git", "config", "user.name", "Test"], cwd=main_repo, check=True, env=env)
     (main_repo / "README.md").write_text("x\n", encoding="utf-8")
-    subprocess.run(["git", "add", "-A"], cwd=main_repo, check=True)
-    subprocess.run(["git", "commit", "-q", "-m", "init"], cwd=main_repo, check=True)
+    subprocess.run(["git", "add", "-A"], cwd=main_repo, check=True, env=env)
+    subprocess.run(["git", "commit", "-q", "-m", "init"], cwd=main_repo, check=True, env=env)
 
     overlay = main_repo / "proof-manifest.local.toml"
     overlay.write_text('["mcp-factory"]\nsource_repo = "C:\\\\fake\\\\mcp-factory"\n', encoding="utf-8")
@@ -1722,13 +1883,46 @@ def test_resolve_local_manifest_path_worktree_finds_main_checkout_overlay(tmp_pa
     worktree = tmp_path / "wt"
     subprocess.run(
         ["git", "worktree", "add", "-b", "lane/y", str(worktree), "HEAD"],
-        cwd=main_repo, check=True,
+        cwd=main_repo, check=True, env=env,
     )
 
     resolved = cpn.resolve_local_manifest_path(repo_root=worktree)
 
     assert resolved is not None
     assert resolved.resolve() == overlay.resolve()
+
+
+def test_local_manifest_candidates_separate_git_dir_does_not_produce_bogus_path(tmp_path):
+    """Finding 9: a checkout made with `git init --separate-git-dir=<elsewhere>`
+    has NO fixed relationship between its git-dir and its worktree root --
+    deriving candidate (b) from the OLD `git rev-parse --git-common-dir`'s
+    parent would have produced a bogus path (inside the external git-dir
+    itself, or a nonsensical `.git/modules/...`-shaped path) instead of
+    naming the real checkout. `_local_manifest_candidates` must derive
+    candidate (b) via `_main_worktree_path()` (`git worktree list
+    --porcelain`) instead, which names the checkout directly regardless of
+    git-dir layout -- here that correctly collapses to the SAME single
+    candidate as candidate (a), never a bogus extra one."""
+    checkout = tmp_path / "checkout"
+    git_dir = tmp_path / "external-git-dir"
+    env = _git_clean_env()
+    subprocess.run(
+        ["git", "init", "-q", f"--separate-git-dir={git_dir}", str(checkout)],
+        cwd=tmp_path, check=True, env=env,
+    )
+    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=checkout, check=True, env=env)
+    subprocess.run(["git", "config", "user.name", "Test"], cwd=checkout, check=True, env=env)
+    (checkout / "README.md").write_text("x\n", encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], cwd=checkout, check=True, env=env)
+    subprocess.run(["git", "commit", "-q", "-m", "init"], cwd=checkout, check=True, env=env)
+
+    candidates = cpn._local_manifest_candidates(checkout)
+
+    assert len(candidates) == 1, f"separate-git-dir shape must not add a bogus extra candidate: {candidates}"
+    assert candidates[0].resolve() == (checkout / "proof-manifest.local.toml").resolve()
+    for c in candidates:
+        assert str(git_dir) not in str(c), f"candidate leaked the external git-dir: {c}"
+        assert "modules" not in c.parts, f"candidate looks like a bogus .git/modules path: {c}"
 
 
 # --- real tracked-manifest hardening gates (the actual acceptance bar for
@@ -1828,6 +2022,62 @@ def test_real_local_example_template_covers_every_live_checked_entry():
                 f"{key}: has source_repo_public (live-checked) but no "
                 f"proof-manifest.local.toml.example section"
             )
+
+
+# --- finding 2: proof-manifest.toml is PUBLIC (jaimenbell.dev/proof-manifest.toml
+# is a real, fetchable, no-build-step-served URL) -- a `note` field is free-text
+# audit trail, not reviewed the way a value/citation is, and must never carry a
+# private bot's operational risk state (halt-sentinel semantics, drawdown-driven
+# halts, timestamps of an operator halt event). The real day-trader entry leaked
+# exactly this before this commit; rewritten in the same commit as this guard. ---
+
+_SENSITIVE_NOTE_SUBSTRINGS = ("halt", "drawdown", "sentinel")
+
+
+def _assert_note_has_no_sensitive_operational_substrings(key: str, note: str) -> None:
+    lowered = note.lower()
+    for bad in _SENSITIVE_NOTE_SUBSTRINGS:
+        assert bad not in lowered, (
+            f'{key}: note contains "{bad}" -- proof-manifest.toml is served '
+            f"publicly and must never disclose a private bot's operational "
+            f"risk state (halt/drawdown/sentinel semantics or timestamps)"
+        )
+
+
+def test_note_sensitive_substring_check_fires_on_bad_input():
+    """Positive control: the check above must actually FIRE on a note that
+    reproduces the pre-fix day-trader text's shape, proving it can
+    discriminate rather than trivially passing everything."""
+    with pytest.raises(AssertionError):
+        _assert_note_has_no_sensitive_operational_substrings(
+            "fake",
+            "an operator data/HALT sentinel written at some timestamp (the drawdown halt)",
+        )
+
+
+def test_note_sensitive_substring_check_silent_on_clean_input():
+    """Negative control: an ordinary note with no sensitive substrings must
+    not raise."""
+    _assert_note_has_no_sensitive_operational_substrings(
+        "fake", "RE-VERIFIED 2026-09-09: value unchanged, re-measured clean.",
+    )
+
+
+def test_real_tracked_manifest_notes_carry_no_sensitive_operational_state():
+    """Finding 2: every `note` in the REAL tracked proof-manifest.toml must
+    be free of HALT/drawdown/sentinel substrings (case-insensitive) -- FIRES
+    on the pre-fix day-trader text (which published a real operator
+    data/HALT sentinel timestamp and drawdown-halt semantics on the public
+    site), SILENT after this same-commit rewrite."""
+    with open(cpn.MANIFEST_PATH, "rb") as fh:
+        data = cpn.tomllib.load(fh)
+    for key, entry in data.items():
+        if not isinstance(entry, dict):
+            continue
+        note = entry.get("note")
+        if not isinstance(note, str):
+            continue
+        _assert_note_has_no_sensitive_operational_substrings(key, note)
 
 
 def test_live_check_junitxml_preferred_over_summary_line_when_both_present(tmp_path):

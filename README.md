@@ -93,6 +93,29 @@ git config core.hooksPath .githooks
 `core.hooksPath` config is all that's needed on Linux/macOS. If a checkout ever loses the exec bit
 (e.g. some non-git file transfer), restore it with `git update-index --chmod=+x .githooks/pre-commit`.
 
+The hook also needs a local overlay file so it can actually run each entry's suite and check the
+manifest against it, not just against the site's own citations:
+
+```
+cp proof-manifest.local.toml.example proof-manifest.local.toml
+```
+
+Then fill in the `source_repo` path(s) for whichever sibling repos you have checked out locally
+(see the comments in the `.example` file). This overlay is gitignored — it never gets committed,
+and it is never served on the public site. Without it, the very first commit after enabling the
+hook fails closed with `check_proof_numbers: FATAL — no live check produced a pass/fail result`
+(exit 3): the gate refuses to silently pass every live check as an unverified WARN, which is the
+exact drift it exists to catch.
+
+If you don't have any of the sibling repos checked out and just want to commit site content, skip
+live verification explicitly instead of leaving the overlay unset:
+
+```
+PROOF_NUMBERS_SKIP_LIVE_CHECK=1 git commit -m "..."
+```
+
+This still runs the citation-vs-manifest check; it only skips re-running each repo's own suite.
+
 Tests: `pip install -r requirements-dev.txt` then `python -m pytest` (see `pytest.ini`).
 
 ## Dev setup — regenerating the dogfood self-audit block

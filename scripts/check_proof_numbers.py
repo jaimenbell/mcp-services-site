@@ -109,16 +109,97 @@ MANIFEST_PATH = REPO_ROOT / "proof-manifest.toml"
 # it there) -- every live check silently degraded to WARN from any worktree,
 # with the gate unable to ever FAIL, even on a real stale count (observed
 # 2026-09-09, handoff v137: a real commit went through with 14 WARNs and zero
-# live verification). `resolve_local_manifest_path()` below is the fix: it
-# also checks the MAIN checkout (found via `git rev-parse --git-common-dir`,
-# which always points at the main checkout's .git regardless of which
-# worktree invokes it) before falling back to "no overlay found". Prefer
+# live verification). `resolve_local_manifest_path()` below is part of the
+# fix: it also checks the MAIN checkout (found via `_main_worktree_path()`,
+# which always names the main checkout regardless of which worktree invokes
+# it) before falling back to None. The other half of the fix (2026-09-09,
+# review-fixes lane) is that finding the overlay FILE is no longer enough by
+# itself -- main()/run() gate on whether a live check actually produced a
+# pass/fail OUTCOME (see _no_live_check_outcome_gate() below), because an
+# empty or stale-path overlay satisfies mere file existence while still
+# leaving every live check silently WARNing. Prefer
 # `resolve_local_manifest_path()` over this bare constant wherever the
 # overlay is actually being LOOKED UP; the constant itself stays defined
 # for backward compatibility (callers/tests that want the REPO_ROOT-only
 # candidate specifically, and as the harmless non-existent-path default fed
 # to load_local_overrides() when no candidate resolves at all).
 LOCAL_MANIFEST_PATH = REPO_ROOT / "proof-manifest.local.toml"
+
+
+def _main_worktree_path(repo_root: Path = REPO_ROOT) -> Path | None:
+    """Return the MAIN worktree's path, or None if git is unavailable, the
+    command fails, or its output can't be parsed.
+
+    Uses `git worktree list --porcelain` (run with cwd=repo_root) and takes
+    the path from its FIRST `worktree <path>` line -- git's own contract is
+    that the main working tree is always listed first, unconditionally, no
+    matter which worktree (linked or main) invokes the command.
+
+    2026-09-09 fix (finding 9): this replaces deriving the main checkout
+    from the parent of `git rev-parse --git-common-dir`. That derivation
+    assumed the common .git dir always sits directly at
+    `<main-checkout>/.git`, which is only true for git's default layout. A
+    checkout made with `git init --separate-git-dir=<elsewhere>` (or a
+    submodule) has --git-common-dir resolve to an ARBITRARY path with no
+    fixed relationship to any checkout root at all -- taking its parent
+    there produces a bogus candidate (e.g. inside the separate git-dir
+    itself, or a nonsensical `.git/modules/...`-shaped path), never the
+    actual checkout. `git worktree list` names the real checkout directly,
+    with no path-shape assumption required.
+
+    Never raises: any git failure (unavailable, non-zero exit, unparseable
+    output) returns None -- this function only names the candidate, it does
+    not judge "no overlay found" as an error (the caller's outcome-keyed
+    gate does that).
+
+    Self-verified, not trusted blindly: `git worktree list` itself turns out
+    NOT to be reliable for a main checkout created via
+    `git init --separate-git-dir=<elsewhere>` -- observed live (git 2.54,
+    Windows): its "worktree" line for the MAIN entry names the separate
+    git-dir itself, not the actual working tree. Trusting that blindly would
+    have reproduced the exact class of bug this fix replaces, just one level
+    down. So the reported path is cross-checked by asking IT, independently,
+    for its own toplevel (`git rev-parse --show-toplevel` run with that path
+    as cwd) -- a real working tree agrees with itself; a bare git-dir (or
+    anything else `git worktree list` got wrong) fails this check outright
+    and the candidate is discarded (None), same as any other git failure.
+    """
+    try:
+        proc = subprocess.run(
+            ["git", "worktree", "list", "--porcelain"],
+            cwd=repo_root, capture_output=True, text=True, timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if proc.returncode != 0:
+        return None
+    for line in proc.stdout.splitlines():
+        if line.startswith("worktree "):
+            path_str = line[len("worktree "):].strip()
+            if not path_str:
+                return None
+            path = Path(path_str)
+            if not path.is_absolute():
+                path = (repo_root / path).resolve()
+            try:
+                verify = subprocess.run(
+                    ["git", "rev-parse", "--show-toplevel"],
+                    cwd=path, capture_output=True, text=True, timeout=10,
+                )
+            except (OSError, subprocess.TimeoutExpired):
+                return None
+            if verify.returncode != 0:
+                return None
+            toplevel_str = verify.stdout.strip()
+            if not toplevel_str:
+                return None
+            toplevel = Path(toplevel_str)
+            if not toplevel.is_absolute():
+                toplevel = (path / toplevel).resolve()
+            if toplevel.resolve() != path.resolve():
+                return None
+            return path
+    return None
 
 
 def _local_manifest_candidates(repo_root: Path = REPO_ROOT) -> list[Path]:
@@ -131,39 +212,24 @@ def _local_manifest_candidates(repo_root: Path = REPO_ROOT) -> list[Path]:
         next to the manifest it overlays. The only candidate in the main
         checkout, where "this checkout's root" and "the main checkout" are
         the same directory.
-    (b) The parent of `git rev-parse --git-common-dir` (run with
-        cwd=repo_root) -- in a LINKED WORKTREE this always resolves to the
-        MAIN checkout's .git regardless of which worktree runs the script,
-        so its parent is the main checkout: exactly where an operator's
-        proof-manifest.local.toml actually lives. In the main checkout
-        itself, --git-common-dir is the relative ".git" and its parent
-        equals candidate (a), so (b) is a harmless duplicate there (never
-        appended twice -- see the dedupe below).
+    (b) `_main_worktree_path(repo_root)` -- in a LINKED WORKTREE this always
+        resolves to the MAIN checkout regardless of which worktree runs the
+        script: exactly where an operator's proof-manifest.local.toml
+        actually lives. In the main checkout itself this equals candidate
+        (a), so (b) is a harmless duplicate there (never appended twice --
+        see the dedupe below).
 
-    Never raises: if git is unavailable, the command fails, or its output
-    doesn't resolve to a directory, candidate (b) is simply omitted --
-    this function only lists candidates, it does not judge "no overlay
-    found" as an error (main() does that).
+    Never raises: if git is unavailable or the main worktree can't be
+    determined, candidate (b) is simply omitted -- this function only lists
+    candidates, it does not judge "no overlay found" as an error (main()
+    does that).
     """
     candidates = [repo_root / "proof-manifest.local.toml"]
-    try:
-        proc = subprocess.run(
-            ["git", "rev-parse", "--git-common-dir"],
-            cwd=repo_root, capture_output=True, text=True, timeout=10,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return candidates
-    if proc.returncode != 0:
-        return candidates
-    common_dir_str = proc.stdout.strip()
-    if not common_dir_str:
-        return candidates
-    common_dir = Path(common_dir_str)
-    if not common_dir.is_absolute():
-        common_dir = (repo_root / common_dir).resolve()
-    candidate_b = common_dir.parent / "proof-manifest.local.toml"
-    if candidate_b not in candidates:
-        candidates.append(candidate_b)
+    main_worktree = _main_worktree_path(repo_root)
+    if main_worktree is not None:
+        candidate_b = main_worktree / "proof-manifest.local.toml"
+        if candidate_b not in candidates:
+            candidates.append(candidate_b)
     return candidates
 
 
@@ -172,8 +238,18 @@ def resolve_local_manifest_path(repo_root: Path = REPO_ROOT) -> Path | None:
     _local_manifest_candidates(repo_root) (repo_root itself, then the main
     checkout when repo_root is a linked worktree), or None if neither
     candidate exists on this machine -- the normal/expected shape on CI or a
-    fresh public clone, not an error by itself (see main()'s fail-loud gate
-    for what turns "found nothing" into a blocked commit)."""
+    fresh public clone, not an error by itself (see
+    _no_live_check_outcome_gate() for what turns "found nothing" -- or
+    "found something that resolves nothing" -- into a blocked commit).
+
+    Known trade-off (finding 7, 2026-09-09): resolving via the MAIN checkout
+    means every worktree commit now also runs every live-checkable entry's
+    suite (up to 13 sibling repos, as of this writing) with no cross-process
+    lock between them -- two lanes committing at the same time each run all
+    13 suites concurrently, a CPU-starvation rail on this machine. Suggested
+    fix if this becomes a real problem: a file lock (e.g. a lock file next to
+    the resolved overlay) held around live_verify_manifest()'s call site.
+    """
     for candidate in _local_manifest_candidates(repo_root):
         if candidate.is_file():
             return candidate
@@ -834,9 +910,11 @@ def load_local_overrides(path: Path = LOCAL_MANIFEST_PATH) -> dict[str, dict]:
     Callers that want the OVERLAY FOUND, searching both the REPO_ROOT and
     (in a worktree) the main-checkout candidate, should resolve a path with
     resolve_local_manifest_path() first and pass its result here -- see that
-    function's docstring. main() below no longer treats "resolve found
-    nothing at either candidate" as silently benign the way this function's
-    {} return does; it fails loudly instead (see main()'s no-overlay gate).
+    function's docstring. Neither main() nor run() below treats "resolve
+    found nothing at either candidate" as silently benign the way this
+    function's {} return does by itself: whether that turns into a blocked
+    commit depends on the OUTCOME of the live checks that follow, not on
+    this return value alone -- see _no_live_check_outcome_gate().
     """
     if not path.is_file():
         return {}
@@ -1137,19 +1215,28 @@ def resolve_targets(root: Path, patterns: list[str]) -> list[Path]:
     return result
 
 
-def _live_check_findings(entries: dict[str, ManifestEntry]) -> tuple[list[LiveCheckResult], list[LiveCheckResult]]:
+def _live_check_findings(
+    entries: dict[str, ManifestEntry],
+) -> tuple[list[LiveCheckResult], list[LiveCheckResult], list[LiveCheckResult]]:
     """Run live_verify_manifest unless explicitly skipped, split into
-    (fails, warns). Skipping is opt-in only (PROOF_NUMBERS_SKIP_LIVE_CHECK=1)
+    (fails, warns, oks). Skipping is opt-in only (PROOF_NUMBERS_SKIP_LIVE_CHECK=1)
     -- by default every run three-way-checks live repo == manifest == site
     citations, since a silently-skipped live check is exactly how the
-    self-referential-gate bug (this fix's whole reason to exist) recurs."""
+    self-referential-gate bug (this fix's whole reason to exist) recurs.
+
+    Returns the "oks" list too (2026-09-09, review-fixes lane) so callers can
+    tell "every live-checkable entry actually verified clean" apart from
+    "nothing was ever checked at all" -- see _no_live_check_outcome_gate()
+    below, which needs exactly that distinction and would otherwise have no
+    way to see it (OK results were previously discarded here)."""
     if os.environ.get(SKIP_LIVE_CHECK_ENV_VAR):
         print(f"check_proof_numbers: {SKIP_LIVE_CHECK_ENV_VAR} set -- skipping live-repo verification.")
-        return [], []
+        return [], [], []
     results = live_verify_manifest(entries)
     fails = [r for r in results if r.status == "FAIL"]
     warns = [r for r in results if r.status == "WARN"]
-    return fails, warns
+    oks = [r for r in results if r.status == "OK"]
+    return fails, warns, oks
 
 
 def _privacy_findings(entries: dict[str, ManifestEntry]) -> list[LiveCheckResult]:
@@ -1173,6 +1260,119 @@ def _privacy_findings(entries: dict[str, ManifestEntry]) -> list[LiveCheckResult
             label="PRIVATE-SOURCE",
         ))
     return results
+
+
+_CI_FALSY_VALUES = {"", "0", "false", "no"}
+
+
+def _is_ci_set() -> bool:
+    """True only for a genuinely truthy CI value (finding 6): plain
+    `not os.environ.get("CI")` treated ANY set value, including "0" or
+    "false", as CI being ABSENT (backwards -- a runner that explicitly
+    exports CI=false/CI=0 for some other reason would have silently bypassed
+    the no-live-check gate below). Absent entirely -> not set. Present but
+    one of "", "0", "false", "no" (case-insensitive) -> also not set. Any
+    other value (including "1", "true", "yes", or CI's own conventional
+    "true") -> set."""
+    val = os.environ.get("CI")
+    if val is None:
+        return False
+    return val.strip().lower() not in _CI_FALSY_VALUES
+
+
+def _classify_no_live_check_reason(
+    resolved_local: Path | None, live_warns: list[LiveCheckResult],
+) -> str:
+    """Human-readable reason no live check produced an OK/FAIL result, for
+    the FATAL message below. Three named shapes (see finding 1): no overlay
+    file found anywhere; an overlay was found but no source_repo resolved
+    for any live-checkable entry; every resolved interpreter was missing --
+    plus two honest fallbacks (nothing to check at all; an unclassified mix
+    of WARN reasons, left to the WARN lines already printed to explain)."""
+    if resolved_local is None:
+        return "no proof-manifest.local.toml overlay found"
+    if not live_warns:
+        return "no live-checkable manifest entries to verify"
+    if all(
+        "no local override for source_repo" in w.message
+        or "source_repo not found on this machine" in w.message
+        for w in live_warns
+    ):
+        return "overlay present but no source_repo resolved"
+    if all("interpreter for source_cmd" in w.message for w in live_warns):
+        return "all interpreters missing"
+    return "see the WARN lines above for the per-entry reason"
+
+
+def _print_no_live_check_fatal(
+    manifest_root: Path, resolved_local: Path | None,
+    live_warns: list[LiveCheckResult],
+) -> None:
+    """The message for the outcome-keyed no-live-check gate (see
+    _no_live_check_outcome_gate() below): no live check produced a pass/fail
+    result at all, so an empty or stale overlay is silently letting every
+    live-checkable entry WARN forever -- exactly the self-referential-gate
+    failure mode live_verify_manifest() exists to catch. Computes its own
+    candidate list (finding 4) rather than requiring the caller to pass one
+    in, so main()/run() only need to resolve `resolved_local` once. Named a
+    separate function so the FIRES positive control can assert on exact
+    wording without duplicating it."""
+    candidates = _local_manifest_candidates(manifest_root)
+    reason = _classify_no_live_check_reason(resolved_local, live_warns)
+    print(
+        f"check_proof_numbers: FATAL -- no live check produced a pass/fail "
+        f"result ({reason}); every live check would be silently skipped."
+    )
+    print("check_proof_numbers: overlay candidates tried:")
+    for candidate in candidates:
+        print(f"  - {candidate}")
+    print("check_proof_numbers: to fix, either:")
+    print(
+        "  1. create/fix proof-manifest.local.toml (see "
+        "proof-manifest.local.toml.example), or"
+    )
+    print(
+        f"  2. set {SKIP_LIVE_CHECK_ENV_VAR}=1 to accept skipping live "
+        "checks explicitly."
+    )
+
+
+def _no_live_check_outcome_gate(
+    manifest_root: Path,
+    resolved_local: Path | None,
+    live_fails: list[LiveCheckResult],
+    live_oks: list[LiveCheckResult],
+    live_warns: list[LiveCheckResult],
+) -> int | None:
+    """Outcome-keyed no-live-check gate (finding 1) -- called by BOTH
+    main()'s argv branch and run(), right after _live_check_findings().
+
+    The gate this REPLACES keyed on file EXISTENCE alone: if a
+    proof-manifest.local.toml was found anywhere, the gate passed, full
+    stop. An empty overlay (or one whose source_repo paths are stale) still
+    satisfies mere existence while making every live-checkable entry WARN
+    -- the exact bypass this gate exists to catch, and the reason it must be
+    keyed on OUTCOME instead: did any entry actually reach a verdict (OK or
+    FAIL), not just "does a file exist at this path".
+
+    Fires (prints the FATAL message and returns 3 -- see finding 3 for why
+    3 and not 2) when NO entry produced a live OK or FAIL result, UNLESS the
+    explicit skip env is set (PROOF_NUMBERS_SKIP_LIVE_CHECK=1, an explicit
+    opt-in to skip live checks entirely) or CI is genuinely set (finding 6 --
+    CI/a public clone will never have every sibling repo's local override,
+    so an all-WARN run is expected and prints one line naming the bypass
+    instead of silently taking it). Returns None when the caller should
+    proceed normally.
+    """
+    if os.environ.get(SKIP_LIVE_CHECK_ENV_VAR):
+        return None
+    if _is_ci_set():
+        print("check_proof_numbers: CI set -- live checks skipped by policy")
+        return None
+    if live_fails or live_oks:
+        return None
+    _print_no_live_check_fatal(manifest_root, resolved_local, live_warns)
+    return 3
 
 
 def run(root: Path = REPO_ROOT, manifest_path: Path = MANIFEST_PATH,
@@ -1208,7 +1408,18 @@ def run(root: Path = REPO_ROOT, manifest_path: Path = MANIFEST_PATH,
             else:
                 all_warns.append(finding)
 
-    live_fails, live_warns = _live_check_findings(entries)
+    live_fails, live_warns, live_oks = _live_check_findings(entries)
+
+    # Outcome-keyed no-live-check gate (finding 1) -- evaluated against the
+    # SAME manifest_root run() itself used to resolve local_manifest_path
+    # above, so the candidates it reports match what was actually looked up.
+    resolved_local = local_manifest_path if local_manifest_path.is_file() else None
+    fatal = _no_live_check_outcome_gate(
+        manifest_path.parent, resolved_local, live_fails, live_oks, live_warns,
+    )
+    if fatal is not None:
+        return fatal
+
     all_fails.extend(live_fails)
     all_warns.extend(live_warns)
     all_warns.extend(_privacy_findings(entries))
@@ -1226,54 +1437,22 @@ def run(root: Path = REPO_ROOT, manifest_path: Path = MANIFEST_PATH,
     return 0
 
 
-def _print_no_overlay_fatal(candidates: list[Path]) -> None:
-    """The message for main()'s no-overlay gate (see main() below): no
-    proof-manifest.local.toml overlay was found at ANY candidate, so every
-    live check would silently WARN instead of ever being able to FAIL --
-    exactly the self-referential-gate failure mode live_verify_manifest()
-    exists to catch. Named a separate function so the FIRES positive control
-    can assert on exact wording without duplicating it."""
-    print(
-        "check_proof_numbers: FATAL -- no proof-manifest.local.toml overlay "
-        "found; every live check would be skipped silently."
-    )
-    print("check_proof_numbers: tried:")
-    for candidate in candidates:
-        print(f"  - {candidate}")
-    print("check_proof_numbers: to fix, either:")
-    print(
-        "  1. create proof-manifest.local.toml from "
-        "proof-manifest.local.toml.example, or"
-    )
-    print(
-        f"  2. set {SKIP_LIVE_CHECK_ENV_VAR}=1 to accept skipping live "
-        "checks explicitly."
-    )
-
-
 def main(argv: list[str]) -> int:
-    # No-overlay gate -- BEFORE any scanning work, so this message is the
-    # first thing printed (see _print_no_overlay_fatal docstring for why
-    # this exists). CI and the explicit skip env var are the two honest ways
-    # a WARN-only run is expected: CI/a public clone will never have every
-    # sibling repo's local override, and PROOF_NUMBERS_SKIP_LIVE_CHECK=1 is
-    # an explicit opt-in to skip live checks entirely. Absent either of
-    # those, running from ANY worktree with no local override reachable
-    # (neither at this checkout's root nor, via resolve_local_manifest_path,
-    # at the main checkout) is now a hard FATAL instead of 14 silent WARNs.
-    candidates = _local_manifest_candidates(REPO_ROOT)
-    resolved_local = next((c for c in candidates if c.is_file()), None)
-    if (resolved_local is None
-            and not os.environ.get("CI")
-            and not os.environ.get(SKIP_LIVE_CHECK_ENV_VAR)):
-        _print_no_overlay_fatal(candidates)
-        return 2
+    # Resolve the overlay ONCE via the real production function (finding 4
+    # -- this used to reimplement candidate iteration inline here, so
+    # resolve_local_manifest_path() had no production caller at all and only
+    # the WORKTREE test exercised it). The outcome-keyed no-live-check gate
+    # itself is evaluated AFTER live-checking below (see
+    # _no_live_check_outcome_gate()'s docstring for why it can no longer run
+    # before any scanning work the way the old file-existence gate did: it
+    # needs to see whether a live check actually reached a verdict).
+    resolved_local = resolve_local_manifest_path(REPO_ROOT)
 
     if argv:
         # Explicit file args (used by tests): scan exactly those files, manifest
         # still loaded from the real repo root unless overridden by env/caller.
         try:
-            local_overrides = load_local_overrides(resolved_local or LOCAL_MANIFEST_PATH)
+            local_overrides = load_local_overrides(resolved_local) if resolved_local is not None else {}
             entries = load_manifest_entries(MANIFEST_PATH, local_overrides=local_overrides)
         except ManifestValidationError as exc:
             print(f"check_proof_numbers: FATAL -- {exc}")
@@ -1290,7 +1469,14 @@ def main(argv: list[str]) -> int:
                 else:
                     all_warns.append(finding)
 
-        live_fails, live_warns = _live_check_findings(entries)
+        live_fails, live_warns, live_oks = _live_check_findings(entries)
+
+        fatal = _no_live_check_outcome_gate(
+            REPO_ROOT, resolved_local, live_fails, live_oks, live_warns,
+        )
+        if fatal is not None:
+            return fatal
+
         all_fails.extend(live_fails)
         all_warns.extend(live_warns)
         all_warns.extend(_privacy_findings(entries))

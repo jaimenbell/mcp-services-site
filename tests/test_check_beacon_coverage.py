@@ -12,6 +12,7 @@ the one a naive scan-the-output-only check gets wrong -- see
 test_generator_template_losing_beacon_fails_even_when_output_still_has_one.
 """
 
+import os
 import shutil
 import subprocess
 import sys
@@ -337,13 +338,24 @@ def _build_temp_hook_repo(tmp_path: Path, index_html_text: str,
     return repo
 
 
+def _hook_env() -> dict[str, str]:
+    """Env for a `.githooks/pre-commit` subprocess in these beacon-focused
+    fixtures (2026-09-09, review-fixes lane): their proof-manifest.toml
+    carries no source_repo_public entries (see _build_temp_hook_repo's
+    docstring), so explicitly skip live checks rather than let the
+    outcome-keyed no-live-check gate (check_proof_numbers.py finding 1)
+    intercept the run before gate 2 (beacon coverage), which is what these
+    tests are actually about."""
+    return {**os.environ, "PROOF_NUMBERS_SKIP_LIVE_CHECK": "1"}
+
+
 def test_hook_blocks_commit_when_beacon_missing(tmp_path):
     """The real pre-commit hook, run end-to-end, blocks a commit whose
     index.html has lost its beacon tag."""
     bash = _bash_path()
     repo = _build_temp_hook_repo(tmp_path, index_html_text="<head></head>\n")
 
-    result = subprocess.run([bash, ".githooks/pre-commit"], cwd=repo, capture_output=True, text=True)
+    result = subprocess.run([bash, ".githooks/pre-commit"], cwd=repo, capture_output=True, text=True, env=_hook_env())
 
     assert result.returncode == 2, f"{result.stdout}\n{result.stderr}"
     assert "BLOCKED" in result.stdout
@@ -362,7 +374,7 @@ def test_hook_allows_clean_commit_with_beacon_coverage_ok(tmp_path):
         generator_mjs_text=f"const html = `<head>{BEACON_TAG}</head>`;\n",
     )
 
-    result = subprocess.run([bash, ".githooks/pre-commit"], cwd=repo, capture_output=True, text=True)
+    result = subprocess.run([bash, ".githooks/pre-commit"], cwd=repo, capture_output=True, text=True, env=_hook_env())
 
     assert result.returncode == 0, f"{result.stdout}\n{result.stderr}"
     assert "BLOCKED" not in result.stdout
@@ -378,7 +390,7 @@ def test_hook_reports_beacon_gate_fault_as_cannot_run_not_a_verdict(tmp_path):
         "import definitely_not_a_real_module_xyz\n", encoding="utf-8", newline="\n"
     )
 
-    result = subprocess.run([bash, ".githooks/pre-commit"], cwd=repo, capture_output=True, text=True)
+    result = subprocess.run([bash, ".githooks/pre-commit"], cwd=repo, capture_output=True, text=True, env=_hook_env())
 
     assert result.returncode != 0
     assert "CANNOT RUN" in result.stdout

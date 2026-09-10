@@ -77,6 +77,24 @@ if [ "$STATUS" -eq 2 ]; then
     exit "$STATUS"
 fi
 
+# Distinct from a verdict (2) and from a crash (any other non-zero): 3 means
+# the gate could not verify anything at all -- no proof-manifest.local.toml
+# overlay resolved to a live check that actually reached a pass/fail result,
+# so every live-checkable entry would have silently WARNed forever (the
+# exact bypass the live-check gate exists to catch). This is neither "your
+# commit is wrong" nor "the gate crashed" -- it's "the gate isn't configured
+# on this machine", so it gets its own message rather than falling into the
+# generic CANNOT RUN branch below.
+if [ "$STATUS" -eq 3 ]; then
+    echo ""
+    echo "pre-commit: NOT CONFIGURED -- the proof-number gate could not verify"
+    echo "any live check (no proof-manifest.local.toml overlay resolved to a"
+    echo "usable pass/fail result). See proof-manifest.local.toml.example to"
+    echo "set one up, or set PROOF_NUMBERS_SKIP_LIVE_CHECK=1 to explicitly"
+    echo "accept skipping live verification."
+    exit "$STATUS"
+fi
+
 if [ "$STATUS" -ne 0 ]; then
     echo ""
     echo "pre-commit: CANNOT RUN -- the proof-number checker exited $STATUS"
