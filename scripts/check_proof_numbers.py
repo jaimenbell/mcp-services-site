@@ -1242,7 +1242,7 @@ def _live_check_findings(
     "nothing was ever checked at all" -- see _no_live_check_outcome_gate()
     below, which needs exactly that distinction and would otherwise have no
     way to see it (OK results were previously discarded here)."""
-    if os.environ.get(SKIP_LIVE_CHECK_ENV_VAR):
+    if _is_set(SKIP_LIVE_CHECK_ENV_VAR):
         print(f"check_proof_numbers: {SKIP_LIVE_CHECK_ENV_VAR} set -- skipping live-repo verification.")
         return [], [], []
     results = live_verify_manifest(entries)
@@ -1308,22 +1308,33 @@ def _privacy_findings(entries: dict[str, ManifestEntry]) -> list[LiveCheckResult
     return results
 
 
-_CI_FALSY_VALUES = {"", "0", "false", "no"}
+_FALSY_ENV_VALUES = {"", "0", "false", "no"}
+
+
+def _is_set(var_name: str) -> bool:
+    """True only for a genuinely truthy value of env var `var_name` (finding
+    6, first review, generalized by finding 5, second review): plain
+    `os.environ.get(var_name)` truthiness treats ANY set value, including
+    "0" or "false", as the var being ON (backwards -- a caller who
+    explicitly exports VAR=false/VAR=0 for some other reason would
+    unintentionally trip it). Absent entirely -> not set. Present but one of
+    "", "0", "false", "no" (case-insensitive) -> also not set. Any other
+    value (including "1", "true", "yes") -> set.
+
+    Shared by _is_ci_set() (CI) and the PROOF_NUMBERS_SKIP_LIVE_CHECK checks
+    in _live_check_findings() and _no_live_check_outcome_gate() -- finding 5
+    caught the skip var still using bare truthiness AFTER finding 6 hardened
+    CI for the exact same bug, because the two checks were two independent
+    copies of the same logic. One helper, one fix, both call sites."""
+    val = os.environ.get(var_name)
+    if val is None:
+        return False
+    return val.strip().lower() not in _FALSY_ENV_VALUES
 
 
 def _is_ci_set() -> bool:
-    """True only for a genuinely truthy CI value (finding 6): plain
-    `not os.environ.get("CI")` treated ANY set value, including "0" or
-    "false", as CI being ABSENT (backwards -- a runner that explicitly
-    exports CI=false/CI=0 for some other reason would have silently bypassed
-    the no-live-check gate below). Absent entirely -> not set. Present but
-    one of "", "0", "false", "no" (case-insensitive) -> also not set. Any
-    other value (including "1", "true", "yes", or CI's own conventional
-    "true") -> set."""
-    val = os.environ.get("CI")
-    if val is None:
-        return False
-    return val.strip().lower() not in _CI_FALSY_VALUES
+    """True only for a genuinely truthy CI value. See _is_set()."""
+    return _is_set("CI")
 
 
 def _classify_no_live_check_reason(
@@ -1449,7 +1460,7 @@ def _no_live_check_outcome_gate(
     naming the bypass instead of silently taking it). Returns None only
     when every live-checkable entry reached OK/FAIL (zero WARNs).
     """
-    if os.environ.get(SKIP_LIVE_CHECK_ENV_VAR):
+    if _is_set(SKIP_LIVE_CHECK_ENV_VAR):
         return None
     if _is_ci_set():
         print("check_proof_numbers: CI set -- live checks skipped by policy")

@@ -1912,6 +1912,63 @@ def test_ci_falsy_value_does_not_bypass_the_no_live_check_gate(tmp_path):
     assert "CI set" not in result.stdout
 
 
+# --- finding 5 (review 2): PROOF_NUMBERS_SKIP_LIVE_CHECK was STILL bare
+# `os.environ.get(...)` truthiness after finding 6 (first review) hardened
+# CI's identical bug -- "0"/"false" is a non-empty string, truthy in Python,
+# so setting the skip var to "off" actually skipped. Shared _is_set() helper
+# fixes both call sites (the skip check in _live_check_findings() and in
+# _no_live_check_outcome_gate()) in one place. ---
+
+def test_is_set_treats_falsy_spellings_as_not_set(monkeypatch):
+    """Unit level, generic helper: every falsy spelling -- and the var being
+    absent entirely -- must read as NOT set, for ANY var name (not just
+    CI)."""
+    var = "PROOF_NUMBERS_TEST_ONLY_VAR"
+    for falsy in ("0", "false", "False", "FALSE", "", "no", "No"):
+        monkeypatch.setenv(var, falsy)
+        assert cpn._is_set(var) is False, f"{var}={falsy!r} must read as NOT set"
+    monkeypatch.delenv(var, raising=False)
+    assert cpn._is_set(var) is False, f"{var} absent entirely must read as NOT set"
+
+
+def test_is_set_treats_truthy_spellings_as_set(monkeypatch):
+    """SILENT companion: "1" and "true" (any case) must count as set."""
+    var = "PROOF_NUMBERS_TEST_ONLY_VAR"
+    for truthy in ("1", "true", "True", "yes"):
+        monkeypatch.setenv(var, truthy)
+        assert cpn._is_set(var) is True, f"{var}={truthy!r} must read as set"
+
+
+def test_is_ci_set_is_is_set_applied_to_ci():
+    """_is_ci_set() is now a thin wrapper over the shared _is_set() helper,
+    not a second hand-rolled copy of the same falsy-value logic."""
+    import inspect
+    src = inspect.getsource(cpn._is_ci_set)
+    assert "_is_set(" in src, (
+        "_is_ci_set() must delegate to _is_set() -- a second independent "
+        "implementation is exactly the drift this finding exists to close"
+    )
+
+
+def test_skip_live_check_falsy_value_does_not_bypass_the_gate(tmp_path):
+    """Finding 5 FIRES (integration level, the concrete example from the
+    finding): PROOF_NUMBERS_SKIP_LIVE_CHECK="0" must NOT skip the live
+    check -- with no local override and no CI, the no-live-check gate must
+    still fire (exit 3), and the "skipping live-repo verification" bypass
+    line must never print."""
+    manifest = (
+        '["mcp-factory"]\n'
+        "value = 5\n"
+        'source_cmd = "python -c \\"print(1)\\""\n'
+        'source_repo_public = "jaimenbell/mcp-factory"\n'
+    )
+    repo = _build_temp_checker_repo(tmp_path, "repo-skip-falsy", manifest_toml_text=manifest)
+    result = _run_checker_main(repo, extra_env={cpn.SKIP_LIVE_CHECK_ENV_VAR: "0"})
+    assert result.returncode == 3, f"stdout={result.stdout!r} stderr={result.stderr!r}"
+    assert "FATAL" in result.stdout
+    assert "skipping live-repo verification" not in result.stdout
+
+
 def test_main_silent_3_skip_env_set_no_overlay_warns_and_exits_0(tmp_path):
     """SILENT-3: no overlay anywhere, PROOF_NUMBERS_SKIP_LIVE_CHECK=1 set --
     the no-overlay gate never fires (this IS the explicit opt-in its own fix
