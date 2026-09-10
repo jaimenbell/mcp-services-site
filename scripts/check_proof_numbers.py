@@ -249,6 +249,11 @@ def resolve_local_manifest_path(repo_root: Path = REPO_ROOT) -> Path | None:
     13 suites concurrently, a CPU-starvation rail on this machine. Suggested
     fix if this becomes a real problem: a file lock (e.g. a lock file next to
     the resolved overlay) held around live_verify_manifest()'s call site.
+    STILL NOT SHIPPED (finding 4, review 2, 2026-09-10): re-flagged in the
+    second review and deliberately left unimplemented again -- whether the
+    lock is worth the added complexity vs. just tolerating occasional
+    concurrent-commit CPU contention on this single-operator machine is an
+    operator call, not a code fix to make unasked.
     """
     for candidate in _local_manifest_candidates(repo_root):
         if candidate.is_file():
