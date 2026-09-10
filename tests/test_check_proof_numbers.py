@@ -1703,23 +1703,13 @@ def test_no_live_check_fatal_still_prints_real_citation_fail_line_main_argv(tmp_
 # pre-existing honest-WARN shape is unchanged (SILENT-1/2/3). Real
 # subprocess + real git throughout -- git is never mocked. ---
 
-def _git_clean_env(extra: dict[str, str] | None = None) -> dict[str, str]:
-    """A subprocess env with every GIT_* var stripped (finding 10). Git
-    exports GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE (and friends) to its own
-    hook's subprocess environment -- if this test module's git-spawning
-    helpers ever run FROM inside a git hook (e.g. this very repo's own
-    pre-commit, or a live_verify_manifest() invocation from ANOTHER repo's
-    hook that targets this repo's test suite as a source_cmd) and inherit
-    those vars unscrubbed, a `git init`/`git worktree add`/`git commit` in a
-    tmp fixture repo would silently target the OUTER repo's git internals
-    instead of the tmp repo it's meant to operate on -- see
-    check_proof_numbers.py's own `clean_env` comment in
-    live_verify_manifest() for the production-code sibling of this exact
-    fix. `extra` merges additional/overriding entries on top."""
-    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
-    if extra:
-        env.update(extra)
-    return env
+# _git_clean_env() moved to tests/conftest.py (finding 9, review 2) so
+# tests/test_check_beacon_coverage.py can share the exact same
+# implementation instead of carrying its own unscrubbed copy. Imported here
+# (not just relying on pytest's fixture-only conftest visibility -- this is
+# a plain helper function, not a fixture) so every call site in this module
+# keeps working unchanged.
+from conftest import _git_clean_env  # noqa: E402
 
 
 def test_git_clean_env_strips_git_star_vars_fires_and_stays_silent(monkeypatch):

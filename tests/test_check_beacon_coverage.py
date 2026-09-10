@@ -25,6 +25,12 @@ sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
 import check_beacon_coverage as cbc  # noqa: E402
 
+# Shared with tests/test_check_proof_numbers.py via tests/conftest.py
+# (finding 9, review 2): this module's own _hook_env() and
+# _build_temp_hook_repo() used to spawn git with an unscrubbed environment,
+# covering only one of the two files finding 10 (first review) meant to fix.
+from conftest import _git_clean_env  # noqa: E402
+
 BEACON_TAG = (
     '<script data-goatcounter="https://jaimenbell.goatcounter.com/count" '
     'async src="//gc.zgo.at/count.js"></script>'
@@ -309,9 +315,10 @@ def _build_temp_hook_repo(tmp_path: Path, index_html_text: str,
     these beacon-focused fixtures."""
     repo = tmp_path / "hookrepo"
     repo.mkdir()
-    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
-    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
-    subprocess.run(["git", "config", "user.name", "Test"], cwd=repo, check=True)
+    env = _git_clean_env()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True, env=env)
+    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True, env=env)
+    subprocess.run(["git", "config", "user.name", "Test"], cwd=repo, check=True, env=env)
 
     (repo / "scripts").mkdir()
     shutil.copy2(REPO_ROOT / "scripts" / "check_proof_numbers.py", repo / "scripts" / "check_proof_numbers.py")
@@ -345,8 +352,49 @@ def _hook_env() -> dict[str, str]:
     docstring), so explicitly skip live checks rather than let the
     outcome-keyed no-live-check gate (check_proof_numbers.py finding 1)
     intercept the run before gate 2 (beacon coverage), which is what these
-    tests are actually about."""
-    return {**os.environ, "PROOF_NUMBERS_SKIP_LIVE_CHECK": "1"}
+    tests are actually about.
+
+    Scrubs GIT_* vars via the shared _git_clean_env() (finding 9, review 2:
+    this used to be a bare `{**os.environ, ...}` spread, unscrubbed -- see
+    test_hook_env_scrubs_inherited_git_star_vars and
+    test_build_temp_hook_repo_git_init_ignores_inherited_git_dir below for
+    why that matters for a real .githooks/pre-commit subprocess and for
+    building the fixture repo itself)."""
+    return _git_clean_env({"PROOF_NUMBERS_SKIP_LIVE_CHECK": "1"})
+
+
+def test_hook_env_scrubs_inherited_git_star_vars(monkeypatch):
+    """Finding 9, positive control (module 1 of 2): with GIT_DIR set in the
+    ambient environment (the shape git exports to its own hook's
+    subprocess), _hook_env() must not leak it through -- while still
+    carrying PROOF_NUMBERS_SKIP_LIVE_CHECK=1 (its whole purpose)."""
+    monkeypatch.setenv("GIT_DIR", r"C:\outer-repo\.git")
+    env = _hook_env()
+    assert not any(k.startswith("GIT_") for k in env), f"GIT_* leaked: {[k for k in env if k.startswith('GIT_')]}"
+    assert env.get("PROOF_NUMBERS_SKIP_LIVE_CHECK") == "1"
+
+
+def test_build_temp_hook_repo_git_init_ignores_inherited_git_dir(tmp_path, monkeypatch):
+    """Finding 9, positive control (module 2 of 2): reproduces the real
+    hazard directly -- an inherited GIT_DIR pointed at a DIFFERENT location
+    hijacks a bare `git init` (verified live: with GIT_DIR set, `git init`
+    creates its git internals AT THAT PATH instead of `<repo>/.git`,
+    returncode 0, no error). _build_temp_hook_repo()'s three git calls
+    (init, config x2) used to run with no `env=` at all, inheriting
+    whatever GIT_* the caller had -- if this test module's fixtures ever
+    ran nested inside this repo's OWN pre-commit hook (which does set
+    GIT_DIR for its subprocess), the fixture repo's `git init` would target
+    the OUTER repo's git internals instead of the tmp fixture. Positive
+    control: set GIT_DIR to a hijack path BEFORE building the fixture repo,
+    and prove the fixture still initializes its OWN .git normally, with the
+    hijack path never created."""
+    hijack_dir = tmp_path / "hijacked.git"
+    monkeypatch.setenv("GIT_DIR", str(hijack_dir))
+
+    repo = _build_temp_hook_repo(tmp_path, index_html_text="<p>nothing to see here</p>\n")
+
+    assert (repo / ".git").is_dir(), "the fixture repo's own .git must exist -- git init must not be hijacked"
+    assert not hijack_dir.exists(), f"inherited GIT_DIR was NOT scrubbed -- git init targeted {hijack_dir} instead"
 
 
 def test_hook_blocks_commit_when_beacon_missing(tmp_path):
