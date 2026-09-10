@@ -1261,6 +1261,24 @@ _SENSITIVE_NOTE_SUBSTRINGS = (
     "halt", "drawdown", "sentinel", "pid ", "armed", "kill switch", "stand-down",
 )
 
+# Word-anchored forms of the terms above (third review, LOW, 2026-09-10): a
+# bare `in` matched "armed" inside "unarmed"/"alarmed"/"harmed", "halt"
+# inside "asphalt", and "pid " inside "rapid "/"stupid " -- each a hard
+# SENSITIVE-NOTE FAIL that would have blocked the commit hook on an
+# ordinary word. Left-anchored at a word boundary; "halt", "drawdown" and
+# "sentinel" keep their inflections (halted, halting) because those ARE the
+# disclosure class; "pid" and "armed" are whole words.
+_SENSITIVE_NOTE_PATTERNS = {
+    "halt": re.compile(r"\bhalt"),
+    "drawdown": re.compile(r"\bdrawdown"),
+    "sentinel": re.compile(r"\bsentinel"),
+    "pid ": re.compile(r"\bpid\b"),
+    "armed": re.compile(r"\barmed\b"),
+    "kill switch": re.compile(r"\bkill[ -]switch"),
+    "stand-down": re.compile(r"\bstand[ -]down"),
+}
+assert set(_SENSITIVE_NOTE_PATTERNS) == set(_SENSITIVE_NOTE_SUBSTRINGS)
+
 
 def _privacy_findings(entries: dict[str, ManifestEntry]) -> list[LiveCheckResult]:
     """Two disclosure checks over the manifest, both about what
@@ -1298,7 +1316,7 @@ def _privacy_findings(entries: dict[str, ManifestEntry]) -> list[LiveCheckResult
             ))
         if entry.note:
             lowered = entry.note.lower()
-            hits = [bad for bad in _SENSITIVE_NOTE_SUBSTRINGS if bad in lowered]
+            hits = [bad for bad, rx in _SENSITIVE_NOTE_PATTERNS.items() if rx.search(lowered)]
             if hits:
                 results.append(LiveCheckResult(
                     key, "FAIL",

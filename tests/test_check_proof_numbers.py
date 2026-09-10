@@ -2207,6 +2207,37 @@ def test_privacy_findings_fires_on_each_widened_denylist_term(term):
     assert hits[0].label == "SENSITIVE-NOTE"
 
 
+@pytest.mark.parametrize("innocent", [
+    "rapid growth in the suite, nothing stupid  here",
+    "the operator stayed unarmed and mildly alarmed; nobody was harmed",
+    "asphalt-grade stability across the window",
+    "a disarmed comparison, standing down the noise",
+])
+def test_privacy_findings_silent_on_words_that_merely_contain_a_term(innocent):
+    """Negative control for the word-boundary fix (third review, LOW): words
+    that merely CONTAIN a denylist term ("unarmed", "rapid ", "asphalt",
+    "disarmed") must not FAIL. Before the fix every one of these blocked the
+    commit hook."""
+    entries = _entries_from_notes({"fake": innocent})
+    results = cpn._privacy_findings(entries)
+    assert not [r for r in results if r.repo_key == "fake" and r.status == "FAIL"],         [r.format() for r in results]
+
+
+@pytest.mark.parametrize("guilty", [
+    "reingest held the store lock (pid 27936)",
+    "ARMED for live trading since 08-18",
+    "entries halted by the operator sentinel",
+    "kill-switch tripped; stand down until reviewed",
+])
+def test_privacy_findings_fires_on_word_anchored_terms(guilty):
+    """Positive control for the same fix: the real disclosure shapes (a live
+    pid, ARMED, halted/sentinel, kill-switch / stand down with either
+    separator) still FAIL after anchoring."""
+    entries = _entries_from_notes({"fake": guilty})
+    results = cpn._privacy_findings(entries)
+    assert [r for r in results if r.repo_key == "fake" and r.status == "FAIL"],         [r.format() for r in results]
+
+
 def test_privacy_findings_silent_on_clean_note():
     """Negative control: an ordinary note with none of the denylist terms
     produces no FAIL result."""
