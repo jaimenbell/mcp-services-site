@@ -1375,6 +1375,50 @@ def _no_live_check_outcome_gate(
     return 3
 
 
+def _finish(
+    entries: dict[str, ManifestEntry],
+    all_fails: list[Finding | LiveCheckResult],
+    all_warns: list[Finding | LiveCheckResult],
+    manifest_root: Path,
+    resolved_local: Path | None,
+) -> int:
+    """Shared tail for run() and main()'s explicit-argv branch (finding 10):
+    both used to carry an 18-line near-identical block that had already
+    drifted between the two call sites. Centralizing it here also fixes
+    finding 1 in one place: the old order evaluated the no-live-check
+    outcome gate BEFORE printing any citation findings, so a real
+    stale-number FAIL was silently discarded whenever the gate also fired
+    (exit 3, no FAIL line ever printed) -- the operator was told only "no
+    live check ran", never that their own commit had a genuine citation
+    failure. Findings are now printed FIRST, unconditionally; the gate is
+    evaluated after, so a fatal-gate exit can never again eat a real FAIL
+    line -- it can only ever add its own FATAL message below what was
+    already printed.
+    """
+    live_fails, live_warns, live_oks = _live_check_findings(entries)
+
+    all_fails = list(all_fails) + live_fails
+    all_warns = list(all_warns) + live_warns + _privacy_findings(entries)
+
+    for w in all_warns:
+        print(w.format())
+    for f in all_fails:
+        print(f.format())
+
+    fatal = _no_live_check_outcome_gate(
+        manifest_root, resolved_local, live_fails, live_oks, live_warns,
+    )
+    if fatal is not None:
+        return fatal
+
+    if all_fails:
+        print(f"\ncheck_proof_numbers: {len(all_fails)} FAIL, {len(all_warns)} WARN")
+        return 2
+
+    print(f"check_proof_numbers: OK ({len(all_warns)} WARN, 0 FAIL)")
+    return 0
+
+
 def run(root: Path = REPO_ROOT, manifest_path: Path = MANIFEST_PATH,
         target_patterns: list[str] | None = None,
         local_manifest_path: Path | None = None) -> int:
@@ -1408,33 +1452,11 @@ def run(root: Path = REPO_ROOT, manifest_path: Path = MANIFEST_PATH,
             else:
                 all_warns.append(finding)
 
-    live_fails, live_warns, live_oks = _live_check_findings(entries)
-
-    # Outcome-keyed no-live-check gate (finding 1) -- evaluated against the
-    # SAME manifest_root run() itself used to resolve local_manifest_path
-    # above, so the candidates it reports match what was actually looked up.
+    # Resolved against the SAME manifest_root run() itself used to resolve
+    # local_manifest_path above, so _finish()'s FATAL candidate list (if it
+    # fires) matches what was actually looked up.
     resolved_local = local_manifest_path if local_manifest_path.is_file() else None
-    fatal = _no_live_check_outcome_gate(
-        manifest_path.parent, resolved_local, live_fails, live_oks, live_warns,
-    )
-    if fatal is not None:
-        return fatal
-
-    all_fails.extend(live_fails)
-    all_warns.extend(live_warns)
-    all_warns.extend(_privacy_findings(entries))
-
-    for w in all_warns:
-        print(w.format())
-    for f in all_fails:
-        print(f.format())
-
-    if all_fails:
-        print(f"\ncheck_proof_numbers: {len(all_fails)} FAIL, {len(all_warns)} WARN")
-        return 2
-
-    print(f"check_proof_numbers: OK ({len(all_warns)} WARN, 0 FAIL)")
-    return 0
+    return _finish(entries, all_fails, all_warns, manifest_path.parent, resolved_local)
 
 
 def main(argv: list[str]) -> int:
@@ -1464,32 +1486,16 @@ def main(argv: list[str]) -> int:
         for arg in argv:
             path = Path(arg)
             for finding in scan_file(path, manifest):
+                try:
+                    finding.file = finding.file.relative_to(REPO_ROOT)
+                except ValueError:
+                    pass
                 if finding.verdict == "FAIL":
                     all_fails.append(finding)
                 else:
                     all_warns.append(finding)
 
-        live_fails, live_warns, live_oks = _live_check_findings(entries)
-
-        fatal = _no_live_check_outcome_gate(
-            REPO_ROOT, resolved_local, live_fails, live_oks, live_warns,
-        )
-        if fatal is not None:
-            return fatal
-
-        all_fails.extend(live_fails)
-        all_warns.extend(live_warns)
-        all_warns.extend(_privacy_findings(entries))
-
-        for w in all_warns:
-            print(w.format())
-        for f in all_fails:
-            print(f.format())
-        if all_fails:
-            print(f"\ncheck_proof_numbers: {len(all_fails)} FAIL, {len(all_warns)} WARN")
-            return 2
-        print(f"check_proof_numbers: OK ({len(all_warns)} WARN, 0 FAIL)")
-        return 0
+        return _finish(entries, all_fails, all_warns, REPO_ROOT, resolved_local)
     return run(local_manifest_path=resolved_local)
 
 

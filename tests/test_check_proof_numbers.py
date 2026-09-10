@@ -1623,6 +1623,72 @@ def test_run_without_local_override_file_but_ci_set_warns_and_still_exits_0(tmp_
     assert "local override" in out.lower()
 
 
+def test_no_live_check_fatal_still_prints_real_citation_fail_line_run(tmp_path, capsys, monkeypatch):
+    """Finding 1 (review 2): the outcome-keyed no-live-check gate used to
+    `return 3` BEFORE any scan_file() citation FAIL was printed, so a
+    genuinely stale number on the committed page was silently discarded --
+    the operator saw only the FATAL "no live check" message and was never
+    told their own commit had a real citation failure. Reproduced: no
+    overlay anywhere, CI/skip both unset (the fatal gate still fires, exit
+    stays 3 -- this test is not about changing that exit code), but the
+    page cites 999 against a manifest value of 348. The FAIL line for that
+    real mismatch must now be visible in the output before the FATAL
+    message, never silently dropped."""
+    monkeypatch.delenv("CI", raising=False)
+    monkeypatch.delenv(cpn.SKIP_LIVE_CHECK_ENV_VAR, raising=False)
+    manifest_toml = tmp_path / "proof-manifest.toml"
+    manifest_toml.write_text(
+        '["mcp-factory"]\n'
+        "value = 348\n"
+        'source_cmd = "python -m pytest -q"\n'
+        'source_repo_public = "jaimenbell/mcp-factory"\n',
+        encoding="utf-8",
+    )
+    site_dir = tmp_path / "site"
+    site_dir.mkdir()
+    write(site_dir, "index.html", "<p>mcp-factory: 999 passing tests</p>\n")
+
+    exit_code = cpn.run(root=site_dir, manifest_path=manifest_toml, target_patterns=["*.html"])
+
+    assert exit_code == 3
+    out = capsys.readouterr().out
+    assert "FAIL" in out, f"real citation FAIL line missing from output:\n{out}"
+    assert "999" in out
+    fail_pos = out.index("FAIL")
+    fatal_pos = out.index("FATAL")
+    assert fail_pos < fatal_pos, "citation FAIL must print before the FATAL no-live-check message"
+
+
+def test_no_live_check_fatal_still_prints_real_citation_fail_line_main_argv(tmp_path, capsys, monkeypatch):
+    """Same as the run() control above, but through main()'s explicit-argv
+    branch (finding 10: this tail used to be an 18-line near-duplicate of
+    run()'s, already drifted -- centralizing both through the shared
+    _finish() helper must fix finding 1 in both call sites, not just one)."""
+    monkeypatch.delenv("CI", raising=False)
+    monkeypatch.delenv(cpn.SKIP_LIVE_CHECK_ENV_VAR, raising=False)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(cpn, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(cpn, "MANIFEST_PATH", tmp_path / "proof-manifest.toml")
+    (tmp_path / "proof-manifest.toml").write_text(
+        '["mcp-factory"]\n'
+        "value = 348\n"
+        'source_cmd = "python -m pytest -q"\n'
+        'source_repo_public = "jaimenbell/mcp-factory"\n',
+        encoding="utf-8",
+    )
+    page = write(tmp_path, "index.html", "<p>mcp-factory: 999 passing tests</p>\n")
+
+    exit_code = cpn.main([str(page)])
+
+    assert exit_code == 3
+    out = capsys.readouterr().out
+    assert "FAIL" in out, f"real citation FAIL line missing from output:\n{out}"
+    assert "999" in out
+    fail_pos = out.index("FAIL")
+    fatal_pos = out.index("FATAL")
+    assert fail_pos < fatal_pos, "citation FAIL must print before the FATAL no-live-check message"
+
+
 # --- resolve_local_manifest_path() / main()'s no-overlay gate
 # (worktree-overlay lane, 2026-09-09): from ANY worktree, REPO_ROOT
 # (Path(__file__)...) is the worktree's own root, which never holds the
