@@ -883,7 +883,8 @@ class ManifestEntry:
                  source_repo_public: str | None = None,
                  visibility: str = "public",
                  source_timeout: int | None = None,
-                 historical_pin: bool = False):
+                 historical_pin: bool = False,
+                 note: str | None = None):
         self.key = key
         self.value = value
         self.source_cmd = source_cmd
@@ -893,6 +894,11 @@ class ManifestEntry:
         self.visibility = visibility
         self.source_timeout = source_timeout
         self.historical_pin = historical_pin
+        # Free-text audit-trail field (finding 2, review 2): carried through
+        # so _privacy_findings() below can scan it for sensitive operational
+        # disclosures. Purely documentation otherwise -- never drives
+        # execution or citation matching.
+        self.note = note
 
 
 def load_local_overrides(path: Path = LOCAL_MANIFEST_PATH) -> dict[str, dict]:
@@ -1030,6 +1036,12 @@ def load_manifest_entries(
                 f"entry cannot be both a frozen historical pin (never "
                 f"live-checked) and a live-checked public identity"
             )
+        note = entry.get("note")
+        if note is not None and not isinstance(note, str):
+            raise ManifestValidationError(
+                f'proof-manifest.toml: entry ["{key}"]\'s "note" must be a '
+                f"string; got: {note!r}"
+            )
         source_repo = entry.get("source_repo")
         # Local overlay (untracked proof-manifest.local.toml) wins over
         # whatever the tracked manifest carries -- on the real repo the
@@ -1053,6 +1065,7 @@ def load_manifest_entries(
             visibility=visibility,
             source_timeout=source_timeout,
             historical_pin=historical_pin,
+            note=note,
         )
     return manifest
 
@@ -1239,26 +1252,59 @@ def _live_check_findings(
     return fails, warns, oks
 
 
+_SENSITIVE_NOTE_SUBSTRINGS = (
+    "halt", "drawdown", "sentinel", "pid ", "armed", "kill switch", "stand-down",
+)
+
+
 def _privacy_findings(entries: dict[str, ManifestEntry]) -> list[LiveCheckResult]:
-    """Report every manifest entry marked visibility="private" (see
-    proof-manifest.toml's VISIBILITY header comment) -- named, PRIVATE-SOURCE,
-    always WARN. This reuses LiveCheckResult / the existing honest-WARN
-    convention (printed, tallied, never escalated to FAIL) rather than
-    inventing a second reporting mechanism: a private source_repo is a
-    legitimate, disclosed state (the site says so next to every citation of
-    the number), not a defect the commit gate should ever block on."""
+    """Two disclosure checks over the manifest, both about what
+    proof-manifest.toml is safe to serve PUBLICLY (jaimenbell.dev/
+    proof-manifest.toml is a real, fetchable, no-build-step-served URL):
+
+    1. visibility="private" (see proof-manifest.toml's VISIBILITY header
+       comment) -- named, PRIVATE-SOURCE, always WARN. This reuses
+       LiveCheckResult / the existing honest-WARN convention (printed,
+       tallied, never escalated to FAIL) since a private source_repo is a
+       legitimate, disclosed state (the site says so next to every citation
+       of the number), not a defect the commit gate should ever block on.
+
+    2. `note` containing a sensitive operational substring (finding 2,
+       review 2) -- named, SENSITIVE-NOTE, always FAIL. A `note` is free-text
+       audit trail, not reviewed the way a value/citation is, and must never
+       disclose a private bot's operational/risk state: a live process id,
+       a real-money ARMED/kill-switch/stand-down event, or halt/drawdown/
+       sentinel semantics or timestamps. Unlike the PRIVATE-SOURCE WARN
+       above, this one DOES need to block the commit -- it moved here from a
+       pytest-only assertion (tests/test_check_proof_numbers.py) that the
+       hook never ran, so a leaking note could reach the public site
+       untouched; living inside _privacy_findings() means every run()/main()
+       call (including the pre-commit hook) now sees it too."""
     results: list[LiveCheckResult] = []
     for key, entry in entries.items():
-        if entry.visibility != "private":
-            continue
-        public_id = entry.source_repo_public or "no public identity given"
-        results.append(LiveCheckResult(
-            key, "WARN",
-            f"manifest visibility=private -- source repo ({public_id}) is "
-            f"not public; its cited count is self-verified by the operator, "
-            f"not independently checkable by a site visitor.",
-            label="PRIVATE-SOURCE",
-        ))
+        if entry.visibility == "private":
+            public_id = entry.source_repo_public or "no public identity given"
+            results.append(LiveCheckResult(
+                key, "WARN",
+                f"manifest visibility=private -- source repo ({public_id}) is "
+                f"not public; its cited count is self-verified by the operator, "
+                f"not independently checkable by a site visitor.",
+                label="PRIVATE-SOURCE",
+            ))
+        if entry.note:
+            lowered = entry.note.lower()
+            hits = [bad for bad in _SENSITIVE_NOTE_SUBSTRINGS if bad in lowered]
+            if hits:
+                results.append(LiveCheckResult(
+                    key, "FAIL",
+                    f"manifest note contains sensitive operational substring(s) "
+                    f"{hits} -- proof-manifest.toml is served publicly and must "
+                    f"never disclose a private bot's operational/risk state "
+                    f"(a live pid, ARMED/kill-switch/stand-down, or "
+                    f"halt/drawdown/sentinel semantics); scrub the note (omit "
+                    f"the disclosure, never paraphrase it).",
+                    label="SENSITIVE-NOTE",
+                ))
     return results
 
 
@@ -1396,9 +1442,12 @@ def _finish(
     already printed.
     """
     live_fails, live_warns, live_oks = _live_check_findings(entries)
+    privacy = _privacy_findings(entries)
+    privacy_fails = [p for p in privacy if p.status == "FAIL"]
+    privacy_warns = [p for p in privacy if p.status != "FAIL"]
 
-    all_fails = list(all_fails) + live_fails
-    all_warns = list(all_warns) + live_warns + _privacy_findings(entries)
+    all_fails = list(all_fails) + live_fails + privacy_fails
+    all_warns = list(all_warns) + live_warns + privacy_warns
 
     for w in all_warns:
         print(w.format())

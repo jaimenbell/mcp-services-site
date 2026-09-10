@@ -2090,60 +2090,93 @@ def test_real_local_example_template_covers_every_live_checked_entry():
             )
 
 
-# --- finding 2: proof-manifest.toml is PUBLIC (jaimenbell.dev/proof-manifest.toml
-# is a real, fetchable, no-build-step-served URL) -- a `note` field is free-text
-# audit trail, not reviewed the way a value/citation is, and must never carry a
-# private bot's operational risk state (halt-sentinel semantics, drawdown-driven
-# halts, timestamps of an operator halt event). The real day-trader entry leaked
-# exactly this before this commit; rewritten in the same commit as this guard. ---
+# --- finding 2 (review 2): proof-manifest.toml is PUBLIC (jaimenbell.dev/
+# proof-manifest.toml is a real, fetchable, no-build-step-served URL) -- a
+# `note` field is free-text audit trail, not reviewed the way a value/citation
+# is, and must never carry a private bot's operational risk state (halt/
+# drawdown/sentinel semantics, a live pid, a real-money ARMED disclosure, a
+# kill-switch/stand-down event). The first review fix (below-superseded) only
+# asserted this in a pytest test -- the hook never runs pytest, so nothing
+# actually blocked a bad note from being committed. This version moves the
+# check into _privacy_findings() (the FAIL path _finish() already prints and
+# gates on for every run/commit) and widens the denylist per the second
+# review's exact list: pid / ARMED / kill switch / stand-down, plus the
+# original halt / drawdown / sentinel. ---
 
-_SENSITIVE_NOTE_SUBSTRINGS = ("halt", "drawdown", "sentinel")
-
-
-def _assert_note_has_no_sensitive_operational_substrings(key: str, note: str) -> None:
-    lowered = note.lower()
-    for bad in _SENSITIVE_NOTE_SUBSTRINGS:
-        assert bad not in lowered, (
-            f'{key}: note contains "{bad}" -- proof-manifest.toml is served '
-            f"publicly and must never disclose a private bot's operational "
-            f"risk state (halt/drawdown/sentinel semantics or timestamps)"
-        )
-
-
-def test_note_sensitive_substring_check_fires_on_bad_input():
-    """Positive control: the check above must actually FIRE on a note that
-    reproduces the pre-fix day-trader text's shape, proving it can
-    discriminate rather than trivially passing everything."""
-    with pytest.raises(AssertionError):
-        _assert_note_has_no_sensitive_operational_substrings(
-            "fake",
-            "an operator data/HALT sentinel written at some timestamp (the drawdown halt)",
-        )
+def _entries_from_notes(notes: dict[str, str]) -> dict[str, cpn.ManifestEntry]:
+    return {
+        key: cpn.ManifestEntry(key=key, value=1, source_cmd="true", note=note)
+        for key, note in notes.items()
+    }
 
 
-def test_note_sensitive_substring_check_silent_on_clean_input():
-    """Negative control: an ordinary note with no sensitive substrings must
-    not raise."""
-    _assert_note_has_no_sensitive_operational_substrings(
-        "fake", "RE-VERIFIED 2026-09-09: value unchanged, re-measured clean.",
+@pytest.mark.parametrize("term", ["halt", "drawdown", "sentinel", "pid ", "armed", "kill switch", "stand-down"])
+def test_privacy_findings_fires_on_each_widened_denylist_term(term):
+    """Positive control, one per widened-denylist term (finding 2): a note
+    containing each term must produce a FAIL-status, SENSITIVE-NOTE-labelled
+    result from _privacy_findings() -- proving the check discriminates on
+    every term the review named, not just the original three."""
+    entries = _entries_from_notes({"fake": f"some text with a {term} in it"})
+    results = cpn._privacy_findings(entries)
+    hits = [r for r in results if r.repo_key == "fake" and r.status == "FAIL"]
+    assert hits, f'"{term}" did not fire a FAIL result: {[r.format() for r in results]}'
+    assert hits[0].label == "SENSITIVE-NOTE"
+
+
+def test_privacy_findings_silent_on_clean_note():
+    """Negative control: an ordinary note with none of the denylist terms
+    produces no FAIL result."""
+    entries = _entries_from_notes({
+        "fake": "RE-VERIFIED 2026-09-09: value unchanged, re-measured clean.",
+    })
+    results = cpn._privacy_findings(entries)
+    assert not [r for r in results if r.status == "FAIL"]
+
+
+def test_privacy_findings_silent_when_no_note():
+    """An entry with no note at all (the common case) produces no
+    SENSITIVE-NOTE result -- absence of a note is not a finding."""
+    entries = _entries_from_notes({})
+    entries["fake"] = cpn.ManifestEntry(key="fake", value=1, source_cmd="true")
+    results = cpn._privacy_findings(entries)
+    assert not [r for r in results if r.status == "FAIL"]
+
+
+def test_run_end_to_end_fails_when_a_manifest_note_carries_a_sensitive_substring(tmp_path, monkeypatch):
+    """End-to-end (finding 2's actual defect): the OLD behavior let a commit
+    through cleanly (exit 0) with a sensitive note sitting in the manifest,
+    because the hook never runs pytest and run()/main() never looked at
+    `note` at all. Now a sensitive note must FAIL the run (exit 2), the same
+    gate every other FAIL uses."""
+    monkeypatch.setenv(cpn.SKIP_LIVE_CHECK_ENV_VAR, "1")
+    manifest_toml = tmp_path / "proof-manifest.toml"
+    manifest_toml.write_text(
+        '["mcp-factory"]\n'
+        "value = 222\n"
+        'source_cmd = "python -m pytest -q"\n'
+        'note = "an operator data/HALT sentinel written at some timestamp"\n',
+        encoding="utf-8",
     )
+    site_dir = tmp_path / "site"
+    site_dir.mkdir()
+    write(site_dir, "index.html", "<p>mcp-factory: 222 passing tests</p>\n")
+
+    exit_code = cpn.run(root=site_dir, manifest_path=manifest_toml, target_patterns=["*.html"])
+    assert exit_code == 2
 
 
 def test_real_tracked_manifest_notes_carry_no_sensitive_operational_state():
-    """Finding 2: every `note` in the REAL tracked proof-manifest.toml must
-    be free of HALT/drawdown/sentinel substrings (case-insensitive) -- FIRES
-    on the pre-fix day-trader text (which published a real operator
-    data/HALT sentinel timestamp and drawdown-halt semantics on the public
-    site), SILENT after this same-commit rewrite."""
-    with open(cpn.MANIFEST_PATH, "rb") as fh:
-        data = cpn.tomllib.load(fh)
-    for key, entry in data.items():
-        if not isinstance(entry, dict):
-            continue
-        note = entry.get("note")
-        if not isinstance(note, str):
-            continue
-        _assert_note_has_no_sensitive_operational_substrings(key, note)
+    """Finding 2: every `note` in the REAL tracked proof-manifest.toml,
+    loaded the same way run()/main() load it (via load_manifest_entries(),
+    not a hand-rolled re-parse), must produce zero SENSITIVE-NOTE FAIL
+    results from the actual production check -- FIRED on the pre-fix
+    day-trader/options-bot/rag-mcp text (a live pid, a real-money ARMED
+    disclosure, a quoted private-repo commit message), SILENT after this
+    same-commit scrub."""
+    entries = cpn.load_manifest_entries(cpn.MANIFEST_PATH)
+    results = cpn._privacy_findings(entries)
+    fails = [r for r in results if r.status == "FAIL"]
+    assert not fails, "\n".join(r.format() for r in fails)
 
 
 def test_live_check_junitxml_preferred_over_summary_line_when_both_present(tmp_path):
