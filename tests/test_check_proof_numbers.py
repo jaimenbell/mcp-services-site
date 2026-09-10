@@ -2243,3 +2243,91 @@ def test_run_with_local_override_present_and_live_drift_still_fails(tmp_path):
         "a local override pointing at a repo whose live count has drifted "
         "from the manifest must still fail the gate, even though the site "
         "citation agrees with the stale manifest value")
+
+
+# --- finding 3 (review 2): the no-live-check outcome gate was
+# aggregate-ANY -- `if live_fails or live_oks: return None` passed the WHOLE
+# run the moment a SINGLE entry reached a verdict, even while another
+# live-checkable entry silently WARNed forever (e.g. one rebuilt .venv, one
+# missing sibling checkout). All of the gate's own tests used single-entry
+# manifests, so this never showed up. Fixed to aggregate-ALL: every
+# live-checkable entry (one with source_repo_public, per
+# live_verify_manifest()'s own definition) must reach OK/FAIL, else FATAL
+# (exit 3) naming exactly which entries stayed unverified. ---
+
+def test_run_fatals_when_one_of_two_live_checkable_entries_stays_unverified(tmp_path, monkeypatch):
+    """2-entry manifest: repo-a resolves OK (local override present, live
+    count agrees with the manifest); repo-b has NO local override at all,
+    so it WARNs. Under the OLD aggregate-ANY gate this passed (repo-a's OK
+    was enough) -- repo-b's public citation went out silently unverified.
+    Must now FATAL (exit 3), naming repo-b."""
+    monkeypatch.delenv("CI", raising=False)
+    monkeypatch.delenv(cpn.SKIP_LIVE_CHECK_ENV_VAR, raising=False)
+    repo_a = tmp_path / "repo-a"
+    _write_fake_runner(repo_a, passed_count=199)
+
+    manifest_toml = tmp_path / "proof-manifest.toml"
+    manifest_toml.write_text(
+        '["repo-a"]\n'
+        "value = 199\n"
+        f'source_cmd = "{Path(sys.executable).as_posix()} fake_runner.py"\n'
+        'source_repo_public = "jaimenbell/repo-a"\n'
+        "\n"
+        '["repo-b"]\n'
+        "value = 50\n"
+        f'source_cmd = "{Path(sys.executable).as_posix()} fake_runner.py"\n'
+        'source_repo_public = "jaimenbell/repo-b"\n',
+        encoding="utf-8",
+    )
+    local_toml = tmp_path / "proof-manifest.local.toml"
+    local_toml.write_text(
+        f'["repo-a"]\nsource_repo = "{repo_a.as_posix()}"\n',
+        encoding="utf-8",
+    )
+    site_dir = tmp_path / "site"
+    site_dir.mkdir()
+    write(site_dir, "index.html", "<p>repo-a: 199 passing tests, repo-b: 50 passing tests</p>\n")
+
+    exit_code = cpn.run(root=site_dir, manifest_path=manifest_toml, target_patterns=["*.html"])
+
+    assert exit_code == 3
+
+
+def test_run_fatals_when_one_of_two_live_checkable_entries_stays_unverified_names_it(tmp_path, capsys, monkeypatch):
+    """Same 2-entry shape, this time asserting the FATAL message actually
+    NAMES the unverified entry (repo-b) -- not just a generic "something is
+    unverified" -- and does not claim repo-a (which resolved cleanly) is
+    part of the problem."""
+    monkeypatch.delenv("CI", raising=False)
+    monkeypatch.delenv(cpn.SKIP_LIVE_CHECK_ENV_VAR, raising=False)
+    repo_a = tmp_path / "repo-a"
+    _write_fake_runner(repo_a, passed_count=199)
+
+    manifest_toml = tmp_path / "proof-manifest.toml"
+    manifest_toml.write_text(
+        '["repo-a"]\n'
+        "value = 199\n"
+        f'source_cmd = "{Path(sys.executable).as_posix()} fake_runner.py"\n'
+        'source_repo_public = "jaimenbell/repo-a"\n'
+        "\n"
+        '["repo-b"]\n'
+        "value = 50\n"
+        f'source_cmd = "{Path(sys.executable).as_posix()} fake_runner.py"\n'
+        'source_repo_public = "jaimenbell/repo-b"\n',
+        encoding="utf-8",
+    )
+    local_toml = tmp_path / "proof-manifest.local.toml"
+    local_toml.write_text(
+        f'["repo-a"]\nsource_repo = "{repo_a.as_posix()}"\n',
+        encoding="utf-8",
+    )
+    site_dir = tmp_path / "site"
+    site_dir.mkdir()
+    write(site_dir, "index.html", "<p>repo-a: 199 passing tests, repo-b: 50 passing tests</p>\n")
+
+    exit_code = cpn.run(root=site_dir, manifest_path=manifest_toml, target_patterns=["*.html"])
+
+    assert exit_code == 3
+    out = capsys.readouterr().out
+    assert "repo-b" in out
+    assert "FATAL" in out

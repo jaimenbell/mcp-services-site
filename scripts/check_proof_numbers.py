@@ -1383,6 +1383,32 @@ def _print_no_live_check_fatal(
     )
 
 
+def _print_partial_live_check_fatal(live_warns: list[LiveCheckResult]) -> None:
+    """The message for the PARTIAL shape of the no-live-check outcome gate
+    (finding 3, review 2): at least one live-checkable entry DID reach a
+    live OK/FAIL verdict (proving the overlay mechanism works at all on this
+    machine) but at least one OTHER live-checkable entry is still WARN --
+    e.g. one rebuilt .venv, one missing sibling checkout. Unlike the TOTAL
+    shape (_print_no_live_check_fatal below), a generic "no live check ran"
+    message would be actively misleading here -- some entries DID verify --
+    so this names exactly which entries stayed unverified rather than
+    reporting a category."""
+    keys = [w.repo_key for w in live_warns]
+    plural = "y" if len(live_warns) == 1 else "ies"
+    print(
+        f"check_proof_numbers: FATAL -- {len(live_warns)} live-checkable "
+        f"manifest entr{plural} did not reach a live OK/FAIL verdict "
+        f"(WARN only): {keys}. Other entries verified cleanly -- this is a "
+        f"PARTIAL overlay, not a missing one -- so these citations are "
+        f"silently going out unverified while the run otherwise looks "
+        f"clean. Fix each entry's local override (see "
+        f"proof-manifest.local.toml.example), or set "
+        f"{SKIP_LIVE_CHECK_ENV_VAR}=1 to accept skipping explicitly."
+    )
+    for w in live_warns:
+        print(f"  - {w.format()}")
+
+
 def _no_live_check_outcome_gate(
     manifest_root: Path,
     resolved_local: Path | None,
@@ -1401,22 +1427,38 @@ def _no_live_check_outcome_gate(
     keyed on OUTCOME instead: did any entry actually reach a verdict (OK or
     FAIL), not just "does a file exist at this path".
 
-    Fires (prints the FATAL message and returns 3 -- see finding 3 for why
-    3 and not 2) when NO entry produced a live OK or FAIL result, UNLESS the
-    explicit skip env is set (PROOF_NUMBERS_SKIP_LIVE_CHECK=1, an explicit
-    opt-in to skip live checks entirely) or CI is genuinely set (finding 6 --
-    CI/a public clone will never have every sibling repo's local override,
-    so an all-WARN run is expected and prints one line naming the bypass
-    instead of silently taking it). Returns None when the caller should
-    proceed normally.
+    Aggregate-ALL, not aggregate-ANY (finding 3, review 2): the original
+    version of this gate returned None (pass) the moment ANY entry reached
+    OK/FAIL, which meant a manifest with 10 healthy entries and 1 silently
+    WARNing entry (a partially stale overlay -- one rebuilt .venv is enough)
+    passed clean, leaving that one entry's public citation unverified
+    forever. Every live-checkable entry must now reach OK/FAIL; any WARN
+    among them fires, in one of two shapes:
+
+      TOTAL   -- no entry reached OK/FAIL at all (the original defect this
+                 gate was built for). Message: _print_no_live_check_fatal().
+      PARTIAL -- at least one entry reached OK/FAIL, at least one other is
+                 WARN. Message: _print_partial_live_check_fatal(), which
+                 names the still-unverified entries explicitly.
+
+    Either shape returns 3 (see finding 3's naming rationale below), UNLESS
+    the explicit skip env is set (PROOF_NUMBERS_SKIP_LIVE_CHECK=1, an
+    explicit opt-in to skip live checks entirely) or CI is genuinely set
+    (finding 6 -- CI/a public clone will never have every sibling repo's
+    local override, so an all-WARN run is expected and prints one line
+    naming the bypass instead of silently taking it). Returns None only
+    when every live-checkable entry reached OK/FAIL (zero WARNs).
     """
     if os.environ.get(SKIP_LIVE_CHECK_ENV_VAR):
         return None
     if _is_ci_set():
         print("check_proof_numbers: CI set -- live checks skipped by policy")
         return None
-    if live_fails or live_oks:
+    if not live_warns and (live_fails or live_oks):
         return None
+    if live_warns and (live_fails or live_oks):
+        _print_partial_live_check_fatal(live_warns)
+        return 3
     _print_no_live_check_fatal(manifest_root, resolved_local, live_warns)
     return 3
 
