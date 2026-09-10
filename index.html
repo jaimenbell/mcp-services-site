@@ -77,6 +77,28 @@
   }
   .skip-link:focus, .skip-link:focus-visible { left: 0; }
 
+  /* ---- global keyboard focus indicator (WCAG 2.4.7) ----
+     Before 2026-09-09 the ONLY :focus-visible rule in this file was .skip-link's,
+     so every other link, button, input and summary element fell back to whatever ring
+     the UA happened to draw. Nothing here sets outline:none, so the default was
+     never suppressed -- but it was also never designed, and the UA ring is not
+     guaranteed to stay legible on this palette.
+
+     :focus-visible only, deliberately: a plain :focus rule would also fire on
+     mouse click. outline-offset pushes the ring OUTSIDE the element so it lands
+     on the (dark) surface behind it -- that is what keeps it visible on the
+     light accent-filled .btn-primary as well as on the dark card surfaces. */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  summary:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   body {
     margin: 0;
     background: var(--bg);
@@ -847,12 +869,12 @@
      the operator fills in DISCORD_INVITE (server doesn't exist yet). -->
 <section id="discord" class="band band--dark">
   <div class="wrap">
-    <div class="cta-box reveal" id="discord-cta" style="display:none">
+    <div class="cta-box reveal" id="discord-cta">
       <div class="sec-tag">Join the build</div>
       <h2>Where AI builders show their work — losses included.</h2>
       <p>Trading bots, agents, MCP tools, content pipelines — real logs, real war stories, from people who actually ship. The same harness discipline this whole site is built on, now a community.</p>
       <div class="btn-row" style="justify-content:center; margin-bottom:0">
-        <a href="" id="discord-cta-link" target="_blank" rel="noopener" class="btn btn-primary">
+        <a href="https://discord.gg/Xw3QNsUdYh" id="discord-cta-link" target="_blank" rel="noopener" class="btn btn-primary">
           Join the Discord
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
         </a>
@@ -1575,7 +1597,7 @@
     </a>
     <div class="foot-honest">
       Production MCP servers — auth-scoped, fail-soft, tested. <span class="v">348 passing tests</span> on the open engine; the production layer is hand-built per engagement. No trading claims, no fabricated metrics.
-      <br><a href="https://github.com/jaimenbell/MCP-Factory" style="color:var(--muted)">GitHub</a> · <a href="scoreboard.html" style="color:var(--muted)">Scoreboard</a> · <a href="mailto:jaime@jaimenbell.dev" style="color:var(--muted)">jaime@jaimenbell.dev</a> <span id="discord-footer-link-wrap" style="display:none">· <a id="discord-footer-link" href="" target="_blank" rel="noopener" style="color:var(--muted)">Discord</a></span>
+      <br><a href="https://github.com/jaimenbell/MCP-Factory" style="color:var(--muted)">GitHub</a> · <a href="scoreboard.html" style="color:var(--muted)">Scoreboard</a> · <a href="mailto:jaime@jaimenbell.dev" style="color:var(--muted)">jaime@jaimenbell.dev</a> <span id="discord-footer-link-wrap">· <a id="discord-footer-link" href="https://discord.gg/Xw3QNsUdYh" target="_blank" rel="noopener" style="color:var(--muted)">Discord</a></span>
     </div>
   </div>
 </footer>

@@ -8,7 +8,13 @@
   --border:    #233048;
   --text:      #e8edf6;
   --muted:     #9fb0c9;
-  --faint:     #6b7c98;
+  /* Raised from #6b7c98 on 2026-09-09: that value cleared 4.5:1 only on --bg
+     (4.53:1) and FAILED on the card/soft surfaces it is also used on --
+     4.02:1 on --card (.tier .price small) and 4.22:1 on --bg-soft. Same hue
+     (217deg) and saturation, lightness nudged until the WORST surface passes:
+     4.66:1 on --card, 4.90:1 on --bg-soft, 5.26:1 on --bg. See
+     tests/test_a11y_contrast.py, which fails the suite if this regresses. */
+  --faint:     #7787a0;
   --accent:    #5b9dff;
   --accent-2:  #34d399;
   --warn:      #fbbf24;
@@ -66,6 +72,28 @@ html { scroll-behavior: smooth; }
 .skip-link:focus,
 .skip-link:focus-visible {
   left: 0;
+}
+
+/* ---- global keyboard focus indicator (WCAG 2.4.7) ----
+   Before 2026-09-09 the ONLY :focus-visible rule in this file was .skip-link's,
+   so every other link, button, input and summary element fell back to whatever ring
+   the UA happened to draw. Nothing here sets outline:none, so the default was
+   never suppressed -- but it was also never designed, and the UA ring is not
+   guaranteed to stay legible on this palette.
+
+   :focus-visible only, deliberately: a plain :focus rule would also fire on
+   mouse click. outline-offset pushes the ring OUTSIDE the element so it lands
+   on the (dark) surface behind it -- that is what keeps it visible on the
+   light accent-filled .btn-primary as well as on the dark card surfaces. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
 }
 
 body {
