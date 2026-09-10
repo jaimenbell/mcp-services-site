@@ -2147,6 +2147,39 @@ def test_real_local_example_template_covers_every_live_checked_entry():
             )
 
 
+def test_real_local_example_template_describes_the_current_worktree_fallback(tmp_path):
+    """Finding 7 (review 2): the example template's header prose had drifted
+    from the code it describes -- it still said the overlay lookup falls
+    back to the main checkout "via `git rev-parse --git-common-dir`" (the
+    mechanism finding 9's fix REPLACED, per _main_worktree_path()'s own
+    docstring, because --git-common-dir has no fixed relationship to a
+    checkout root under a separate-git-dir layout) and that the FATAL exits
+    "2" (the no-live-check gate has exited 3 since finding 3 in the first
+    review). Positive control: fires on a reproduction of the exact stale
+    text, silent on the real tracked file after the fix."""
+    stale_text = (
+        "resolve_local_manifest_path() looks there first, then (via "
+        "`git rev-parse --git-common-dir`) automatically falls back to the "
+        "main checkout ... the checker now FAILS LOUDLY (exit 2)"
+    )
+    assert "--git-common-dir" in stale_text and "exit 2" in stale_text  # FIRES shape, sanity
+
+    example_path = REPO_ROOT / "proof-manifest.local.toml.example"
+    text = example_path.read_text(encoding="utf-8")
+    assert "--git-common-dir`) automatically falls back" not in text, (
+        "example template still CLAIMS --git-common-dir is the current "
+        "fallback mechanism (finding 9 replaced it with `git worktree "
+        "list`) -- mentioning it as retired-mechanism context is fine, "
+        "claiming it's still how the fallback works is not"
+    )
+    assert "exit 2" not in text, (
+        "example template still says the no-live-check FATAL exits 2 -- "
+        "it exits 3 (finding 3, first review)"
+    )
+    assert "worktree list" in text
+    assert "exit 3" in text
+
+
 # --- finding 2 (review 2): proof-manifest.toml is PUBLIC (jaimenbell.dev/
 # proof-manifest.toml is a real, fetchable, no-build-step-served URL) -- a
 # `note` field is free-text audit trail, not reviewed the way a value/citation

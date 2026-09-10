@@ -16,12 +16,15 @@
 # WHERE TO PUT IT (2026-09-09, worktree-overlay lane): copy it to your MAIN
 # checkout's root, e.g. mcp-services-site/proof-manifest.local.toml -- not
 # inside a `.claude/worktrees/<lane>/` linked worktree. The checker's
-# resolve_local_manifest_path() looks there first, then (via `git rev-parse
-# --git-common-dir`) automatically falls back to the main checkout, so a
-# single copy at the main checkout root covers every worktree too. If NEITHER
-# location has this file, and neither CI nor PROOF_NUMBERS_SKIP_LIVE_CHECK=1
-# is set, the checker now FAILS LOUDLY (exit 2) instead of silently
-# degrading every live check to a WARN -- create this file (or set
+# resolve_local_manifest_path() looks there first, then (via
+# `git worktree list --porcelain`, self-verified against `git rev-parse
+# --show-toplevel` -- see _main_worktree_path()'s docstring for why the
+# older `git rev-parse --git-common-dir`-derived approach was replaced)
+# automatically falls back to the main checkout, so a single copy at the
+# main checkout root covers every worktree too. If NEITHER location has
+# this file, and neither CI nor PROOF_NUMBERS_SKIP_LIVE_CHECK=1 is set, the
+# checker now FAILS LOUDLY (exit 3) instead of silently degrading every live
+# check to a WARN -- create this file (or set
 # PROOF_NUMBERS_SKIP_LIVE_CHECK=1 to explicitly accept skipping) to clear it.
 #
 # Each top-level table below may carry:
