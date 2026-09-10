@@ -1463,7 +1463,7 @@ def _no_live_check_outcome_gate(
     if _is_set(SKIP_LIVE_CHECK_ENV_VAR):
         return None
     if _is_ci_set():
-        print("check_proof_numbers: CI set -- live checks skipped by policy")
+        print("check_proof_numbers: no-live-check gate bypassed (CI)")
         return None
     if not live_warns and (live_fails or live_oks):
         return None

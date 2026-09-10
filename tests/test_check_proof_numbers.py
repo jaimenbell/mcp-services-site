@@ -1866,8 +1866,12 @@ def test_main_silent_2_ci_set_no_overlay_warns_and_exits_0(tmp_path):
     assert "WARN" in result.stdout
     assert "mcp-factory" in result.stdout
     # Finding 6: the CI bypass must be visible, not silent, mirroring the
-    # skip-env line printed by _live_check_findings().
-    assert "CI set -- live checks skipped by policy" in result.stdout
+    # skip-env line printed by _live_check_findings(). Wording per finding 8
+    # (review 2): it's the no-live-check GATE that's bypassed under CI, not
+    # "live checks" themselves -- CI can still produce a real per-entry
+    # LIVE-CHECK FAIL (see test_ci_set_but_a_real_live_check_fail_still_
+    # reported_with_accurate_wording below).
+    assert "no-live-check gate bypassed (CI)" in result.stdout
 
 
 def test_is_ci_set_treats_falsy_spellings_as_not_set(monkeypatch):
@@ -2421,3 +2425,45 @@ def test_run_fatals_when_one_of_two_live_checkable_entries_stays_unverified_name
     out = capsys.readouterr().out
     assert "repo-b" in out
     assert "FATAL" in out
+
+
+# --- finding 8 (review 2): the CI-bypass line said "live checks skipped by
+# policy", but CI does NOT skip individual live checks -- only the
+# no-live-check OUTCOME GATE (which would otherwise FATAL on an all/partial-
+# WARN result). An entry that DOES resolve under CI can still produce a
+# real per-entry LIVE-CHECK FAIL, printed right next to the "skipped by
+# policy" line -- self-contradictory and misleading at exactly the moment
+# an operator most needs the message to be accurate. ---
+
+def test_ci_set_but_a_real_live_check_fail_still_reported_with_accurate_wording(tmp_path, capsys, monkeypatch):
+    """CI=1, and the manifest entry carries a source_repo directly (the
+    live-checkable-in-CI shape), pointing at a repo whose live count has
+    drifted from the manifest. The run must still FAIL (exit 2) on that
+    real drift -- CI never bypasses a genuine LIVE-CHECK FAIL -- and the
+    printed CI-bypass line must say "no-live-check gate bypassed (CI)",
+    never the old "live checks skipped by policy" (which reads as if the
+    FAIL right next to it shouldn't have happened)."""
+    monkeypatch.setenv("CI", "1")
+    repo_dir = tmp_path / "mcp-factory"
+    _write_fake_runner(repo_dir, passed_count=230)  # live has drifted from the manifest
+
+    manifest_toml = tmp_path / "proof-manifest.toml"
+    manifest_toml.write_text(
+        '["mcp-factory"]\n'
+        "value = 222\n"
+        f'source_cmd = "{Path(sys.executable).as_posix()} fake_runner.py"\n'
+        f'source_repo = "{repo_dir.as_posix()}"\n'
+        'source_repo_public = "jaimenbell/mcp-factory"\n',
+        encoding="utf-8",
+    )
+    site_dir = tmp_path / "site"
+    site_dir.mkdir()
+    write(site_dir, "index.html", "<p>mcp-factory: 222 passing tests</p>\n")
+
+    exit_code = cpn.run(root=site_dir, manifest_path=manifest_toml, target_patterns=["*.html"])
+
+    out = capsys.readouterr().out
+    assert exit_code == 2, f"a real live-check FAIL under CI must still block the run:\n{out}"
+    assert "no-live-check gate bypassed (CI)" in out
+    assert "live checks skipped by policy" not in out
+    assert "230" in out and "222" in out, "the real FAIL must actually be printed"
